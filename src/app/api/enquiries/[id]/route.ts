@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { updateEnquiry, deleteEnquiry, fetchEnquiries } from '@/lib/googleSheets';
 
 // GET single enquiry
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params; // ← AWAIT params
     const enquiries = await fetchEnquiries();
-    const enquiry = enquiries.find(e => e.id === params.id);
+    const enquiry = enquiries.find(e => e.id === id);
     
     if (!enquiry) {
       return NextResponse.json(
@@ -28,14 +29,15 @@ export async function GET(
 
 // PUT update enquiry
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params; // ← AWAIT params
     const body = await request.json();
     const updatedEnquiry = {
       ...body,
-      id: params.id,
+      id: id,
       updatedAt: new Date(),
     };
     
@@ -52,11 +54,12 @@ export async function PUT(
 
 // DELETE enquiry
 export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await deleteEnquiry(params.id);
+    const { id } = await params; // ← AWAIT params
+    await deleteEnquiry(id);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
