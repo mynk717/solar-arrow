@@ -9,6 +9,7 @@ import {
   CreditCard, 
   Wrench,
   Menu,
+  Settings,
   X
 } from 'lucide-react';
 import { useState } from 'react';
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'Survey Panel', href: '/survey', icon: ClipboardCheck },
   { name: 'Payments', href: '/payments', icon: CreditCard },
   { name: 'Installation', href: '/installation', icon: Wrench },
+  { name: 'Settings', href: '/settings', icon: Settings }, 
 ];
 
 export default function Sidebar() {
