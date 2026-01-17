@@ -1,7 +1,7 @@
 'use client';
 
 import { useEnquiries } from '@/lib/useEnquiries';
-import { FileText, ClipboardCheck, IndianRupee, CheckCircle, Activity, Loader2, RefreshCw } from 'lucide-react';
+import { FileText, ClipboardCheck, IndianRupee, CheckCircle, Activity, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import Link from 'next/link';
 
@@ -66,6 +66,9 @@ export default function Dashboard() {
 
   const recentEnquiries = enquiries.slice(0, 5);
 
+  // ✅ DYNAMIC CONNECTION STATUS
+  const isConnected = !error && enquiries !== null;
+
   return (
     <div>
       <div className="mb-8">
@@ -74,17 +77,27 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
             <p className="text-gray-900 mt-2">Welcome to your Solar Panel Management System</p>
             <div className="flex items-center gap-2 mt-3">
-              <span className="inline-flex items-center gap-1.5 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Connected to Google Sheets
-              </span>
+              {/* ✅ DYNAMIC CONNECTION INDICATOR */}
+              {isConnected ? (
+                <span className="inline-flex items-center gap-1.5 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Connected to Google Sheets
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-sm text-red-700 bg-red-50 px-3 py-1 rounded-full border border-red-200">
+                  <AlertCircle size={14} />
+                  Not Connected
+                </span>
+              )}
+              
               <button
                 onClick={refetch}
-                className="text-sm text-gray-700 hover:text-gray-900 px-3 py-1 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5"
+                disabled={loading}
+                className="text-sm text-gray-700 hover:text-gray-900 px-3 py-1 rounded-lg hover:bg-gray-100 inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Refresh data"
               >
-                <RefreshCw size={14} />
-                Refresh
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                {loading ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
           </div>
