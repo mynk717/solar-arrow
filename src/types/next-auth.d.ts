@@ -1,21 +1,31 @@
-import { DefaultSession } from "next-auth";
+import 'next-auth';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     accessToken?: string;
-    refreshToken?: string;
     error?: string;
+    userId?: string;
+    googleSheetId?: string | null;  // ← Add this
     user: {
       id?: string;
-    } & DefaultSession["user"];
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  }
+
+  interface User {
+    id: string;
+    googleSheetId?: string | null;  // ← Add this
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
     accessToken?: string;
     refreshToken?: string;
-    expiresAt?: number;
+    accessTokenExpires?: number;
     error?: string;
+    userId?: string;
   }
 }

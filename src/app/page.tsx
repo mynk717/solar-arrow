@@ -1,14 +1,38 @@
 'use client';
 
 import { useEnquiries } from '@/lib/useEnquiries';
-import { FileText, ClipboardCheck, IndianRupee, CheckCircle, Activity, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { FileText, ClipboardCheck, IndianRupee, CheckCircle, Activity, Loader2, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { enquiries, loading, error, refetch } = useEnquiries();
 
-  // Loading state
+  // Redirect to setup if no sheet connected
+  useEffect(() => {
+    if (status === 'authenticated' && session && !session.googleSheetId && !loading) {
+      router.push('/setup');
+    }
+  }, [status, session, loading, router]);
+
+  // Session loading state
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-900 font-medium">Loading session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Data loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -26,7 +50,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center bg-red-50 border border-red-200 rounded-lg p-8 max-w-md">
-          <div className="text-red-600 text-5xl mb-4">⚠️</div>
+          <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Connection Error</h2>
           <p className="text-gray-800 mb-4">{error}</p>
           <div className="flex flex-col gap-3">
@@ -37,16 +61,16 @@ export default function Dashboard() {
               <RefreshCw size={18} />
               Retry Connection
             </button>
-            <Link
-              href="/settings"
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-medium inline-flex items-center justify-center gap-2"
-            >
-              Configure Google Sheets
-            </Link>
+            {!session?.googleSheetId && (
+              <Link
+                href="/setup"
+                className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-medium inline-flex items-center justify-center gap-2"
+              >
+                <Settings size={18} />
+                Connect Google Sheet
+              </Link>
+            )}
           </div>
-          <p className="text-gray-700 text-sm mt-4">
-            Configure your Google Sheets connection in Settings
-          </p>
         </div>
       </div>
     );
@@ -65,9 +89,7 @@ export default function Dashboard() {
   };
 
   const recentEnquiries = enquiries.slice(0, 5);
-
-  // ✅ DYNAMIC CONNECTION STATUS
-  const isConnected = !error && enquiries !== null;
+  const isConnected = !!session?.googleSheetId && !error;
 
   return (
     <div>
@@ -77,7 +99,7 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
             <p className="text-gray-900 mt-2">Welcome to your Solar Panel Management System</p>
             <div className="flex items-center gap-2 mt-3">
-              {/* ✅ DYNAMIC CONNECTION INDICATOR */}
+              {/* Connection Status */}
               {isConnected ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
