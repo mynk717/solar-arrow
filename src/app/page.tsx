@@ -21,9 +21,9 @@ export default function Dashboard() {
       setSheetId(stored);
       
       // Redirect to setup if no sheet connected
-      if (!stored && status === 'authenticated') {
-        router.push('/setup');
-      }
+      // if (!stored && status === 'authenticated') {
+      //   router.push('/setup');
+      // }
     }
   }, [session?.user?.email, status, router]);
 
