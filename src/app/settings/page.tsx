@@ -18,6 +18,27 @@ export default function SettingsPage() {
     }
   }, [session]);
 
+  // Load existing config from localStorage on mount
+useEffect(() => {
+  if (session?.user?.email) {
+    const stored = localStorage.getItem(`sheetId_${session.user.email}`);
+    if (stored) {
+      setSheetId(stored);
+      setIsConfigured(true);
+      
+      // Also sync to server
+      fetch('/api/sheets/save-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sheetId: stored,
+          sheetName: 'Sheet1',
+        }),
+      }).catch(console.error);
+    }
+  }
+}, [session?.user?.email]);
+
   const loadConfig = async () => {
     try {
       const response = await fetch('/api/sheets/save-config');
