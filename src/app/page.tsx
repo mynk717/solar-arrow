@@ -3,22 +3,29 @@
 import { useEnquiries } from '@/lib/useEnquiries';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { FileText, ClipboardCheck, IndianRupee, CheckCircle, Activity, Loader2, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import Link from 'next/link';
-import { useEffect } from 'react';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [sheetId, setSheetId] = useState<string | null>(null);
   const { enquiries, loading, error, refetch } = useEnquiries();
 
-  // Redirect to setup if no sheet connected
+  // Load sheet ID from localStorage
   useEffect(() => {
-    if (status === 'authenticated' && session && !session.googleSheetId && !loading) {
-      router.push('/setup');
+    if (session?.user?.email) {
+      const stored = localStorage.getItem(`sheetId_${session.user.email}`);
+      setSheetId(stored);
+      
+      // Redirect to setup if no sheet connected
+      if (!stored && status === 'authenticated') {
+        router.push('/setup');
+      }
     }
-  }, [status, session, loading, router]);
+  }, [session?.user?.email, status, router]);
 
   // Session loading state
   if (status === 'loading') {
@@ -61,7 +68,7 @@ export default function Dashboard() {
               <RefreshCw size={18} />
               Retry Connection
             </button>
-            {!session?.googleSheetId && (
+            {!sheetId && (
               <Link
                 href="/setup"
                 className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 font-medium inline-flex items-center justify-center gap-2"
@@ -89,7 +96,7 @@ export default function Dashboard() {
   };
 
   const recentEnquiries = enquiries.slice(0, 5);
-  const isConnected = !!session?.googleSheetId && !error;
+  const isConnected = !!sheetId && !error;
 
   return (
     <div>
