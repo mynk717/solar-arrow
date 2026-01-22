@@ -1,8 +1,22 @@
 // scripts/init-redis.ts
-import { redis } from '@/lib/redis';
-import bcrypt from 'bcryptjs'; // ✅ Add this import
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import { Redis } from '@upstash/redis';
+import bcrypt from 'bcryptjs';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
+
+// Initialize Redis with loaded env vars
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 async function initRedis() {
+  console.log('🚀 Initializing Redis...');
+  console.log('📍 Redis URL:', process.env.UPSTASH_REDIS_REST_URL);
+  
   // Create default organization
   const orgId = 'hope-energy';
   await redis.set(`org:${orgId}:info`, {
@@ -60,10 +74,17 @@ async function initRedis() {
     users: { view: false, create: false, edit: false, delete: false }
   });
 
-  console.log('✅ Redis initialized!');
+  console.log('✅ Redis initialized successfully!');
+  console.log('');
   console.log('📧 Admin Email: admin@hopeenergy.com');
   console.log('🔑 Admin Password: admin123');
   console.log('⚠️  Please change the password after first login!');
+  console.log('');
 }
 
-initRedis().catch(console.error);
+initRedis()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Error initializing Redis:', error);
+    process.exit(1);
+  });
