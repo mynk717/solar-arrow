@@ -1,19 +1,54 @@
 'use client';
 
-import { useState } from 'react';
-import { dummyEnquiries } from '@/lib/data';
+import { useState, useEffect } from 'react';
 import { Enquiry, EnquiryStatus } from '@/lib/types';
 import StatusBadge from '@/components/StatusBadge';
-import { Search, Filter, Plus, Eye } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Loader2 } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
 
 export default function EnquiriesPage() {
-  const [enquiries, setEnquiries] = useState(dummyEnquiries);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<EnquiryStatus | 'all'>('all');
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [showForm, setShowForm] = useState(false);
 
+  // Fetch enquiries from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/enquiries');
+        if (!response.ok) throw new Error('Failed to fetch enquiries');
+        
+        const data = await response.json();
+        
+        // Convert date strings back to Date objects
+        const enquiriesWithDates = data.map((e: any) => ({
+          ...e,
+          createdAt: new Date(e.createdAt),
+          updatedAt: new Date(e.updatedAt),
+          surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
+          registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
+          paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
+          dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
+          installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
+          inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
+          activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
+        }));
+        
+        setEnquiries(enquiriesWithDates);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   const filteredEnquiries = enquiries.filter(e => {
     const matchesSearch = 
@@ -26,35 +61,61 @@ export default function EnquiriesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading enquiries...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center bg-red-50 border border-red-200 rounded-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-8 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Enquiry Management</h1>
-          <p className="text-gray-900 mt-2">Manage all customer enquiries</p>
+          <p className="text-gray-600 mt-2">Manage all customer enquiries</p>
         </div>
-       <button 
-  onClick={() => setShowForm(true)}
-  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
->
-  <Plus size={20} />
-  New Enquiry
-</button>
-{showForm && (
-  <EnquiryForm
-    onClose={() => setShowForm(false)}
-    onSubmit={(newEnquiry) => {
-      setEnquiries(prev => [newEnquiry, ...prev]);
-    }}
-  />
-)}
+        <button 
+          onClick={() => setShowForm(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
+          <Plus size={20} />
+          New Enquiry
+        </button>
       </div>
+
+      {showForm && (
+        <EnquiryForm
+          onClose={() => setShowForm(false)}
+          onSubmit={(newEnquiry) => {
+            setEnquiries(prev => [newEnquiry, ...prev]);
+            setShowForm(false);
+          }}
+        />
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Search by name, ID, or phone..."
@@ -65,7 +126,7 @@ export default function EnquiriesPage() {
           </div>
           
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-700" size={20} />
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <select
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-900"
               value={statusFilter}
@@ -106,21 +167,21 @@ export default function EnquiriesPage() {
                   <td className="py-4 px-6">
                     <div>
                       <div className="font-medium text-gray-900">{enquiry.customerName}</div>
-                      <div className="text-sm text-gray-900">{enquiry.phone}</div>
-                      <div className="text-sm text-gray-900">{enquiry.email}</div>
+                      <div className="text-sm text-gray-600">{enquiry.phone}</div>
+                      <div className="text-sm text-gray-600">{enquiry.email}</div>
                     </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">{enquiry.area}</div>
-                      <div className="text-gray-900">{enquiry.address}</div>
+                      <div className="text-gray-600">{enquiry.address}</div>
                     </div>
                   </td>
                   <td className="py-4 px-6 font-medium text-gray-900">{enquiry.capacity} kW</td>
                   <td className="py-4 px-6">
                     <StatusBadge status={enquiry.status} />
                   </td>
-                  <td className="py-4 px-6 text-sm text-gray-900">
+                  <td className="py-4 px-6 text-sm text-gray-600">
                     {enquiry.createdAt.toLocaleDateString()}
                   </td>
                   <td className="py-4 px-6">
@@ -139,7 +200,7 @@ export default function EnquiriesPage() {
         </div>
 
         {filteredEnquiries.length === 0 && (
-          <div className="text-center py-12 text-gray-900">
+          <div className="text-center py-12 text-gray-600">
             No enquiries found matching your criteria
           </div>
         )}
@@ -162,7 +223,7 @@ function EnquiryModal({ enquiry, onClose }: { enquiry: Enquiry; onClose: () => v
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
           <h2 className="text-xl font-bold text-gray-900">Enquiry Details - {enquiry.id}</h2>
-          <button onClick={onClose} className="text-gray-900 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-900 text-2xl">
             ✕
           </button>
         </div>
@@ -178,6 +239,8 @@ function EnquiryModal({ enquiry, onClose }: { enquiry: Enquiry; onClose: () => v
 
           <Section title="Project Details">
             <InfoRow label="Capacity" value={`${enquiry.capacity} kW`} />
+            <InfoRow label="Panel Tag" value={enquiry.panelTag} />
+            <InfoRow label="Payment Type" value={enquiry.paymentType} />
             <InfoRow label="Status" value={<StatusBadge status={enquiry.status} />} />
             <InfoRow label="Created" value={enquiry.createdAt.toLocaleDateString()} />
           </Section>
@@ -204,6 +267,7 @@ function EnquiryModal({ enquiry, onClose }: { enquiry: Enquiry; onClose: () => v
               <InfoRow label="Estimated Cost" value={`₹${enquiry.estimatedCost.toLocaleString()}`} />
               <InfoRow label="Initial Payment" value={`₹${enquiry.initialPayment?.toLocaleString()}`} />
               <InfoRow label="Payment Date" value={enquiry.paymentDate?.toLocaleDateString()} />
+              <InfoRow label="Payment Method" value={enquiry.paymentMethod || '-'} />
             </Section>
           )}
 
@@ -234,7 +298,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function InfoRow({ label, value }: { label: string; value: any }) {
   return (
     <div className="flex justify-between py-2 border-b border-gray-200 last:border-0">
-      <span className="text-gray-900 font-medium">{label}:</span>
+      <span className="text-gray-700 font-medium">{label}:</span>
       <span className="text-gray-900">{value}</span>
     </div>
   );
