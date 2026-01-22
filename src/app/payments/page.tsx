@@ -1,14 +1,53 @@
 'use client';
 
-import { useState } from 'react';
-import { dummyEnquiries } from '@/lib/data';
+import { useState, useEffect } from 'react';
+import { Enquiry, PaymentType } from '@/lib/types';
 import StatusBadge from '@/components/StatusBadge';
-import { IndianRupee, CheckCircle, Clock, AlertCircle, Download, Filter } from 'lucide-react';
-import type { PaymentType, Enquiry } from '@/lib/types';
+import { IndianRupee, CheckCircle, Clock, AlertCircle, Download, Filter, Loader2 } from 'lucide-react';
 
 export default function PaymentsPage() {
-  const [enquiries, setEnquiries] = useState(dummyEnquiries);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [paymentFilter, setPaymentFilter] = useState<PaymentType | 'all'>('all');
+  
+  // Fetch enquiries from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/enquiries');
+        if (!response.ok) throw new Error('Failed to fetch enquiries');
+        
+        const data = await response.json();
+        
+        // Convert date strings back to Date objects
+        const enquiriesWithDates = data.map((e: any) => ({
+          ...e,
+          createdAt: new Date(e.createdAt),
+          updatedAt: new Date(e.updatedAt),
+          surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
+          registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
+          paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
+          dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
+          installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
+          inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
+          activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
+          subsidyAppliedDate: e.subsidyAppliedDate ? new Date(e.subsidyAppliedDate) : undefined,
+          subsidyApprovedDate: e.subsidyApprovedDate ? new Date(e.subsidyApprovedDate) : undefined,
+          subsidyDisbursedDate: e.subsidyDisbursedDate ? new Date(e.subsidyDisbursedDate) : undefined,
+        }));
+        
+        setEnquiries(enquiriesWithDates);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   const awaitingRegistration = enquiries.filter(e => 
     e.status === 'survey_completed'
@@ -70,32 +109,54 @@ export default function PaymentsPage() {
     ));
   };
 
-  
-const handleSubsidyUpdate = (
-  enquiryId: string,
-  subsidyAmount: number,
-  status: 'pending' | 'approved' | 'disbursed' | 'rejected'
-) => {
-  setEnquiries(prev => prev.map(e => 
-    e.id === enquiryId 
-      ? { 
-          ...e, 
-          subsidyAmount,
-          subsidyStatus: status,
-          subsidyAppliedDate: e.subsidyAppliedDate || new Date(),
-          subsidyApprovedDate: status === 'approved' || status === 'disbursed' ? new Date() : undefined,
-          subsidyDisbursedDate: status === 'disbursed' ? new Date() : undefined,
-          updatedAt: new Date()
-        }
-      : e
-  ));
-};
-
+  const handleSubsidyUpdate = (
+    enquiryId: string,
+    subsidyAmount: number,
+    status: 'pending' | 'approved' | 'disbursed' | 'rejected'
+  ) => {
+    setEnquiries(prev => prev.map(e => 
+      e.id === enquiryId 
+        ? { 
+            ...e, 
+            subsidyAmount,
+            subsidyStatus: status,
+            subsidyAppliedDate: e.subsidyAppliedDate || new Date(),
+            subsidyApprovedDate: status === 'approved' || status === 'disbursed' ? new Date() : undefined,
+            subsidyDisbursedDate: status === 'disbursed' ? new Date() : undefined,
+            updatedAt: new Date()
+          }
+        : e
+    ));
+  };
 
   // Filter by payment type
   const filteredPaymentReceived = paymentFilter === 'all' 
     ? paymentReceived 
     : paymentReceived.filter(e => e.paymentType === paymentFilter);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading payment data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center bg-red-50 border border-red-200 rounded-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -649,11 +710,12 @@ function SubsidyCard({ enquiry, onUpdate }: {
             <select 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               value={subsidyStatus}
-              onChange={(e) => setSubsidyStatus(e.target.value as 'pending' | 'approved' | 'disbursed')}
+              onChange={(e) => setSubsidyStatus(e.target.value as 'pending' | 'approved' | 'disbursed' | 'rejected')}
             >
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="disbursed">Disbursed</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
 

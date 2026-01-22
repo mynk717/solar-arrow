@@ -1,17 +1,60 @@
 'use client';
 
-import { useState } from 'react';
-import { dummyEnquiries, installationTeams } from '@/lib/data';
+import { useState, useEffect } from 'react';
+import { Enquiry } from '@/lib/types';
 import StatusBadge from '@/components/StatusBadge';
-import { Truck, Wrench, ClipboardCheck, Package, Calendar } from 'lucide-react';
+import { Truck, Wrench, ClipboardCheck, Package, Loader2 } from 'lucide-react';
+
+const installationTeams = [
+  'Tech Team A',
+  'Tech Team B', 
+  'Tech Team C'
+];
 
 export default function InstallationPage() {
-  const [enquiries, setEnquiries] = useState(dummyEnquiries);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Fetch enquiries from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/enquiries');
+        if (!response.ok) throw new Error('Failed to fetch enquiries');
+        
+        const data = await response.json();
+        
+        // Convert date strings back to Date objects
+        const enquiriesWithDates = data.map((e: any) => ({
+          ...e,
+          createdAt: new Date(e.createdAt),
+          updatedAt: new Date(e.updatedAt),
+          surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
+          registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
+          paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
+          dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
+          installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
+          inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
+          activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
+        }));
+        
+        setEnquiries(enquiriesWithDates);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   const readyForDispatch = enquiries.filter(e => e.status === 'payment_received');
   const dispatched = enquiries.filter(e => e.status === 'dispatched' || e.status === 'dispatch_pending');
   const inInstallation = enquiries.filter(e => 
-    e.status === 'installation_pending' || e.dispatchDate && !e.installationDate
+    e.status === 'installation_pending' || (e.dispatchDate && !e.installationDate)
   );
   const installationCompleted = enquiries.filter(e => 
     e.status === 'installation_completed' || e.installationDate
@@ -63,11 +106,35 @@ export default function InstallationPage() {
     ));
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading installation data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center bg-red-50 border border-red-200 rounded-lg p-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Installation Management</h1>
-        <p className="text-gray-900 mt-2">Manage dispatch, installation, and inspection process</p>
+        <p className="text-gray-600 mt-2">Manage dispatch, installation, and inspection process</p>
       </div>
 
       {/* Stats */}
@@ -172,7 +239,7 @@ export default function InstallationPage() {
         </h2>
         
         {installationCompleted.length === 0 ? (
-          <p className="text-gray-900 text-center py-8">No completed installations yet</p>
+          <p className="text-gray-600 text-center py-8">No completed installations yet</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -195,7 +262,7 @@ export default function InstallationPage() {
                     <td className="py-3 px-4">
                       <div>
                         <div className="font-medium text-gray-900">{enquiry.customerName}</div>
-                        <div className="text-sm text-gray-900">{enquiry.area}</div>
+                        <div className="text-sm text-gray-600">{enquiry.area}</div>
                       </div>
                     </td>
                     <td className="py-3 px-4 text-gray-700">{enquiry.capacity} kW</td>
@@ -230,7 +297,7 @@ function StatCard({ title, value, icon, color }: any) {
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-900 text-sm font-medium">{title}</p>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
           <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
         </div>
         <div className={`${color} text-white p-3 rounded-lg`}>
@@ -249,8 +316,8 @@ function DispatchCard({ enquiry, onDispatch }: any) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-900">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-900 mt-1">
+          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
+          <p className="text-sm text-gray-600 mt-1">
             Payment Received: {enquiry.paymentDate?.toLocaleDateString()}
           </p>
         </div>
@@ -261,19 +328,19 @@ function DispatchCard({ enquiry, onDispatch }: any) {
         <h4 className="font-semibold text-gray-900 mb-3">Materials to Dispatch:</h4>
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full text-gray-700"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             Solar Panels: {parseInt(enquiry.capacity) * 3} units (330W each)
           </li>
           <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full text-gray-700"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             Inverter: 1 unit ({enquiry.capacity}kW)
           </li>
           <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full text-gray-700"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             Mounting Structure: Complete set
           </li>
           <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full text-gray-700"></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             Wiring & Accessories: Complete kit
           </li>
         </ul>
@@ -354,8 +421,8 @@ function InstallationCard({ enquiry, onComplete }: any) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-900">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-900 mt-1">
+          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
+          <p className="text-sm text-gray-600 mt-1">
             Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}
           </p>
           <p className="text-sm font-medium text-gray-700 mt-2">
@@ -459,11 +526,11 @@ function InspectionCard({ enquiry, onInspect }: any) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-900">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-900 mt-1">
+          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
+          <p className="text-sm text-gray-600 mt-1">
             Installation Completed: {enquiry.installationDate?.toLocaleDateString()}
           </p>
-          <p className="text-sm text-gray-900">
+          <p className="text-sm text-gray-600">
             Installed By: {enquiry.installedBy}
           </p>
         </div>
@@ -475,7 +542,7 @@ function InspectionCard({ enquiry, onInspect }: any) {
           <ClipboardCheck className="text-yellow-600 flex-shrink-0 mt-1" size={20} />
           <div className="text-sm">
             <p className="font-semibold text-gray-900 mb-1">Awaiting CSPDCL Inspection</p>
-            <p className="text-gray-900">
+            <p className="text-gray-600">
               Government inspection required before system activation
             </p>
           </div>
