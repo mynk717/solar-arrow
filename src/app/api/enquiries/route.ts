@@ -1,12 +1,10 @@
-// src/app/api/enquiries/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { google } from 'googleapis';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,7 +13,8 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const enquiryId = params.id;
+    // Await params in Next.js 15+
+    const { id: enquiryId } = await params;
     const updates = await request.json();
 
     // TODO: Update in Google Sheets
