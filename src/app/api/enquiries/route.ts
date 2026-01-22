@@ -1,39 +1,39 @@
-import { NextResponse } from 'next/server';
-import { fetchEnquiries, addEnquiry, getNextEnquiryId } from '@/lib/googleSheets';
+// src/app/api/enquiries/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { google } from 'googleapis';
 
-// GET all enquiries
-export async function GET() {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const enquiries = await fetchEnquiries();
-    return NextResponse.json(enquiries);
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch enquiries' },
-      { status: 500 }
-    );
-  }
-}
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-// POST new enquiry
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const nextId = await getNextEnquiryId();
-    
-    const newEnquiry = {
-      ...body,
-      id: nextId,
-      status: 'new',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    await addEnquiry(newEnquiry);
-    
-    return NextResponse.json(newEnquiry, { status: 201 });
-  } catch (error) {
+    const enquiryId = params.id;
+    const updates = await request.json();
+
+    // TODO: Update in Google Sheets
+    // You'll need to implement the logic to find the row by ID and update it
+
+    console.log(`Updating enquiry ${enquiryId}:`, updates);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Enquiry updated successfully',
+      enquiryId,
+      updates
+    });
+
+  } catch (error: any) {
+    console.error('Error updating enquiry:', error);
     return NextResponse.json(
-      { error: 'Failed to create enquiry' },
+      { error: error.message || 'Failed to update enquiry' },
       { status: 500 }
     );
   }

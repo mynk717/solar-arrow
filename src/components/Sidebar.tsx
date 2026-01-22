@@ -10,16 +10,32 @@ import {
   Wrench,
   Menu,
   Settings,
-  X
+  X,
+  Target,
+  FileSpreadsheet,
+  Network,
+  Package,
+  Truck,
+  FileCheck,
+  IndianRupee
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Enquiries', href: '/enquiries', icon: FileText },
   { name: 'Survey Panel', href: '/survey', icon: ClipboardCheck },
+  { name: 'Dashboard (Kanban)', href: '/kanban', icon: LayoutDashboard },
+  { name: 'Prospects', href: '/prospects', icon: Target },
+  { name: 'Leads', href: '/leads', icon: FileText },
+  { name: 'Registration', href: '/registration', icon: ClipboardCheck },
   { name: 'Payments', href: '/payments', icon: CreditCard },
+  { name: 'Quotation', href: '/quotation', icon: FileSpreadsheet },
+  { name: 'Liaison', href: '/liaison', icon: Network },
+  { name: 'BOM', href: '/bom', icon: Package },
+  { name: 'Dispatch', href: '/dispatch', icon: Truck },
   { name: 'Installation', href: '/installation', icon: Wrench },
+  { name: 'WCR', href: '/wcr', icon: FileCheck },
+  { name: 'Subsidy', href: '/subsidy', icon: IndianRupee },
   { name: 'Settings', href: '/settings', icon: Settings }, 
 ];
 
