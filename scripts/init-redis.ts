@@ -4,10 +4,8 @@ import { resolve } from 'path';
 import { Redis } from '@upstash/redis';
 import bcrypt from 'bcryptjs';
 
-// Load environment variables from .env.local
 config({ path: resolve(process.cwd(), '.env.local') });
 
-// Initialize Redis with loaded env vars
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
@@ -15,33 +13,34 @@ const redis = new Redis({
 
 async function initRedis() {
   console.log('🚀 Initializing Redis...');
-  console.log('📍 Redis URL:', process.env.UPSTASH_REDIS_REST_URL);
+  
+  const ADMIN_GOOGLE_EMAIL = 'shukla.mayank247@gmail.com'; // ✅ CHANGE THIS
   
   // Create default organization
   const orgId = 'hope-energy';
   await redis.set(`org:${orgId}:info`, {
     id: orgId,
     name: 'Hope Energy',
-    googleEmail: 'admin@hopeenergy.com',
-    sheetId: '', // Set later when admin connects sheet
+    googleEmail: ADMIN_GOOGLE_EMAIL,
+    sheetId: '',
     createdAt: new Date().toISOString()
   });
 
-  // Create default admin user
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  await redis.set(`user:admin@hopeenergy.com:info`, {
-    email: 'admin@hopeenergy.com',
-    name: 'Admin User',
-    passwordHash: adminPassword,
-    role: 'admin',
+  // Create a test employee user (optional)
+  const employeePassword = await bcrypt.hash('employee123', 10);
+  await redis.set(`user:employee@hopeenergy.com:info`, {
+    email: 'employee@hopeenergy.com',
+    name: 'Test Employee',
+    passwordHash: employeePassword,
+    role: 'editor',
     organizationId: orgId,
     isActive: true,
     createdAt: new Date().toISOString()
   });
   
-  await redis.sadd(`org:${orgId}:users`, 'admin@hopeenergy.com');
+  await redis.sadd(`org:${orgId}:users`, 'employee@hopeenergy.com');
 
-  // Set default permissions
+  // Set default permissions (same as before)
   await redis.set('role:admin:permissions', {
     enquiries: { view: true, create: true, edit: true, delete: true },
     surveys: { view: true, create: true, edit: true, delete: true },
@@ -76,15 +75,19 @@ async function initRedis() {
 
   console.log('✅ Redis initialized successfully!');
   console.log('');
-  console.log('📧 Admin Email: admin@hopeenergy.com');
-  console.log('🔑 Admin Password: admin123');
-  console.log('⚠️  Please change the password after first login!');
+  console.log('👤 Admin (Google OAuth):');
+  console.log(`   Email: ${ADMIN_GOOGLE_EMAIL}`);
+  console.log('   Login via: Sign in with Google');
+  console.log('');
+  console.log('👤 Employee (Email/Password):');
+  console.log('   Email: employee@hopeenergy.com');
+  console.log('   Password: employee123');
   console.log('');
 }
 
 initRedis()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('❌ Error initializing Redis:', error);
+    console.error('❌ Error:', error);
     process.exit(1);
   });

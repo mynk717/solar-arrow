@@ -1,8 +1,14 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+// src/app/api/auth/[...nextauth]/route.ts
+import NextAuth, { AuthOptions, User, Account, Session } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
+import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
+import { redis } from '@/lib/redis';
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptions = {
   providers: [
+    // Google OAuth (for admin)
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -10,99 +16,166 @@ export const authOptions: NextAuthOptions = {
         params: {
           scope: [
             'openid',
-            'https://www.googleapis.com/auth/userinfo.email',
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/drive.appdata',
+            'email', 
+            'profile',
             'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive.file',
+            'https://www.googleapis.com/auth/drive.file'
           ].join(' '),
           access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
+          prompt: 'consent'
+        }
+      }
     }),
-  ],
-  callbacks: {
-    async jwt({ token, account, user }) {
-      // Initial sign in
-      if (account && user) {
+
+    // Email/Password (for team members)
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        // Get user from Redis
+        const user = await redis.get(`user:${credentials.email}:info`) as any;
+        
+        if (!user || !user.isActive) {
+          return null;
+        }
+
+        // Get organization
+        const org = await redis.get(`org:${user.organizationId}:info`) as any;
+        
+        if (!org) {
+          return null;
+        }
+
+        // Verify password
+        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+        if (!isValid) {
+          return null;
+        }
+
+        // Get organization's Google access token
+        const orgTokens = await redis.get(`org:${user.organizationId}:tokens`) as any;
+
         return {
-          ...token,
+          id: user.email,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          organizationId: user.organizationId,
+          organizationName: org.name,
+          sheetId: org.sheetId,
+          googleEmail: org.googleEmail,
+          // Use organization's tokens
+          accessToken: orgTokens?.accessToken,
+          refreshToken: orgTokens?.refreshToken
+        } as any;
+      }
+    })
+  ],
+
+  callbacks: {
+    async signIn({ user, account, profile }: { 
+      user: User | any; 
+      account: Account | null; 
+      profile?: any 
+    }) {
+      if (account?.provider === 'google') {
+        // Check if user's Google email is an admin for any organization
+        const orgs = await redis.keys('org:*:info');
+        
+        let foundOrg = null;
+        for (const orgKey of orgs) {
+          const org = await redis.get(orgKey) as any;
+          if (org?.googleEmail === user.email) {
+            foundOrg = org;
+            break;
+          }
+        }
+
+        if (!foundOrg) {
+          // Not an authorized admin
+          return false;
+        }
+
+        // Save Google tokens to Redis (shared by all organization users)
+        await redis.set(`org:${foundOrg.id}:tokens`, {
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
-          accessTokenExpires: account.expires_at! * 1000,
-          userId: user.id,
-          email: user.email,
-        };
+          expiresAt: account.expires_at,
+          updatedAt: new Date().toISOString(),
+          updatedBy: user.email
+        });
+
+        return true;
       }
 
-      // Return previous token if not expired
-      if (token.accessTokenExpires && Date.now() < (token.accessTokenExpires as number)) {
-        return token;
-      }
-
-      // Access token expired, refresh it
-      return refreshAccessToken(token);
+      return true;
     },
-    async session({ session, token }) {
-      session.accessToken = token.accessToken as string;
-      session.error = token.error as string | undefined;
-      session.userId = token.userId as string;
+
+    async jwt({ token, user, account }: { 
+      token: JWT; 
+      user?: User | any; 
+      account?: Account | null 
+    }) {
+      if (user) {
+        token.role = user.role || 'admin'; // Google users are admins
+        token.organizationId = user.organizationId;
+        token.sheetId = user.sheetId;
+        token.googleEmail = user.googleEmail || user.email;
+        
+        if (account?.provider === 'google') {
+          token.accessToken = account.access_token;
+          token.refreshToken = account.refresh_token;
+          
+          // Find organization for Google user
+          const orgs = await redis.keys('org:*:info');
+          for (const orgKey of orgs) {
+            const org = await redis.get(orgKey) as any;
+            if (org?.googleEmail === user.email) {
+              token.organizationId = org.id;
+              token.sheetId = org.sheetId;
+              break;
+            }
+          }
+        } else {
+          // Credentials provider - use shared tokens
+          token.accessToken = user.accessToken;
+          token.refreshToken = user.refreshToken;
+        }
+      }
       
-      // For now, we'll store sheet ID in localStorage on client side
-      // Or you can add it to the token/session later
+      return token;
+    },
+
+    async session({ session, token }: { 
+      session: Session; 
+      token: JWT 
+    }) {
+      if (session.user) {
+        session.user.role = token.role as string;
+        session.user.organizationId = token.organizationId as string;
+        session.user.sheetId = token.sheetId as string;
+        session.user.googleEmail = token.googleEmail as string;
+      }
+      session.accessToken = token.accessToken as string;
+      session.refreshToken = token.refreshToken as string;
       
       return session;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
-  },
-};
-
-async function refreshAccessToken(token: any) {
-  try {
-    const url = 'https://oauth2.googleapis.com/token';
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        grant_type: 'refresh_token',
-        refresh_token: token.refreshToken,
-      }),
-    });
-
-    const refreshedTokens = await response.json();
-
-    if (!response.ok) {
-      throw refreshedTokens;
     }
+  },
 
-    return {
-      ...token,
-      accessToken: refreshedTokens.access_token,
-      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
-    };
-  } catch (error) {
-    console.error('Error refreshing access token:', error);
-    return {
-      ...token,
-      error: 'RefreshAccessTokenError',
-    };
-  }
-}
+  pages: {
+    signIn: '/login',
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+};
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
