@@ -1,12 +1,36 @@
 // src/middleware.ts
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import type { UserRole } from './lib/types';
+
+// Public routes that work in demo mode
+const publicRoutes = [
+  '/',
+  '/login',
+  '/onboard',
+  '/enquiries',
+  '/survey',
+  '/installation',
+  '/kanban',
+  '/payments',
+  '/reports',
+];
+
+// Check if route is public
+function isPublicRoute(path: string): boolean {
+  return publicRoutes.some(route => path === route || path.startsWith(route + '/'));
+}
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
+    
+    // Allow public routes even without auth
+    if (isPublicRoute(path)) {
+      return NextResponse.next();
+    }
     
     const userRole = token?.role as UserRole;
     
@@ -17,7 +41,7 @@ export default withAuth(
     
     // Role-based access control mapping
     const roleRoutes: Record<UserRole, string[]> = {
-      admin: ['*'], // All routes
+      admin: ['*'],
       sales: ['/prospects', '/leads', '/kanban'],
       survey: ['/survey', '/enquiries', '/kanban'],
       registration: ['/registration', '/kanban'],
@@ -45,24 +69,21 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: ({ token, req }) => {
+        // Allow access to public routes without token
+        if (isPublicRoute(req.nextUrl.pathname)) {
+          return true;
+        }
+        // Require token for protected routes
+        return !!token;
+      }
     }
   }
 );
 
 export const config = {
   matcher: [
-    '/kanban/:path*',
-    '/prospects/:path*',
-    '/leads/:path*',
-    '/registration/:path*',
-    '/payments/:path*',
-    '/quotation/:path*',
-    '/liaison/:path*',
-    '/bom/:path*',
-    '/dispatch/:path*',
-    '/installation/:path*',
-    '/wcr/:path*',
-    '/subsidy/:path*'
+    // Match all routes except static files
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ]
 };

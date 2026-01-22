@@ -52,7 +52,7 @@ export type EnquiryStatus =
 export type PanelTag = 'RTS' | 'Commercial' | 'Shed';
 
 // Payment types
-export type PaymentType = 'Bank Loan' | 'Direct' | 'Subsidy + Direct' | 'Subsidy + Finance';
+export type PaymentType = 'Bank Loan' | 'Direct' | 'Subsidy + Direct' | 'Subsidy + Finance'| 'Direct' | 'Subsidy' | 'Loan';
 
 // Subsidy status
 export type SubsidyStatus = 'pending' | 'approved' | 'disbursed' | 'rejected';

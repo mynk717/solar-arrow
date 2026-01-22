@@ -1,4 +1,4 @@
-// src/app/page.tsx (Dashboard)
+// src/app/page.tsx
 'use client';
 
 import { useSession } from 'next-auth/react';
@@ -6,35 +6,31 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import DemoBanner from '@/components/DemoBanner';
+import { demoStats } from '@/lib/demoData';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    totalEnquiries: 0,
-    pendingSurveys: 0,
-    activeProjects: 0,
-    pendingPayments: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(demoStats); // Start with demo data
+  const [loading, setLoading] = useState(false);
+
+  const isDemoMode = status === 'unauthenticated';
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    // Only fetch real data if authenticated
+    if (status === 'authenticated' && session?.user) {
+      fetchRealStats();
+    } else if (status === 'unauthenticated') {
+      // Use demo data
+      setStats(demoStats);
     }
-  }, [status, router]);
+  }, [status, session]);
 
-  useEffect(() => {
-    if (session?.user) {
-      fetchDashboardStats();
-    }
-  }, [session]);
-
-  const fetchDashboardStats = async () => {
+  const fetchRealStats = async () => {
     try {
       setLoading(true);
       
-      // Fetch enquiries
       const response = await fetch('/api/enquiries');
       if (response.ok) {
         const enquiries = await response.json();
@@ -49,7 +45,13 @@ export default function DashboardPage() {
           ).length,
           pendingPayments: enquiries.filter((e: any) => 
             e.status === 'payment_pending'
-          ).length
+          ).length,
+          totalRevenue: enquiries.reduce((sum: number, e: any) => 
+            sum + (e.estimatedCost || 0), 0
+          ),
+          completedInstallations: enquiries.filter((e: any) => 
+            e.installationDate
+          ).length,
         });
       }
     } catch (error) {
@@ -59,99 +61,110 @@ export default function DashboardPage() {
     }
   };
 
-  if (status === 'loading' || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session?.user) {
-    return null;
-  }
-
-  // Check if sheet is configured
-  if (!session.user.sheetId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-md">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Setup Required</h2>
-          <p className="text-gray-700 mb-6">
-            Please connect a Google Sheet to start using the system.
-          </p>
-          {session.user.role === 'admin' ? (
-            <Link 
-              href="/setup"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block"
-            >
-              Go to Setup
-            </Link>
-          ) : (
-            <p className="text-gray-600">
-              Please contact your administrator to complete the setup.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-2">
-          Welcome back, {session.user.name}! ({session.user.role})
-        </p>
-      </div>
+      <DemoBanner />
+      
+      <div className="p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Dashboard {isDemoMode && <span className="text-blue-600">(Demo)</span>}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {isDemoMode 
+              ? 'Explore the features with sample solar project data'
+              : `Welcome back, ${session?.user?.name}!`
+            }
+          </p>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Enquiries"
-          value={stats.totalEnquiries}
-          color="blue"
-          link="/enquiries"
-        />
-        <StatCard
-          title="Pending Surveys"
-          value={stats.pendingSurveys}
-          color="yellow"
-          link="/survey"
-        />
-        <StatCard
-          title="Active Projects"
-          value={stats.activeProjects}
-          color="green"
-          link="/installation"
-        />
-        <StatCard
-          title="Pending Payments"
-          value={stats.pendingPayments}
-          color="red"
-          link="/payments"
-        />
-      </div>
+        {loading && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+          </div>
+        )}
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickAction title="New Enquiry" link="/enquiries" />
-          <QuickAction title="Schedule Survey" link="/survey" />
-          <QuickAction title="Track Payment" link="/payments" />
-          <QuickAction title="View Reports" link="/reports" />
+        {/* Setup Warning for Authenticated Users without Sheet */}
+        {!isDemoMode && !loading && !session?.user?.sheetId && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Setup Required</h2>
+            <p className="text-gray-700 mb-4">
+              Please connect a Google Sheet to start managing your solar projects.
+            </p>
+            {session?.user?.role === 'admin' ? (
+              <Link 
+                href="/setup"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block"
+              >
+                Go to Setup
+              </Link>
+            ) : (
+              <p className="text-gray-600">
+                Please contact your administrator to complete the setup.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Total Enquiries"
+            value={stats.totalEnquiries}
+            color="blue"
+            link="/enquiries"
+            isDemoMode={isDemoMode}
+          />
+          <StatCard
+            title="Pending Surveys"
+            value={stats.pendingSurveys}
+            color="yellow"
+            link="/survey"
+            isDemoMode={isDemoMode}
+          />
+          <StatCard
+            title="Active Projects"
+            value={stats.activeProjects}
+            color="green"
+            link="/installation"
+            isDemoMode={isDemoMode}
+          />
+          <StatCard
+            title="Pending Payments"
+            value={stats.pendingPayments}
+            color="red"
+            link="/payments"
+            isDemoMode={isDemoMode}
+          />
+        </div>
+
+        {/* Revenue Card */}
+        <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md p-6 mb-8 text-white">
+          <h3 className="text-lg font-semibold mb-2">Total Project Value</h3>
+          <p className="text-4xl font-bold">
+            ₹{(stats.totalRevenue || 0).toLocaleString('en-IN')}
+          </p>
+          <p className="text-sm mt-2 opacity-90">
+            {stats.completedInstallations} installations completed
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <QuickAction title="New Enquiry" link="/enquiries" isDemoMode={isDemoMode} />
+            <QuickAction title="Schedule Survey" link="/survey" isDemoMode={isDemoMode} />
+            <QuickAction title="Track Payment" link="/payments" isDemoMode={isDemoMode} />
+            <QuickAction title="View Reports" link="/reports" isDemoMode={isDemoMode} />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, color, link }: any) {
+function StatCard({ title, value, color, link, isDemoMode }: any) {
   const colors = {
     blue: 'bg-blue-500',
     yellow: 'bg-yellow-500',
@@ -161,26 +174,28 @@ function StatCard({ title, value, color, link }: any) {
 
   return (
     <Link href={link}>
-      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 text-sm font-medium">{title}</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
+        {isDemoMode && (
+          <div className="absolute top-2 right-2 bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
+            Demo
           </div>
-          <div className={`${colors[color as keyof typeof colors]} text-white p-3 rounded-lg`}>
-            <div className="w-8 h-8" />
-          </div>
-        </div>
+        )}
+        <p className="text-gray-600 text-sm font-medium">{title}</p>
+        <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        <div className={`${colors[color as keyof typeof colors]} h-2 rounded-full mt-4`} />
       </div>
     </Link>
   );
 }
 
-function QuickAction({ title, link }: any) {
+function QuickAction({ title, link, isDemoMode }: any) {
   return (
     <Link href={link}>
       <div className="bg-gray-50 hover:bg-gray-100 rounded-lg p-4 text-center cursor-pointer transition-colors">
         <p className="text-gray-900 font-medium">{title}</p>
+        {isDemoMode && (
+          <p className="text-xs text-gray-500 mt-1">View Demo</p>
+        )}
       </div>
     </Link>
   );
