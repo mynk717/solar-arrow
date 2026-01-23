@@ -2,21 +2,18 @@
 'use client';
 
 import { signIn, useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
 
-  const [mode, setMode] = useState<'google' | 'credentials'>('google');
-  const [credentials, setCredentials] = useState({
-    email: '',
-    password: ''
-  });
+  const [loginType, setLoginType] = useState<'admin' | 'user'>('user');
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,12 +26,8 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
-    
     try {
-      await signIn('google', { 
-        callbackUrl,
-        redirect: true
-      });
+      await signIn('google', { callbackUrl, redirect: true });
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
       setLoading(false);
@@ -74,39 +67,35 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
-            Solar Arrow
-          </h2>
-          <p className="mt-2 text-gray-600">
-            Sign in to your account
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900">Solar Arrow</h2>
+          <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
 
-        {/* Mode Toggle */}
+        {/* Login Type Toggle */}
         <div className="flex rounded-lg bg-gray-100 p-1">
           <button
-            onClick={() => setMode('google')}
+            onClick={() => setLoginType('user')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              mode === 'google'
+              loginType === 'user'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Admin (Google)
+            User Login
           </button>
           <button
-            onClick={() => setMode('credentials')}
+            onClick={() => setLoginType('admin')}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              mode === 'credentials'
+              loginType === 'admin'
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Team Member
+            Admin Login
           </button>
         </div>
 
@@ -117,17 +106,14 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Google Sign In */}
-        {mode === 'google' && (
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <p className="text-gray-600 text-sm mb-6">
-              Sign in with your Google account to access the admin dashboard and manage your organization.
-            </p>
-            
+        {/* Admin Login */}
+        {loginType === 'admin' && (
+          <div className="space-y-4">
+            {/* Google OAuth */}
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 hover:border-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="animate-spin h-5 w-5" />
@@ -156,47 +142,43 @@ export default function LoginPage() {
               )}
             </button>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-500">
-                Don't have an organization?{' '}
-                <a href="/onboard" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Register here
-                </a>
-              </p>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">OR</span>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Credentials Sign In */}
-        {mode === 'credentials' && (
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <form onSubmit={handleCredentialsSignIn} className="space-y-6">
+            {/* Email/Password for Admin */}
+            <form onSubmit={handleCredentialsSignIn} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
+                <label htmlFor="admin-email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin Email
                 </label>
                 <input
-                  id="email"
+                  id="admin-email"
                   type="email"
                   required
                   value={credentials.email}
                   onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
-                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="admin@company.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="admin-password" className="block text-sm font-medium text-gray-700 mb-2">
                   Password
                 </label>
                 <input
-                  id="password"
+                  id="admin-password"
                   type="password"
                   required
                   value={credentials.password}
                   onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
               </div>
@@ -206,22 +188,77 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin h-5 w-5" />
-                ) : (
-                  'Sign In'
-                )}
+                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Sign In as Admin'}
               </button>
             </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-500">
-                Contact your administrator if you need access.
-              </p>
-            </div>
           </div>
         )}
+
+        {/* User Login (Email/Password only) */}
+        {loginType === 'user' && (
+          <form onSubmit={handleCredentialsSignIn} className="space-y-6">
+            <div>
+              <label htmlFor="user-email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                id="user-email"
+                type="email"
+                required
+                value={credentials.email}
+                onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="your@email.com"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="user-password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                id="user-password"
+                type="password"
+                required
+                value={credentials.password}
+                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="••••••••"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Sign In'}
+            </button>
+          </form>
+        )}
+
+        {/* Demo Mode Info */}
+        <div className="text-center border-t pt-6">
+          <p className="text-sm text-gray-500">
+            Want to explore first?{' '}
+            <a href="/" className="text-blue-600 hover:text-blue-700 font-medium">
+              View Demo
+            </a>
+          </p>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="animate-spin h-12 w-12 text-blue-600" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
