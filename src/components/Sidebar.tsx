@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -64,11 +65,26 @@ export default function Sidebar() {
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Header */}
-        <div className="p-6 sticky top-0 bg-blue-600 z-10">
-          <h1 className="text-2xl font-bold">Solar Arrow</h1>
-          <p className="text-blue-200 text-sm mt-1">CSPDCL Dashboard</p>
-        </div>
+        {/* Header with Logo - Clickable */}
+        <Link href="/" className="block">
+          <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="bg-white rounded-lg p-2">
+                <Image 
+                  src="/SA_logo.png" 
+                  alt="Solar Arrow Logo" 
+                  width={40} 
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Solar Arrow</h1>
+                <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
+              </div>
+            </div>
+          </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="pb-20">

@@ -49,18 +49,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isDemoMode } = useDemoMode();
   const [stats, setStats] = useState(demoStats);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated') {
+    // Don't redirect - allow demo mode
+    if (status === 'authenticated') {
+      setStats(demoStats);
+      setLoading(false);
+    } else if (status === 'unauthenticated') {
+      // Show demo data
       setStats(demoStats);
       setLoading(false);
     }
-  }, [status, router]);
+  }, [status]);
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="animate-spin h-12 w-12 text-blue-600" />
@@ -75,10 +78,13 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {session?.user?.name || 'User'}! 👋
+            Welcome{session?.user?.name ? ` back, ${session.user.name}` : ' to Solar Arrow'}! 👋
           </h1>
           <p className="text-gray-600 mt-2">
-            Here's what's happening with your solar installations today
+            {isDemoMode 
+              ? 'Explore the complete solar installation workflow with demo data' 
+              : "Here's what's happening with your solar installations today"
+            }
           </p>
         </div>
 
@@ -266,10 +272,10 @@ export default function DashboardPage() {
             color="indigo"
           />
           <QuickActionCard
-            title="View Reports"
-            description="Analytics and insights"
+            title="View Pipeline"
+            description="Track all stages"
             icon={TrendingUp}
-            href="/settings"
+            href="/kanban"
             color="green"
           />
         </div>
