@@ -249,10 +249,10 @@ export default function DispatchPage() {
             <tbody>
               {delivered.map(dispatch => (
                 <tr key={dispatch.id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-6">{dispatch.customerName}</td>
-                  <td className="py-3 px-6 font-medium">{dispatch.registrationId}</td>
-                  <td className="py-3 px-6 text-sm">{dispatch.dispatchDate?.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{dispatch.deliveredDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-gray-700">{dispatch.customerName}</td>
+                  <td className="py-3 px-6 font-medium text-gray-700">{dispatch.registrationId}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{dispatch.dispatchDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{dispatch.deliveredDate?.toLocaleDateString()}</td>
                   <td className="py-3 px-6 text-sm font-mono text-blue-600">{dispatch.trackingNumber}</td>
                 </tr>
               ))}

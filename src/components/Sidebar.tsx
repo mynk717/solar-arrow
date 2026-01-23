@@ -20,6 +20,7 @@ import {
   Settings,
   Menu,
   X,
+  Zap,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -43,6 +44,7 @@ const navigation = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [imageError, setImageError] = useState(false); 
 
   // Don't show sidebar on login/onboard/setup pages
   if (['/login', '/onboard', '/setup'].includes(pathname)) {
@@ -66,25 +68,33 @@ export default function Sidebar() {
         }`}
       >
         {/* Header with Logo - Clickable */}
-        <Link href="/" className="block">
-          <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-lg p-2">
-                <Image 
-                  src="/SA_logo.png" 
-                  alt="Solar Arrow Logo" 
-                  width={40} 
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Solar Arrow</h1>
-                <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
-              </div>
-            </div>
-          </div>
-        </Link>
+<Link href="/" className="block">
+  <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
+    <div className="flex items-center gap-3">
+      {/* Logo with fallback */}
+      {!imageError ? (
+        <div className="bg-white rounded-lg p-2 flex items-center justify-center w-12 h-12">
+          <Image 
+            src="/SA_logo.png" 
+            alt="Solar Arrow Logo" 
+            width={32} 
+            height={32}
+            className="object-contain"
+            onError={() => setImageError(true)}
+          />
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg p-2 flex items-center justify-center w-12 h-12">
+          <Zap size={32} className="text-blue-600" />
+        </div>
+      )}
+      <div>
+        <h1 className="text-2xl font-bold">Solar Arrow</h1>
+        <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
+      </div>
+    </div>
+  </div>
+</Link>
 
         {/* Navigation */}
         <nav className="pb-20">

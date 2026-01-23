@@ -226,8 +226,8 @@ export default function PaymentsPage() {
                     </span>
                   </div>
                   <div className="bg-white rounded p-4 mb-4">
-                    <p className="text-gray-600">Total Cost:</p>
-                    <p className="font-bold text-2xl">₹{e.estimatedCost?.toLocaleString()}</p>
+                    <p className="text-gray-700">Total Cost:</p>
+                    <p className="font-bold text-2xl text-green-600 mt-2">₹{e.estimatedCost?.toLocaleString()}</p>
                   </div>
                   <button
                     onClick={() => handleRecordPayment(e.id)}
@@ -245,7 +245,7 @@ export default function PaymentsPage() {
         {/* Payment Received */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 border-b">
-            <h2 className="text-xl font-bold">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">
               <CheckCircle size={24} className="inline text-green-600 mr-2" />
               Payment Received ({paid.length})
             </h2>
@@ -253,19 +253,19 @@ export default function PaymentsPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="text-left py-3 px-6">Customer</th>
-                <th className="text-left py-3 px-6">Registration ID</th>
-                <th className="text-left py-3 px-6">Panel</th>
-                <th className="text-right py-3 px-6">Amount</th>
-                <th className="text-left py-3 px-6">Date</th>
-                <th className="text-left py-3 px-6">Method</th>
+                <th className="text-left py-3 px-6 text-gray-900">Customer</th>
+                <th className="text-left py-3 px-6 text-gray-900">Registration ID</th>
+                <th className="text-left py-3 px-6 text-gray-900">Panel</th>
+                <th className="text-right py-3 px-6 text-gray-900">Amount</th>
+                <th className="text-left py-3 px-6 text-gray-900">Date</th>
+                <th className="text-left py-3 px-6 text-gray-900">Method</th>
               </tr>
             </thead>
             <tbody>
               {paid.map(e => (
                 <tr key={e.id} className="border-t hover:bg-gray-50">
-                  <td className="py-3 px-6">{e.customerName}</td>
-                  <td className="py-3 px-6 font-mono text-sm">{e.registrationId}</td>
+                  <td className="py-3 px-6 text-gray-700">{e.customerName}</td>
+                  <td className="py-3 px-6 font-mono text-sm text-gray-700">{e.registrationId}</td>
                   <td className="py-3 px-6">
                     <span className={`px-2 py-1 rounded text-xs ${
                       e.panelTag === 'RTS' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
@@ -276,8 +276,8 @@ export default function PaymentsPage() {
                   <td className="py-3 px-6 text-right font-bold text-green-600">
                     ₹{e.initialPayment?.toLocaleString()}
                   </td>
-                  <td className="py-3 px-6 text-sm">{e.paymentDate?.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{e.paymentMethod}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{e.paymentDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{e.paymentMethod}</td>
                 </tr>
               ))}
             </tbody>

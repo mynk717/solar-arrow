@@ -229,10 +229,10 @@ export default function RegistrationPage() {
               {approved.map(reg => (
                 <tr key={reg.id} className="border-t border-gray-200 hover:bg-gray-50">
                   <td className="py-3 px-6 font-medium text-gray-900">{reg.registrationId}</td>
-                  <td className="py-3 px-6">{reg.customerName}</td>
-                  <td className="py-3 px-6">{reg.capacity}</td>
-                  <td className="py-3 px-6 text-sm">{reg.registrationDate?.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{reg.approvalDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-gray-900">{reg.customerName}</td>
+                  <td className="py-3 px-6 text-gray-700">{reg.capacity}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{reg.registrationDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{reg.approvalDate?.toLocaleDateString()}</td>
                   <td className="py-3 px-6">
                     <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
                       Approved

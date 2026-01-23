@@ -279,15 +279,15 @@ export default function SubsidyPage() {
             <tbody>
               {disbursed.map(subsidy => (
                 <tr key={subsidy.id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-6">{subsidy.customerName}</td>
-                  <td className="py-3 px-6 font-medium">{subsidy.registrationId}</td>
-                  <td className="py-3 px-6">{subsidy.capacity}</td>
+                  <td className="py-3 px-6 text-gray-700">{subsidy.customerName}</td>
+                  <td className="py-3 px-6 font-medium text-gray-700">{subsidy.registrationId}</td>
+                  <td className="py-3 px-6 text-gray-700">{subsidy.capacity}</td>
                   <td className="py-3 px-6 text-right font-bold text-green-600">
                     ₹{subsidy.subsidyAmount.toLocaleString()}
                   </td>
-                  <td className="py-3 px-6 text-sm">{subsidy.applicationDate.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{subsidy.disbursementDate?.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm font-mono">{subsidy.bankAccount}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{subsidy.applicationDate.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{subsidy.disbursementDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm font-mono text-gray-700">{subsidy.bankAccount}</td>
                 </tr>
               ))}
             </tbody>

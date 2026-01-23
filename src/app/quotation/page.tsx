@@ -117,12 +117,12 @@ export default function QuotationPage() {
               {quotations.map(quot => (
                 <tr key={quot.id} className="border-t border-gray-200 hover:bg-gray-50">
                   <td className="py-4 px-6 font-medium text-gray-900">{quot.id}</td>
-                  <td className="py-4 px-6">{quot.customerName}</td>
-                  <td className="py-4 px-6">{quot.capacity}</td>
-                  <td className="py-4 px-6">₹{quot.systemCost.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-gray-700">{quot.customerName}</td>
+                  <td className="py-4 px-6 text-gray-700">{quot.capacity}</td>
+                  <td className="py-4 px-6 text-green-600">₹{quot.systemCost.toLocaleString()}</td>
                   <td className="py-4 px-6 text-green-600">₹{quot.subsidyAmount.toLocaleString()}</td>
-                  <td className="py-4 px-6 font-bold">₹{quot.finalCost.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-sm">{quot.validTill.toLocaleDateString()}</td>
+                  <td className="py-4 px-6 font-bold text-green-700">₹{quot.finalCost.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-sm text-gray-700">{quot.validTill.toLocaleDateString()}</td>
                   <td className="py-4 px-6">
                     <StatusBadge status={quot.status as any} />
                   </td>

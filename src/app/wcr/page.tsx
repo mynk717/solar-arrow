@@ -296,11 +296,11 @@ export default function WCRPage() {
             <tbody>
               {approved.map(wcr => (
                 <tr key={wcr.id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-6">{wcr.customerName}</td>
-                  <td className="py-3 px-6 font-medium">{wcr.registrationId}</td>
-                  <td className="py-3 px-6 text-sm">{wcr.installationDate.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{wcr.wcrSubmittedDate?.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{wcr.wcrApprovedDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-gray-700">{wcr.customerName}</td>
+                  <td className="py-3 px-6 font-medium text-gray-700">{wcr.registrationId}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{wcr.installationDate.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{wcr.wcrSubmittedDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{wcr.wcrApprovedDate?.toLocaleDateString()}</td>
                   <td className="py-3 px-6">
                     <button
                       onClick={() => isDemoMode ? showDemoAlert() : alert('Download WCR')}

@@ -317,11 +317,11 @@ export default function LiaisonPage() {
             <tbody>
               {gridSynced.map(liaison => (
                 <tr key={liaison.id} className="border-t border-gray-200 hover:bg-gray-50">
-                  <td className="py-3 px-6">{liaison.customerName}</td>
-                  <td className="py-3 px-6 font-medium">{liaison.registrationId}</td>
-                  <td className="py-3 px-6">{liaison.capacity}</td>
-                  <td className="py-3 px-6 text-sm">{liaison.inspectionDate.toLocaleDateString()}</td>
-                  <td className="py-3 px-6 text-sm">{liaison.gridSyncDate?.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-gray-700">{liaison.customerName}</td>
+                  <td className="py-3 px-6 font-medium text-gray-700">{liaison.registrationId}</td>
+                  <td className="py-3 px-6 text-gray-700">{liaison.capacity}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{liaison.inspectionDate.toLocaleDateString()}</td>
+                  <td className="py-3 px-6 text-sm text-gray-700">{liaison.gridSyncDate?.toLocaleDateString()}</td>
                   <td className="py-3 px-6">
                     <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
                       Active
