@@ -27,7 +27,7 @@ export const authOptions: AuthOptions = {
       }
     }),
 
-    // Email/Password (for team members)
+    // Email/Password (for both admin and team members)
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -115,6 +115,7 @@ export const authOptions: AuthOptions = {
         return true;
       }
 
+      // Credentials login - always allow if authorize succeeded
       return true;
     },
 
