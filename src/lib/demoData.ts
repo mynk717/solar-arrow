@@ -1,6 +1,61 @@
 // src/lib/demoData.ts
 import { Enquiry } from './types';
 
+// Lead types
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  location: string;
+  source: string;
+  capacity: string;
+  status: 'new' | 'contacted' | 'qualified';
+  createdAt: Date;
+  notes: string;
+}
+
+// Leads Demo Data
+export const demoLeads: Lead[] = [
+  {
+    id: 'LEAD-001',
+    name: 'Ramesh Patel',
+    phone: '+91 98765 43210',
+    email: 'ramesh.patel@email.com',
+    location: 'Civil Lines, Raipur',
+    source: 'Website',
+    capacity: '3 kW',
+    status: 'new',
+    createdAt: new Date('2026-01-20'),
+    notes: 'Interested in rooftop solar for home',
+  },
+  {
+    id: 'LEAD-002',
+    name: 'Sunita Verma',
+    phone: '+91 98765 43211',
+    email: 'sunita.v@email.com',
+    location: 'Shankar Nagar, Raipur',
+    source: 'Referral',
+    capacity: '5 kW',
+    status: 'contacted',
+    createdAt: new Date('2026-01-21'),
+    notes: 'Follow up on Thursday',
+  },
+  {
+    id: 'LEAD-003',
+    name: 'Anil Kumar',
+    phone: '+91 98765 43212',
+    email: 'anil.kumar@email.com',
+    location: 'Telibandha, Raipur',
+    source: 'Walk-in',
+    capacity: '10 kW',
+    status: 'qualified',
+    createdAt: new Date('2026-01-22'),
+    notes: 'Commercial property, high interest',
+  },
+];
+
+// Enquiries Demo Data (existing + new)
 export const demoEnquiries: Enquiry[] = [
   {
     id: 'ENQ-2024-001',
@@ -121,6 +176,7 @@ export const demoEnquiries: Enquiry[] = [
   },
 ];
 
+// Stats
 export const demoStats = {
   totalEnquiries: 5,
   pendingSurveys: 2,
@@ -130,9 +186,18 @@ export const demoStats = {
   completedInstallations: 2,
 };
 
+// Survey Team Members
 export const surveyTeamMembers = [
   'Amit Sharma',
   'Rahul Verma',
   'Priya Singh',
   'Vikram Patel'
 ];
+
+// Export all demo data
+export const allDemoData = {
+  leads: demoLeads,
+  enquiries: demoEnquiries,
+  stats: demoStats,
+  surveyTeam: surveyTeamMembers,
+};

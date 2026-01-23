@@ -1,71 +1,77 @@
+// src/components/Sidebar.tsx
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  ClipboardCheck, 
-  CreditCard, 
-  Wrench,
-  Menu,
-  Settings,
-  X,
-  Target,
-  FileSpreadsheet,
-  Network,
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  ClipboardCheck,
+  FileCheck,
+  DollarSign,
   Package,
   Truck,
-  FileCheck,
-  IndianRupee
+  Wrench,
+  Scale,
+  CheckSquare,
+  IndianRupee,
+  Settings,
+  Menu,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 
 const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Leads', href: '/leads', icon: Users },
   { name: 'Enquiries', href: '/enquiries', icon: FileText },
-  { name: 'Survey Panel', href: '/survey', icon: ClipboardCheck },
-  { name: 'Dashboard (Kanban)', href: '/kanban', icon: LayoutDashboard },
-  { name: 'Prospects', href: '/prospects', icon: Target },
-  { name: 'Leads', href: '/leads', icon: FileText },
-  { name: 'Registration', href: '/registration', icon: ClipboardCheck },
-  { name: 'Payments', href: '/payments', icon: CreditCard },
-  { name: 'Quotation', href: '/quotation', icon: FileSpreadsheet },
-  { name: 'Liaison', href: '/liaison', icon: Network },
+  { name: 'Survey', href: '/survey', icon: ClipboardCheck },
+  { name: 'Quotation', href: '/quotation', icon: FileCheck },
+  { name: 'Registration', href: '/registration', icon: Scale },
+  { name: 'Payments', href: '/payments', icon: DollarSign },
   { name: 'BOM', href: '/bom', icon: Package },
   { name: 'Dispatch', href: '/dispatch', icon: Truck },
   { name: 'Installation', href: '/installation', icon: Wrench },
-  { name: 'WCR', href: '/wcr', icon: FileCheck },
+  { name: 'Liaison', href: '/liaison', icon: Scale },
+  { name: 'WCR', href: '/wcr', icon: CheckSquare },
   { name: 'Subsidy', href: '/subsidy', icon: IndianRupee },
-  { name: 'Settings', href: '/settings', icon: Settings }, 
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Don't show sidebar on login/onboard/setup pages
+  if (['/login', '/onboard', '/setup'].includes(pathname)) {
+    return null;
+  }
+
   return (
     <>
       {/* Mobile menu button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md shadow-lg"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       >
         {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white
-        transform transition-transform duration-300 ease-in-out
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6">
-          <h1 className="text-2xl font-bold">☀️ Solar Panel</h1>
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white transform transition-transform duration-300 ease-in-out overflow-y-auto ${
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Header */}
+        <div className="p-6 sticky top-0 bg-blue-600 z-10">
+          <h1 className="text-2xl font-bold">Solar Arrow</h1>
           <p className="text-blue-200 text-sm mt-1">CSPDCL Dashboard</p>
         </div>
 
-        <nav className="mt-6">
+        {/* Navigation */}
+        <nav className="pb-20">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -73,23 +79,22 @@ export default function Sidebar() {
                 key={item.name}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`
-                  flex items-center gap-3 px-6 py-3 transition-colors
-                  ${isActive 
-                    ? 'bg-blue-700 border-l-4 border-white' 
+                className={`flex items-center gap-3 px-6 py-3 transition-colors ${
+                  isActive
+                    ? 'bg-blue-700 border-l-4 border-white'
                     : 'hover:bg-blue-700/50'
-                  }
-                `}
+                }`}
               >
                 <item.icon size={20} />
-                <span>{item.name}</span>
+                <span className="text-sm">{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50">
-          <p className="text-xs text-blue-200">© 2024 Solar Solutions</p>
+        {/* Footer */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50 backdrop-blur">
+          <p className="text-xs text-blue-200">© 2026 Hope Energy</p>
           <p className="text-xs text-blue-300 mt-1">v1.0.0</p>
         </div>
       </aside>

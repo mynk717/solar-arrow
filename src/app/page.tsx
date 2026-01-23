@@ -1,69 +1,69 @@
 // src/app/page.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  Users,
+  FileText,
+  ClipboardCheck,
+  DollarSign,
+  Wrench,
+  Zap,
+  TrendingUp,
+  ArrowRight,
+  Loader2,
+  FileCheck,
+  Package,
+  Truck,
+  Scale,
+  CheckSquare,
+  IndianRupee,
+} from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
+import { useDemoMode } from '@/contexts/DemoContext';
 
-// Demo stats (shown when not authenticated)
+// Demo stats
 const demoStats = {
-  totalEnquiries: 45,
-  pendingSurveys: 8,
-  activeProjects: 12,
-  pendingPayments: 5,
-  totalRevenue: 8500000,
-  completedInstallations: 25
+  leads: 12,
+  enquiries: 8,
+  surveys: 5,
+  quotations: 4,
+  registrations: 3,
+  payments: 3,
+  bom: 3,
+  dispatch: 2,
+  installations: 2,
+  liaison: 2,
+  wcr: 1,
+  subsidy: 1,
+  active: 1,
+  totalRevenue: 1200000,
+  pendingRevenue: 800000,
 };
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stats, setStats] = useState(demoStats); // Start with demo data
-  const [loading, setLoading] = useState(false);
-  const isDemoMode = status === 'unauthenticated';
+  const { isDemoMode } = useDemoMode();
+  const [stats, setStats] = useState(demoStats);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch real data if authenticated
-    if (status === 'authenticated' && session?.user) {
-      fetchRealStats();
-    } else if (status === 'unauthenticated') {
-      // Use demo data
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    } else if (status === 'authenticated') {
       setStats(demoStats);
-    }
-  }, [status, session]);
-
-  const fetchRealStats = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/enquiries');
-      if (response.ok) {
-        const enquiries = await response.json();
-        setStats({
-          totalEnquiries: enquiries.length,
-          pendingSurveys: enquiries.filter((e: any) => e.status === 'new' || e.status === 'survey_pending').length,
-          activeProjects: enquiries.filter((e: any) => e.status === 'active').length,
-          pendingPayments: enquiries.filter((e: any) => e.status === 'payment_pending').length,
-          totalRevenue: enquiries.reduce((sum: number, e: any) => sum + (e.estimatedCost || 0), 0),
-          completedInstallations: enquiries.filter((e: any) => e.installationDate).length,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
       setLoading(false);
     }
-  };
+  }, [status, router]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
+        <Loader2 className="animate-spin h-12 w-12 text-blue-600" />
       </div>
     );
   }
@@ -75,127 +75,343 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard {isDemoMode && <span className="text-blue-600">(Demo)</span>}
+            Welcome back, {session?.user?.name || 'User'}! 👋
           </h1>
           <p className="text-gray-600 mt-2">
-            {isDemoMode
-              ? 'Explore the features with sample solar project data'
-              : `Welcome back, ${session?.user?.name}!`}
+            Here's what's happening with your solar installations today
           </p>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard
+            title="Total Leads"
+            value={stats.leads}
+            icon={Users}
+            color="blue"
+            href="/leads"
+          />
+          <MetricCard
+            title="Active Enquiries"
+            value={stats.enquiries}
+            icon={FileText}
+            color="indigo"
+            href="/enquiries"
+          />
+          <MetricCard
+            title="Active Systems"
+            value={stats.active}
+            icon={Zap}
+            color="green"
+            href="/liaison"
+          />
+          <MetricCard
+            title="Total Revenue"
+            value={`₹${(stats.totalRevenue / 100000).toFixed(1)}L`}
+            icon={TrendingUp}
+            color="emerald"
+          />
+        </div>
+
+        {/* Workflow Pipeline */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Installation Pipeline</h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+            <PipelineStage
+              name="Leads"
+              count={stats.leads}
+              icon={Users}
+              color="gray"
+              href="/leads"
+            />
+            <PipelineStage
+              name="Enquiries"
+              count={stats.enquiries}
+              icon={FileText}
+              color="blue"
+              href="/enquiries"
+            />
+            <PipelineStage
+              name="Survey"
+              count={stats.surveys}
+              icon={ClipboardCheck}
+              color="purple"
+              href="/survey"
+            />
+            <PipelineStage
+              name="Quotation"
+              count={stats.quotations}
+              icon={FileCheck}
+              color="indigo"
+              href="/quotation"
+            />
+            <PipelineStage
+              name="Registration"
+              count={stats.registrations}
+              icon={Scale}
+              color="pink"
+              href="/registration"
+            />
+            <PipelineStage
+              name="Payment"
+              count={stats.payments}
+              icon={DollarSign}
+              color="yellow"
+              href="/payments"
+            />
+            <PipelineStage
+              name="Installation"
+              count={stats.installations}
+              icon={Wrench}
+              color="orange"
+              href="/installation"
+            />
           </div>
-        ) : (
-          <>
-            {/* Setup Warning for Authenticated Users without Sheet */}
-            {!isDemoMode && !loading && !session?.user?.sheetId && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Setup Required</h2>
-                <p className="text-gray-700 mb-4">
-                  Please connect a Google Sheet to start managing your solar projects.
-                </p>
-                {session?.user?.role === 'admin' ? (
-                  <Link
-                    href="/setup"
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-block"
-                  >
-                    Go to Setup
-                  </Link>
-                ) : (
-                  <p className="text-gray-600">Please contact your administrator to complete the setup.</p>
-                )}
-              </div>
-            )}
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard
-                title="Total Enquiries"
-                value={stats.totalEnquiries}
-                color="blue"
-                link="/enquiries"
-                isDemoMode={isDemoMode}
-              />
-              <StatCard
-                title="Pending Surveys"
-                value={stats.pendingSurveys}
-                color="yellow"
-                link="/survey"
-                isDemoMode={isDemoMode}
-              />
-              <StatCard
-                title="Active Projects"
-                value={stats.activeProjects}
-                color="green"
-                link="/installation"
-                isDemoMode={isDemoMode}
-              />
-              <StatCard
-                title="Pending Payments"
-                value={stats.pendingPayments}
-                color="red"
-                link="/payments"
-                isDemoMode={isDemoMode}
-              />
-            </div>
+          {/* Second Row */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
+            <PipelineStage
+              name="BOM"
+              count={stats.bom}
+              icon={Package}
+              color="teal"
+              href="/bom"
+            />
+            <PipelineStage
+              name="Dispatch"
+              count={stats.dispatch}
+              icon={Truck}
+              color="cyan"
+              href="/dispatch"
+            />
+            <PipelineStage
+              name="Liaison"
+              count={stats.liaison}
+              icon={Scale}
+              color="violet"
+              href="/liaison"
+            />
+            <PipelineStage
+              name="WCR"
+              count={stats.wcr}
+              icon={CheckSquare}
+              color="fuchsia"
+              href="/wcr"
+            />
+            <PipelineStage
+              name="Subsidy"
+              count={stats.subsidy}
+              icon={IndianRupee}
+              color="rose"
+              href="/subsidy"
+            />
+            <PipelineStage
+              name="Active"
+              count={stats.active}
+              icon={Zap}
+              color="green"
+              href="/liaison"
+            />
+          </div>
+        </div>
 
-            {/* Revenue Card */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md p-6 mb-8 text-white">
-              <h3 className="text-lg font-semibold mb-2">Total Project Value</h3>
-              <p className="text-4xl font-bold">₹{(stats.totalRevenue / 100000).toFixed(1)}L</p>
-              <p className="text-sm mt-2 opacity-90">{stats.completedInstallations} installations completed</p>
-            </div>
+        {/* Process Flowchart */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Complete Solar Installation Workflow</h2>
+          
+          <div className="space-y-3">
+            <FlowStep number="1" title="Lead Generation" description="Capture potential customers" />
+            <FlowArrow />
+            <FlowStep number="2" title="Enquiry" description="Initial customer interest and details" />
+            <FlowArrow />
+            <FlowStep number="3" title="Site Survey" description="Technical assessment and feasibility" />
+            <FlowArrow />
+            <FlowStep number="4" title="Quotation" description="Generate and send price quote" />
+            <FlowArrow />
+            <FlowStep number="5" title="CSPDCL Registration" description="Register with electricity board" />
+            <FlowArrow />
+            <FlowStep number="6" title="Payment" description="Customer payment processing" />
+            <FlowArrow />
+            <FlowStep number="7" title="BOM Preparation" description="Bill of materials for installation" />
+            <FlowArrow />
+            <FlowStep number="8" title="Material Dispatch" description="Ship equipment to site" />
+            <FlowArrow />
+            <FlowStep number="9" title="Installation" description="Physical installation of system" />
+            <FlowArrow />
+            <FlowStep number="10" title="Liaison & Inspection" description="CSPDCL inspection and net metering" />
+            <FlowArrow />
+            <FlowStep number="11" title="WCR" description="Work completion report submission" />
+            <FlowArrow />
+            <FlowStep number="12" title="Subsidy" description="MNRE subsidy application & disbursement" />
+            <FlowArrow />
+            <FlowStep number="13" title="Active System" description="Grid synchronized and generating power" highlight />
+          </div>
+        </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <QuickAction title="New Enquiry" link="/enquiries" isDemoMode={isDemoMode} />
-                <QuickAction title="Schedule Survey" link="/survey" isDemoMode={isDemoMode} />
-                <QuickAction title="Track Payment" link="/payments" isDemoMode={isDemoMode} />
-                <QuickAction title="View Kanban" link="/kanban" isDemoMode={isDemoMode} />
-              </div>
-            </div>
-          </>
-        )}
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <QuickActionCard
+            title="New Lead"
+            description="Add a new potential customer"
+            icon={Users}
+            href="/leads"
+            color="blue"
+          />
+          <QuickActionCard
+            title="Create Enquiry"
+            description="Convert lead to enquiry"
+            icon={FileText}
+            href="/enquiries"
+            color="indigo"
+          />
+          <QuickActionCard
+            title="View Reports"
+            description="Analytics and insights"
+            icon={TrendingUp}
+            href="/settings"
+            color="green"
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value, color, link, isDemoMode }: any) {
-  const colors = {
-    blue: 'bg-blue-500',
-    yellow: 'bg-yellow-500',
-    green: 'bg-green-500',
-    red: 'bg-red-500',
+// Metric Card Component
+type MetricColor = 'blue' | 'indigo' | 'green' | 'emerald';
+
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: any;
+  color: MetricColor;
+  href?: string;
+}
+
+function MetricCard({ title, value, icon: Icon, color, href }: MetricCardProps) {
+  const colorClasses: Record<MetricColor, string> = {
+    blue: 'from-blue-500 to-blue-600',
+    indigo: 'from-indigo-500 to-indigo-600',
+    green: 'from-green-500 to-green-600',
+    emerald: 'from-emerald-500 to-emerald-600',
   };
 
   return (
-    <Link href={link}>
-      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer relative">
-        {isDemoMode && (
-          <div className="absolute top-2 right-2 bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
-            Demo
+    <Link href={href || '#'}>
+      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-3 rounded-lg`}>
+            <Icon size={24} />
           </div>
-        )}
+        </div>
         <p className="text-gray-600 text-sm font-medium">{title}</p>
         <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        <div className={`${colors[color as keyof typeof colors]} h-2 rounded-full mt-4`}></div>
       </div>
     </Link>
   );
 }
 
-function QuickAction({ title, link, isDemoMode }: any) {
+// Pipeline Stage Component
+type PipelineColor = 'gray' | 'blue' | 'purple' | 'indigo' | 'pink' | 'yellow' | 'orange' | 'teal' | 'cyan' | 'violet' | 'fuchsia' | 'rose' | 'green';
+
+interface PipelineStageProps {
+  name: string;
+  count: number;
+  icon: any;
+  color: PipelineColor;
+  href: string;
+}
+
+function PipelineStage({ name, count, icon: Icon, color, href }: PipelineStageProps) {
+  const colorClasses: Record<PipelineColor, string> = {
+    gray: 'bg-gray-100 text-gray-700 border-gray-300',
+    blue: 'bg-blue-100 text-blue-700 border-blue-300',
+    purple: 'bg-purple-100 text-purple-700 border-purple-300',
+    indigo: 'bg-indigo-100 text-indigo-700 border-indigo-300',
+    pink: 'bg-pink-100 text-pink-700 border-pink-300',
+    yellow: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+    orange: 'bg-orange-100 text-orange-700 border-orange-300',
+    teal: 'bg-teal-100 text-teal-700 border-teal-300',
+    cyan: 'bg-cyan-100 text-cyan-700 border-cyan-300',
+    violet: 'bg-violet-100 text-violet-700 border-violet-300',
+    fuchsia: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-300',
+    rose: 'bg-rose-100 text-rose-700 border-rose-300',
+    green: 'bg-green-100 text-green-700 border-green-300',
+  };
+
   return (
-    <Link href={link}>
-      <div className="bg-gray-50 hover:bg-gray-100 rounded-lg p-4 text-center cursor-pointer transition-colors">
-        <p className="text-gray-900 font-medium">{title}</p>
-        {isDemoMode && <p className="text-xs text-gray-500 mt-1">View Demo</p>}
+    <Link href={href}>
+      <div className={`${colorClasses[color]} border-2 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer`}>
+        <div className="flex items-center justify-between mb-2">
+          <Icon size={20} />
+          <span className="text-2xl font-bold">{count}</span>
+        </div>
+        <p className="text-sm font-medium">{name}</p>
+      </div>
+    </Link>
+  );
+}
+
+// Flow Step Component
+interface FlowStepProps {
+  number: string;
+  title: string;
+  description: string;
+  highlight?: boolean;
+}
+
+function FlowStep({ number, title, description, highlight }: FlowStepProps) {
+  return (
+    <div className={`flex items-center gap-4 p-4 rounded-lg ${highlight ? 'bg-green-100 border-2 border-green-500' : 'bg-white'}`}>
+      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+        highlight ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
+      }`}>
+        {number}
+      </div>
+      <div className="flex-1">
+        <h3 className="font-bold text-gray-900">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+// Flow Arrow Component
+function FlowArrow() {
+  return (
+    <div className="flex justify-center">
+      <ArrowRight size={24} className="text-blue-600" />
+    </div>
+  );
+}
+
+// Quick Action Card Component
+type QuickActionColor = 'blue' | 'indigo' | 'green';
+
+interface QuickActionCardProps {
+  title: string;
+  description: string;
+  icon: any;
+  href: string;
+  color: QuickActionColor;
+}
+
+function QuickActionCard({ title, description, icon: Icon, href, color }: QuickActionCardProps) {
+  const colorClasses: Record<QuickActionColor, string> = {
+    blue: 'from-blue-500 to-blue-600',
+    indigo: 'from-indigo-500 to-indigo-600',
+    green: 'from-green-500 to-green-600',
+  };
+
+  return (
+    <Link href={href}>
+      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer">
+        <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-3 rounded-lg inline-block mb-4`}>
+          <Icon size={24} />
+        </div>
+        <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
+        <p className="text-sm text-gray-600">{description}</p>
       </div>
     </Link>
   );
