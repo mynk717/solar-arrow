@@ -1,4 +1,3 @@
-// src/middleware.ts
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -9,11 +8,19 @@ const publicRoutes = [
   '/',
   '/login',
   '/onboard',
+  '/leads',           // ✅ Added
   '/enquiries',
   '/survey',
-  '/installation',
-  '/kanban',
+  '/quotation',       // ✅ Added
+  '/registration',    // ✅ Added
   '/payments',
+  '/bom',             // ✅ Added
+  '/dispatch',        // ✅ Added
+  '/installation',
+  '/liaison',         // ✅ Added
+  '/wcr',             // ✅ Added
+  '/subsidy',         // ✅ Added
+  '/kanban',
   '/reports',
 ];
 
