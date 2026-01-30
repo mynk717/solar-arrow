@@ -197,7 +197,7 @@ export default function PaymentsPage() {
           <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value as any)}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg text-gray-900"
           >
             <option value="all">All Payment Types</option>
             <option value="Direct">Direct</option>
@@ -218,7 +218,7 @@ export default function PaymentsPage() {
                 <div key={e.id} className="border border-orange-200 bg-orange-50 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-bold">{e.customerName}</h3>
+                      <h3 className="font-bold text-gray-700">{e.customerName}</h3>
                       <p className="text-sm text-gray-600">{e.registrationId} • {e.capacity} kW</p>
                     </div>
                     <span className="bg-orange-200 text-orange-800 px-3 py-1 rounded-full text-xs">
