@@ -71,23 +71,14 @@ export default function Sidebar() {
 <Link href="/" className="block">
   <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
     <div className="flex items-center gap-3">
-      {/* Logo with fallback */}
-      {!imageError ? (
-        <div className="bg-white rounded-lg p-2 flex items-center justify-center w-12 h-12">
-          <Image 
-            src="/SA_logo.png" 
-            alt="Solar Arrow Logo" 
-            width={32} 
-            height={32}
-            className="object-contain"
-            onError={() => setImageError(true)}
-          />
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg p-2 flex items-center justify-center w-12 h-12">
-          <Zap size={32} className="text-blue-600" />
-        </div>
-      )}
+      {/* Logo */}
+      <div className="bg-blue-500 rounded-lg w-12 h-12 p-2 flex items-center justify-center">
+        <img 
+          src="/SA_logo.png" 
+          alt="Solar Arrow Logo" 
+          className="w-8 h-8 object-contain"
+        />
+      </div>
       <div>
         <h1 className="text-2xl font-bold">Solar Arrow</h1>
         <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
@@ -95,6 +86,7 @@ export default function Sidebar() {
     </div>
   </div>
 </Link>
+
 
         {/* Navigation */}
         <nav className="pb-20">

@@ -1,3 +1,4 @@
+// src/middleware.ts
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -8,18 +9,18 @@ const publicRoutes = [
   '/',
   '/login',
   '/onboard',
-  '/leads',           // ✅ Added
+  '/leads',
   '/enquiries',
   '/survey',
-  '/quotation',       // ✅ Added
-  '/registration',    // ✅ Added
+  '/quotation',
+  '/registration',
   '/payments',
-  '/bom',             // ✅ Added
-  '/dispatch',        // ✅ Added
+  '/bom',
+  '/dispatch',
   '/installation',
-  '/liaison',         // ✅ Added
-  '/wcr',             // ✅ Added
-  '/subsidy',         // ✅ Added
+  '/liaison',
+  '/wcr',
+  '/subsidy',
   '/kanban',
   '/reports',
 ];
@@ -90,7 +91,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    // Match all routes except static files
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Match all routes except static files and images
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp).*)',
   ]
 };
