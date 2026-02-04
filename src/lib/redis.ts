@@ -6,7 +6,7 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-// Helper functions
+// Organization helpers
 export async function getOrganization(orgId: string) {
   return await redis.get(`org:${orgId}:info`);
 }
@@ -15,20 +15,59 @@ export async function saveOrganization(orgId: string, data: any) {
   await redis.set(`org:${orgId}:info`, data);
 }
 
-export async function getUserByEmail(email: string) {
-  return await redis.get(`user:${email}:info`);
+// Admin helpers (NEW)
+export async function getAdmin(email: string) {
+  return await redis.get(`admin:${email}:info`);
 }
 
-export async function saveUser(email: string, data: any) {
-  await redis.set(`user:${email}:info`, data);
-  // Add to org's user set
-  await redis.sadd(`org:${data.organizationId}:users`, email);
+export async function saveAdmin(email: string, data: any) {
+  await redis.set(`admin:${email}:info`, data);
+  await redis.sadd(`org:${data.organizationId}:admins`, email);
+}
+
+// User helpers (UPDATED - use user ID, not email as key)
+export async function getUserById(userId: string) {
+  return await redis.get(`user:${userId}:info`);
+}
+
+export async function getUserByEmail(email: string) {
+  const userId = await redis.get(`user:email:${email}`);
+  if (!userId) return null;
+  return await redis.get(`user:${userId}:info`);
+}
+
+export async function saveUser(userId: string, data: any) {
+  await redis.set(`user:${userId}:info`, data);
+  await redis.set(`user:email:${data.email}`, userId); // Email lookup
+  await redis.sadd(`org:${data.organizationId}:users`, userId);
+  
+  if (data.departmentId) {
+    await redis.sadd(`dept:${data.departmentId}:users`, userId);
+  }
 }
 
 export async function getOrganizationUsers(orgId: string) {
-  const userEmails = await redis.smembers(`org:${orgId}:users`);
+  const userIds = await redis.smembers(`org:${orgId}:users`);
   const users = await Promise.all(
-    userEmails.map(email => getUserByEmail(email))
+    userIds.map(id => getUserById(id))
   );
-  return users;
+  return users.filter(Boolean); // Remove nulls
+}
+
+// Department helpers (NEW)
+export async function getDepartment(deptId: string) {
+  return await redis.get(`dept:${deptId}:info`);
+}
+
+export async function saveDepartment(deptId: string, data: any) {
+  await redis.set(`dept:${deptId}:info`, data);
+  await redis.sadd(`org:${data.organizationId}:departments`, deptId);
+}
+
+export async function getOrganizationDepartments(orgId: string) {
+  const deptIds = await redis.smembers(`org:${orgId}:departments`);
+  const departments = await Promise.all(
+    deptIds.map(id => getDepartment(id))
+  );
+  return departments.filter(Boolean);
 }

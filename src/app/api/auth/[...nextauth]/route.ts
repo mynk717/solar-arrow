@@ -4,11 +4,12 @@ import { JWT } from 'next-auth/jwt';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
+import { nanoid } from 'nanoid';
 import { redis } from '@/lib/redis';
 
 export const authOptions: AuthOptions = {
   providers: [
-    // Google OAuth (for admin)
+    // Google OAuth (for ADMINS only)
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
@@ -27,7 +28,7 @@ export const authOptions: AuthOptions = {
       }
     }),
 
-    // Email/Password (for both admin and team members)
+    // Email/Password (for USERS only - not admins)
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -39,17 +40,15 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        // Get user from Redis
-        const user = await redis.get(`user:${credentials.email}:info`) as any;
-        
-        if (!user || !user.isActive) {
+        // Look up user by email (NOT admin)
+        const userIdKey = await redis.get(`user:email:${credentials.email}`);
+        if (!userIdKey) {
           return null;
         }
 
-        // Get organization
-        const org = await redis.get(`org:${user.organizationId}:info`) as any;
+        const user = await redis.get(`user:${userIdKey}:info`) as any;
         
-        if (!org) {
+        if (!user || !user.isActive || !user.passwordHash) {
           return null;
         }
 
@@ -59,21 +58,43 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        // Get organization's Google access token
-        const orgTokens = await redis.get(`org:${user.organizationId}:tokens`) as any;
+        // Get organization
+        const org = await redis.get(`org:${user.organizationId}:info`) as any;
+        if (!org) {
+          return null;
+        }
+
+        // Get OAuth tokens from ANY admin in this org
+        const orgAdmins = await redis.smembers(`org:${user.organizationId}:admins`);
+        let accessToken = null;
+        let refreshToken = null;
+        
+        for (const adminEmail of orgAdmins) {
+          const tokens = await redis.get(`org:${user.organizationId}:oauth:${adminEmail}`) as any;
+          if (tokens?.accessToken) {
+            accessToken = tokens.accessToken;
+            refreshToken = tokens.refreshToken;
+            break;
+          }
+        }
+
+        // Update last login
+        await redis.set(`user:${userIdKey}:info`, {
+          ...user,
+          lastLogin: new Date().toISOString(),
+        });
 
         return {
-          id: user.email,
+          id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
           organizationId: user.organizationId,
           organizationName: org.name,
           sheetId: org.sheetId,
-          googleEmail: org.googleEmail,
-          // Use organization's tokens
-          accessToken: orgTokens?.accessToken,
-          refreshToken: orgTokens?.refreshToken
+          accountType: 'user', // Important: mark as user, not admin
+          accessToken,
+          refreshToken
         } as any;
       }
     })
@@ -86,36 +107,62 @@ export const authOptions: AuthOptions = {
       profile?: any 
     }) {
       if (account?.provider === 'google') {
-        // Check if user's Google email is an admin for any organization
-        const orgs = await redis.keys('org:*:info');
+        // Check if admin exists
+        let admin = await redis.get(`admin:${user.email}:info`) as any;
         
-        let foundOrg = null;
-        for (const orgKey of orgs) {
-          const org = await redis.get(orgKey) as any;
-          if (org?.googleEmail === user.email) {
-            foundOrg = org;
-            break;
-          }
+        if (!admin) {
+          // NEW ADMIN - Auto-create organization
+          const orgId = `org_${nanoid(12)}`;
+          const orgName = `${user.name?.split(' ')[0] || 'My'} Organization`;
+          
+          // Create organization
+          await redis.set(`org:${orgId}:info`, {
+            id: orgId,
+            name: orgName,
+            domain: user.email.split('@')[1] || '',
+            sheetId: '',
+            createdAt: new Date().toISOString(),
+            isActive: true,
+          });
+          
+          // Create owner admin
+          await redis.set(`admin:${user.email}:info`, {
+            email: user.email,
+            name: user.name,
+            organizationId: orgId,
+            role: 'owner',
+            permissions: {
+              manageUsers: true,
+              manageDepartments: true,
+              manageAdmins: true,
+              manageSettings: true,
+              viewReports: true,
+            },
+            isActive: true,
+            createdAt: new Date().toISOString(),
+          });
+          
+          await redis.sadd(`org:${orgId}:admins`, user.email);
+          
+          admin = { organizationId: orgId, role: 'owner' };
         }
 
-        if (!foundOrg) {
-          // Not an authorized admin
-          return false;
+        if (!admin.isActive) {
+          return false; // Block inactive admins
         }
 
-        // Save Google tokens to Redis (shared by all organization users)
-        await redis.set(`org:${foundOrg.id}:tokens`, {
+        // Save/update admin's OAuth tokens
+        await redis.set(`org:${admin.organizationId}:oauth:${user.email}`, {
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           expiresAt: account.expires_at,
           updatedAt: new Date().toISOString(),
-          updatedBy: user.email
         });
 
         return true;
       }
 
-      // Credentials login - always allow if authorize succeeded
+      // Credentials login - handled in authorize()
       return true;
     },
 
@@ -125,29 +172,26 @@ export const authOptions: AuthOptions = {
       account?: Account | null 
     }) {
       if (user) {
-        token.role = user.role || 'admin'; // Google users are admins
+        token.id = user.id;
+        token.role = user.role;
         token.organizationId = user.organizationId;
         token.sheetId = user.sheetId;
-        token.googleEmail = user.googleEmail || user.email;
+        token.accountType = user.accountType || 'admin'; // Default to admin for Google
+        token.accessToken = user.accessToken;
+        token.refreshToken = user.refreshToken;
         
         if (account?.provider === 'google') {
-          token.accessToken = account.access_token;
-          token.refreshToken = account.refresh_token;
+          // Fetch admin details
+          const admin = await redis.get(`admin:${user.email}:info`) as any;
+          token.role = admin?.role || 'owner';
+          token.organizationId = admin?.organizationId;
+          token.accountType = 'admin';
+          token.permissions = admin?.permissions;
           
-          // Find organization for Google user
-          const orgs = await redis.keys('org:*:info');
-          for (const orgKey of orgs) {
-            const org = await redis.get(orgKey) as any;
-            if (org?.googleEmail === user.email) {
-              token.organizationId = org.id;
-              token.sheetId = org.sheetId;
-              break;
-            }
-          }
-        } else {
-          // Credentials provider - use shared tokens
-          token.accessToken = user.accessToken;
-          token.refreshToken = user.refreshToken;
+          // Get org details
+          const org = await redis.get(`org:${admin.organizationId}:info`) as any;
+          token.sheetId = org?.sheetId || '';
+          token.organizationName = org?.name || '';
         }
       }
       
@@ -159,10 +203,13 @@ export const authOptions: AuthOptions = {
       token: JWT 
     }) {
       if (session.user) {
+        session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.organizationId = token.organizationId as string;
         session.user.sheetId = token.sheetId as string;
-        session.user.googleEmail = token.googleEmail as string;
+        session.user.accountType = token.accountType as 'admin' | 'user';
+        session.user.permissions = token.permissions as any;
+        session.user.organizationName = token.organizationName as string;
       }
       session.accessToken = token.accessToken as string;
       session.refreshToken = token.refreshToken as string;

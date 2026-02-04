@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import {
   LayoutDashboard,
@@ -21,6 +22,7 @@ import {
   Menu,
   X,
   Zap,
+  TrendingUp,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -43,8 +45,9 @@ const navigation = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [imageError, setImageError] = useState(false); 
+  const [imageError, setImageError] = useState(false);
 
   // Don't show sidebar on login/onboard/setup pages
   if (['/login', '/onboard', '/setup'].includes(pathname)) {
@@ -68,25 +71,24 @@ export default function Sidebar() {
         }`}
       >
         {/* Header with Logo - Clickable */}
-<Link href="/" className="block">
-  <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
-    <div className="flex items-center gap-3">
-      {/* Logo */}
-      <div className="bg-blue-500 rounded-lg w-12 h-12 p-2 flex items-center justify-center">
-        <img 
-          src="/SA_logo.png" 
-          alt="Solar Arrow Logo" 
-          className="w-8 h-8 object-contain"
-        />
-      </div>
-      <div>
-        <h1 className="text-2xl font-bold">Solar Arrow</h1>
-        <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
-      </div>
-    </div>
-  </div>
-</Link>
-
+        <Link href="/" className="block">
+          <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3">
+              {/* Logo */}
+              <div className="bg-blue-500 rounded-lg w-12 h-12 p-2 flex items-center justify-center">
+                <img 
+                  src="/SA_logo.png" 
+                  alt="Solar Arrow Logo" 
+                  className="w-8 h-8 object-contain"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Solar Arrow</h1>
+                <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
+              </div>
+            </div>
+          </div>
+        </Link>
 
         {/* Navigation */}
         <nav className="pb-20">
@@ -108,11 +110,30 @@ export default function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Admin-only Project Tracker Link */}
+          {session?.user?.role === 'admin' || session?.user?.role === 'owner' ? (
+            <Link
+              href="/admin/tracker"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-6 py-3 transition-colors border-t border-blue-500 mt-2 ${
+                pathname === '/admin/tracker'
+                  ? 'bg-blue-700 border-l-4 border-white'
+                  : 'hover:bg-blue-700/50'
+              }`}
+            >
+              <TrendingUp size={20} />
+              <span className="text-sm">Project Tracker</span>
+              <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
+                Admin
+              </span>
+            </Link>
+          ) : null}
         </nav>
 
         {/* Footer */}
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50 backdrop-blur">
-          <p className="text-xs text-blue-200">© 2026 Hope Energy</p>
+          <p className="text-xs text-blue-200">© 2026 Solar Arrow</p>
           <p className="text-xs text-blue-300 mt-1">v1.0.0</p>
         </div>
       </aside>
