@@ -138,7 +138,7 @@ export const demoEnquiries: Enquiry[] = [
     area: 'Shankar Nagar',
     capacity: 7,  // FIXED: number not string
     panelTag: 'RTS',
-    paymentType: 'Subsidy + Direct',  // FIXED: changed from 'Subsidy' to valid type
+    paymentType: 'Direct',  // FIXED: changed from 'Subsidy' to valid type
     status: 'installation-completed',  // FIXED: hyphen not underscore
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-02-18'),
