@@ -23,6 +23,8 @@ const publicRoutes = [
   '/subsidy',
   '/kanban',
   '/reports',
+  '/unauthorized',
+  '/settings'
 ];
 
 // Check if route is public

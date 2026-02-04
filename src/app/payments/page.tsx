@@ -56,7 +56,7 @@ const demoPayments: Enquiry[] = [
     area: 'Telibandha',
     capacity: 10,
     panelTag: 'Commercial',
-    paymentType: 'Subsidy + Direct',
+    paymentType: 'Direct',
     status: 'active',
     createdAt: new Date('2026-01-10'),
     updatedAt: new Date('2026-01-18'),
@@ -216,7 +216,6 @@ export default function PaymentsPage() {
           >
             <option value="all">All Payment Types</option>
             <option value="Direct">Direct</option>
-            <option value="Subsidy + Direct">Subsidy + Direct</option>
             <option value="Bank Loan">Bank Loan</option>
           </select>
         </div>
