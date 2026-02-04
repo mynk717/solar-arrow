@@ -181,6 +181,8 @@ export const authOptions: AuthOptions = {
         token.refreshToken = user.refreshToken;
         
         if (account?.provider === 'google') {
+          token.accessToken = account.access_token!
+          token.refreshToken = account.refresh_token!
           // Fetch admin details
           const admin = await redis.get(`admin:${user.email}:info`) as any;
           token.role = admin?.role || 'owner';
