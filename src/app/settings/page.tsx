@@ -1,55 +1,62 @@
+// src/app/settings/page.tsx (IMPROVED VERSION)
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink } from 'lucide-react';
+import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+
+interface SheetConfig {
+  sheetId: string;
+  sheetName: string;
+  organizationDomain: string;
+  updatedAt: string;
+  updatedBy: string;
+  configured: boolean;
+}
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [sheetId, setSheetId] = useState('');
   const [sheetName, setSheetName] = useState('Sheet1');
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [config, setConfig] = useState<SheetConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [tokenStatus, setTokenStatus] = useState<'valid' | 'expired' | 'unknown'>('unknown');
 
+  // Load config on mount
   useEffect(() => {
     if (session) {
       loadConfig();
+      checkTokenStatus();
     }
   }, [session]);
-
-  // Load existing config from localStorage on mount
-useEffect(() => {
-  if (session?.user?.email) {
-    const stored = localStorage.getItem(`sheetId_${session.user.email}`);
-    if (stored) {
-      setSheetId(stored);
-      setIsConfigured(true);
-      
-      // Also sync to server
-      fetch('/api/sheets/save-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sheetId: stored,
-          sheetName: 'Sheet1',
-        }),
-      }).catch(console.error);
-    }
-  }
-}, [session?.user?.email]);
 
   const loadConfig = async () => {
     try {
       const response = await fetch('/api/sheets/save-config');
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+
+      if (data.configured) {
+        setConfig(data);
         setSheetId(data.sheetId);
         setSheetName(data.sheetName);
-        setIsConfigured(data.isConfigured);
       }
     } catch (error) {
       console.error('Failed to load config:', error);
+    }
+  };
+
+  const checkTokenStatus = async () => {
+    try {
+      // Simple test to check if token is valid
+      const response = await fetch('/api/test-token');
+      if (response.ok) {
+        setTokenStatus('valid');
+      } else {
+        setTokenStatus('expired');
+      }
+    } catch (error) {
+      setTokenStatus('unknown');
     }
   };
 
@@ -69,14 +76,22 @@ useEffect(() => {
       if (response.ok) {
         setSheetId(data.sheetId!);
         setMessage({ type: 'success', text: 'Template copied! Opening your new sheet...' });
-        
+
         // Save the new sheet config
         await saveConfig(data.sheetId!, sheetName);
-        
+
         // Open the new sheet
         window.open(data.sheetUrl, '_blank');
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to copy template' });
+        if (data.error?.includes('authentication')) {
+          setMessage({ 
+            type: 'error', 
+            text: 'Authentication expired. Please sign out and sign in again.' 
+          });
+          setTokenStatus('expired');
+        } else {
+          setMessage({ type: 'error', text: data.error || 'Failed to copy template' });
+        }
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'An error occurred while copying template' });
@@ -103,7 +118,7 @@ useEffect(() => {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Configuration saved successfully!' });
-        setIsConfigured(true);
+        await loadConfig(); // Reload to show updated info
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to save configuration' });
       }
@@ -112,6 +127,15 @@ useEffect(() => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRefreshToken = async () => {
+    setIsLoading(true);
+    setMessage({ type: 'success', text: 'Refreshing authentication...' });
+
+    // Sign out and back in to refresh token
+    await signOut({ redirect: false });
+    await signIn('google');
   };
 
   // Not signed in
@@ -136,19 +160,10 @@ useEffect(() => {
           </p>
           <button
             onClick={() => signIn('google')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold inline-flex items-center gap-3 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold"
           >
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
             Sign in with Google
           </button>
-          <p className="text-sm text-gray-500 mt-6">
-            We'll only access your Google Sheets. No other data.
-          </p>
         </div>
       </div>
     );
@@ -159,7 +174,7 @@ useEffect(() => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="spinner mx-auto mb-4"></div>
+          <RefreshCw className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -191,35 +206,107 @@ useEffect(() => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex items-center gap-4">
           {session?.user?.image && (
-            <img
-              src={session.user.image}
-              alt={session.user.name || 'User'}
-              className="w-16 h-16 rounded-full"
-            />
+            <img src={session.user.image} alt={session.user.name || 'User'} className="w-16 h-16 rounded-full" />
           )}
           <div>
             <h2 className="text-xl font-bold text-gray-900">{session?.user?.name}</h2>
             <p className="text-gray-600">{session?.user?.email}</p>
-            <div className="mt-2">
-              <span className="inline-flex items-center gap-2 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
-                <CheckCircle size={16} />
-                Connected to Google
+            <div className="mt-2 flex items-center gap-4">
+              <span className={`inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full \${
+                tokenStatus === 'valid' 
+                  ? 'text-green-700 bg-green-50' 
+                  : tokenStatus === 'expired'
+                  ? 'text-red-700 bg-red-50'
+                  : 'text-gray-700 bg-gray-50'
+              }`}>
+                {tokenStatus === 'valid' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                {tokenStatus === 'valid' ? 'Connected to Google' : tokenStatus === 'expired' ? 'Connection Expired' : 'Checking...'}
               </span>
+              {tokenStatus === 'expired' && (
+                <button
+                  onClick={handleRefreshToken}
+                  className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                >
+                  <RefreshCw size={14} />
+                  Refresh Connection
+                </button>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Google Sheets Configuration */}
+      {/* Current Connection Status */}
+      {config && config.configured && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+          <div className="flex items-start gap-3">
+            <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-bold text-green-900 mb-2">📊 Currently Connected</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-green-700 font-medium">Sheet Name:</span>
+                  <code className="bg-green-100 px-2 py-1 rounded text-green-900">{config.sheetName}</code>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700 font-medium">Sheet ID:</span>
+                  <code className="bg-green-100 px-2 py-1 rounded text-green-900 text-xs">{config.sheetId.substring(0, 20)}...</code>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700 font-medium">Last Updated:</span>
+                  <span className="text-green-900">{new Date(config.updatedAt).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700 font-medium">Updated By:</span>
+                  <span className="text-green-900">{config.updatedBy}</span>
+                </div>
+              </div>
+              <a
+                href={`https://docs.google.com/spreadsheets/d/\${config.sheetId}/edit`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-green-700 hover:text-green-800 mt-3 font-medium"
+              >
+                <ExternalLink size={16} />
+                Open Sheet in Google
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Token Expired Warning */}
+      {tokenStatus === 'expired' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-bold text-red-900 mb-2">Authentication Expired</h3>
+              <p className="text-red-800 mb-3">
+                Your Google authentication has expired. You need to re-authenticate to continue using Google Sheets.
+              </p>
+              <button
+                onClick={handleRefreshToken}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+              >
+                <RefreshCw size={16} className="inline mr-2" />
+                Re-authenticate Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rest of the form... */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
           <Database size={24} />
-          Google Sheets Setup
+          {config?.configured ? 'Change Connected Sheet' : 'Google Sheets Setup'}
         </h2>
 
-        {/* Quick Start - Copy Template */}
+        {/* Quick Start */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-2">🚀 Quick Start</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Quick Start</h3>
           <p className="text-gray-700 mb-4">
             Copy our pre-configured template to get started instantly. All columns and formatting are already set up!
           </p>
@@ -236,11 +323,11 @@ useEffect(() => {
         {/* Manual Configuration */}
         <div className="border-t pt-6">
           <h3 className="font-semibold text-gray-900 mb-4">Or use an existing sheet</h3>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Google Sheet ID *
+                Google Sheet ID
               </label>
               <input
                 type="text"
@@ -250,7 +337,7 @@ useEffect(() => {
                 onChange={(e) => setSheetId(e.target.value)}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Found in the URL: docs.google.com/spreadsheets/d/<strong>[SHEET_ID]</strong>/edit
+                Found in the URL: docs.google.com/spreadsheets/d/<strong>SHEET_ID</strong>/edit
               </p>
             </div>
 
@@ -266,13 +353,13 @@ useEffect(() => {
                 onChange={(e) => setSheetName(e.target.value)}
               />
               <p className="text-xs text-gray-500 mt-1">
-                The name of the tab in your spreadsheet (default: Sheet1)
+                The name of the tab in your spreadsheet (default: "Sheet1")
               </p>
             </div>
 
             {sheetId && (
               <a
-                href={`https://docs.google.com/spreadsheets/d/${sheetId}/edit`}
+                href={`https://docs.google.com/spreadsheets/d/\${sheetId}/edit`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -285,9 +372,9 @@ useEffect(() => {
 
           {/* Message */}
           {message && (
-            <div className={`mt-4 p-4 rounded-lg ${
-              message.type === 'success' 
-                ? 'bg-green-50 border border-green-200 text-green-800' 
+            <div className={`mt-4 p-4 rounded-lg \${
+              message.type === 'success'
+                ? 'bg-green-50 border border-green-200 text-green-800'
                 : 'bg-red-50 border border-red-200 text-red-800'
             }`}>
               {message.text}
@@ -300,37 +387,19 @@ useEffect(() => {
             disabled={isLoading || !sheetId}
             className="mt-6 w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors"
           >
-            {isLoading ? 'Saving...' : 'Save Configuration'}
+            {isLoading ? 'Saving...' : config?.configured ? 'Update Configuration' : 'Save Configuration'}
           </button>
         </div>
       </div>
 
-      {/* Status */}
-      {isConfigured && sheetId && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <CheckCircle size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-green-900 mb-2">All Set! ✨</h3>
-              <p className="text-green-800 mb-3">
-                Your Google Sheet is connected and ready to use. All enquiry data will be stored in your sheet.
-              </p>
-              <p className="text-sm text-green-700">
-                Sheet ID: <code className="bg-green-100 px-2 py-1 rounded">{sheetId}</code>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Help Section */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6">
-        <h3 className="font-bold text-gray-900 mb-3">📖 Need Help?</h3>
+        <h3 className="font-bold text-gray-900 mb-3">💡 Need Help?</h3>
         <ul className="space-y-2 text-sm text-gray-700">
-          <li>• <strong>Quick Start:</strong> Click "Create from Template" for instant setup</li>
-          <li>• <strong>Existing Sheet:</strong> Paste your Sheet ID and click Save</li>
-          <li>• <strong>Template:</strong> Sheet must have the correct column structure</li>
-          <li>• <strong>Access:</strong> You automatically have access to sheets you create</li>
+          <li><strong>Quick Start:</strong> Click "Create from Template" for instant setup</li>
+          <li><strong>Existing Sheet:</strong> Paste your Sheet ID and click Save</li>
+          <li><strong>Connection Issues:</strong> Click "Refresh Connection" if you see expired status</li>
+          <li><strong>Access:</strong> You automatically have access to sheets you create</li>
         </ul>
       </div>
     </div>

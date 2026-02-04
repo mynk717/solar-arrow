@@ -3,6 +3,8 @@ import { google } from 'googleapis';
 import { Enquiry, EnquiryStatus, PanelTag, PaymentType, SubsidyStatus } from './types';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getValidAccessToken } from './tokenRefresh';
+
 
 // ============================================
 // AUTHENTICATION
@@ -11,16 +13,20 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 /** Get authenticated Google Sheets client */
 async function getAuthClient() {
   const session = await getServerSession(authOptions);
+  
+  if (!session?.user?.organizationId) {
+    throw new Error('Not authenticated');
+  }
 
-  if (!session?.accessToken) {
-    throw new Error('No access token available');
+  // Get valid access token (auto-refreshes if expired)
+  const accessToken = await getValidAccessToken(session.user.organizationId);
+  
+  if (!accessToken) {
+    throw new Error('Failed to get valid access token. Please re-authenticate.');
   }
 
   const auth = new google.auth.OAuth2();
-  auth.setCredentials({
-    access_token: session.accessToken as string,
-  });
-
+  auth.setCredentials({ access_token: accessToken });
   return auth;
 }
 
