@@ -1,116 +1,82 @@
 // src/lib/notifications.ts
-import { Enquiry, Notification } from './types';
+import { Enquiry } from './types';
 
-export const checkNotifications = (enquiry: Enquiry): Notification[] => {
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  createdAt: Date;
+  read: boolean;
+}
+
+export function generateNotifications(enquiries: Enquiry[]): Notification[] {
   const notifications: Notification[] = [];
-  
-  // Registration → Payment check
-  if (enquiry.status === 'registration_completed' && !enquiry.paymentDate) {
-    notifications.push({
-      id: `${enquiry.id}-payment-pending`,
-      enquiryId: enquiry.id,
-      type: 'alert',
-      message: `Payment not received for ${enquiry.customerName} (${enquiry.id})`,
-      priority: 'high',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/payments?id=${enquiry.id}`
-    });
-  }
-  
-  // Payment → Subsidy check
-  if (enquiry.paymentType.includes('Subsidy') && !enquiry.subsidyStatus) {
-    notifications.push({
-      id: `${enquiry.id}-subsidy-pending`,
-      enquiryId: enquiry.id,
-      type: 'warning',
-      message: `Subsidy status pending for ${enquiry.customerName} (${enquiry.id})`,
-      priority: 'medium',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/subsidy?id=${enquiry.id}`
-    });
-  }
-  
-  // Payment received → Quotation check
-  if (enquiry.status === 'payment_received' && !enquiry.quotationId) {
-    notifications.push({
-      id: `${enquiry.id}-quotation-pending`,
-      enquiryId: enquiry.id,
-      type: 'warning',
-      message: `Quotation pending for ${enquiry.customerName} (${enquiry.id})`,
-      priority: 'medium',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/quotation?id=${enquiry.id}`
-    });
-  }
-  
-  // Quotation approved → BOM check
-  if (enquiry.quotationApprovedDate && !enquiry.bom) {
-    notifications.push({
-      id: `${enquiry.id}-bom-pending`,
-      enquiryId: enquiry.id,
-      type: 'alert',
-      message: `BOM generation required for ${enquiry.customerName} (${enquiry.id})`,
-      priority: 'high',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/bom?id=${enquiry.id}`
-    });
-  }
-  
-  // Installation completed → WCR check
-  if (enquiry.status === 'installation_completed' && !enquiry.wcr) {
-    notifications.push({
-      id: `${enquiry.id}-wcr-pending`,
-      enquiryId: enquiry.id,
-      type: 'alert',
-      message: `WCR submission required for ${enquiry.customerName} (${enquiry.id})`,
-      priority: 'high',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/wcr?id=${enquiry.id}`
-    });
-  }
-  
-  // Dispatch delayed check
-  if (enquiry.dispatch?.status === 'delayed') {
-    notifications.push({
-      id: `${enquiry.id}-dispatch-delayed`,
-      enquiryId: enquiry.id,
-      type: 'warning',
-      message: `Dispatch delayed for ${enquiry.customerName}: ${enquiry.dispatch.delayReason}`,
-      priority: 'high',
-      read: false,
-      createdAt: new Date(),
-      actionRequired: true,
-      actionUrl: `/dispatch?id=${enquiry.id}`
-    });
-  }
-  
+
+  enquiries.forEach(enquiry => {
+    // Payment pending after registration (fixed status comparison)
+    if (enquiry.status === 'registration-completed' && !enquiry.paymentDate) {
+      notifications.push({
+        id: `payment-pending-${enquiry.id}`,
+        title: 'Payment Pending',
+        message: `Payment pending for ${enquiry.customerName} (${enquiry.registrationId})`,
+        type: 'warning',
+        createdAt: new Date(),
+        read: false,
+      });
+    }
+
+    // Subsidy application (fixed optional chaining)
+    if (enquiry.paymentType && enquiry.paymentType.includes('Subsidy') && !enquiry.subsidyStatus) {
+      notifications.push({
+        id: `subsidy-pending-${enquiry.id}`,
+        title: 'Subsidy Application Needed',
+        message: `Apply for subsidy: ${enquiry.customerName}`,
+        type: 'info',
+        createdAt: new Date(),
+        read: false,
+      });
+    }
+
+    // Installation scheduling after payment (fixed status comparison)
+    if (enquiry.status === 'payment-received' && !enquiry.quotationId) {
+      notifications.push({
+        id: `quotation-pending-${enquiry.id}`,
+        title: 'Quotation Pending',
+        message: `Create quotation for ${enquiry.customerName}`,
+        type: 'info',
+        createdAt: new Date(),
+        read: false,
+      });
+    }
+
+    // Survey approval pending
+    if (enquiry.surveyDate && !enquiry.surveyApproved) {
+      notifications.push({
+        id: `survey-approval-${enquiry.id}`,
+        title: 'Survey Awaiting Approval',
+        message: `Survey for ${enquiry.customerName} needs approval`,
+        type: 'warning',
+        createdAt: new Date(),
+        read: false,
+      });
+    }
+
+    // Installation completion inspection (fixed status comparison)
+    if (enquiry.status === 'installation-completed' && !enquiry.inspectionDate) {
+      notifications.push({
+        id: `inspection-needed-${enquiry.id}`,
+        title: 'Inspection Required',
+        message: `Schedule inspection for ${enquiry.customerName}`,
+        type: 'warning',
+        createdAt: new Date(),
+        read: false,
+      });
+    }
+
+    // Note: Removed checks for 'bom', 'wcr', and 'dispatch' properties
+    // as they don't exist in the Enquiry type definition
+  });
+
   return notifications;
-};
-
-// Get all notifications for all enquiries
-export const getAllNotifications = (enquiries: Enquiry[]): Notification[] => {
-  return enquiries.flatMap(enquiry => checkNotifications(enquiry));
-};
-
-// Filter notifications by priority
-export const filterNotificationsByPriority = (
-  notifications: Notification[], 
-  priority: 'low' | 'medium' | 'high'
-): Notification[] => {
-  return notifications.filter(n => n.priority === priority);
-};
-
-// Get unread notifications count
-export const getUnreadCount = (notifications: Notification[]): number => {
-  return notifications.filter(n => !n.read).length;
-};
+}

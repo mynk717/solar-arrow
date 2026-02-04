@@ -71,11 +71,11 @@ export default function SurveyPage() {
   }, [status]);
   
   const pendingSurveys = enquiries.filter(e => 
-    e.status === 'survey_pending' || e.status === 'new'
+    e.status === 'survey-pending' || e.status === 'new'
   );
   
   const completedSurveys = enquiries.filter(e => 
-    e.status === 'survey_completed' || 
+    e.status === 'survey-completed' || 
     ['registration_pending', 'payment_pending', 'payment_received', 'active'].includes(e.status)
   ).filter(e => e.surveyDate);
 
@@ -87,7 +87,7 @@ export default function SurveyPage() {
     
     setEnquiries(prev => prev.map(e => 
       e.id === enquiryId 
-        ? { ...e, surveyDate, surveyedBy: assignee, status: 'survey_pending' as any }
+        ? { ...e, surveyDate, surveyedBy: assignee, status: 'survey-pending' as any }
         : e
     ));
   };
@@ -104,7 +104,7 @@ export default function SurveyPage() {
             ...e, 
             surveyApproved: approved, 
             surveyNotes: notes,
-            status: approved ? 'survey_completed' as any : 'survey_pending' as any,
+            status: approved ? 'survey-completed' as any : 'survey-pending' as any,
             updatedAt: new Date()
           }
         : e
@@ -340,7 +340,7 @@ function SurveyCard({ enquiry, onSchedule, onApprove, isDemoMode }: any) {
             Scheduled: {enquiry.surveyDate.toLocaleDateString()} • {enquiry.surveyedBy}
           </div>
           
-          {!enquiry.surveyApproved && enquiry.status === 'survey_pending' && !isApproving && (
+          {!enquiry.surveyApproved && enquiry.status === 'survey-pending' && !isApproving && (
             <button
               onClick={() => setIsApproving(true)}
               className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"

@@ -1,12 +1,14 @@
 //  src/app/payments/page.tsx
 'use client';
 
+
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Enquiry, PaymentType } from '@/lib/types';
 import { IndianRupee, CheckCircle, Clock, Loader2, Filter } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
+
 
 // Demo payment data
 const demoPayments: Enquiry[] = [
@@ -17,7 +19,7 @@ const demoPayments: Enquiry[] = [
     email: 'rajesh@example.com',
     address: '123 Civil Lines',
     area: 'Civil Lines',
-    capacity: '5',
+    capacity: 5,
     panelTag: 'RTS',
     paymentType: 'Direct',
     status: 'active',
@@ -36,10 +38,10 @@ const demoPayments: Enquiry[] = [
     email: 'priya@example.com',
     address: '456 Pandri',
     area: 'Pandri',
-    capacity: '3',
+    capacity: 3,
     panelTag: 'RTS',
     paymentType: 'Direct',
-    status: 'payment_pending',
+    status: 'payment-pending',
     createdAt: new Date('2026-01-18'),
     updatedAt: new Date('2026-01-18'),
     registrationId: 'CSPDCL-2026-002',
@@ -52,7 +54,7 @@ const demoPayments: Enquiry[] = [
     email: 'amit@example.com',
     address: '789 Telibandha',
     area: 'Telibandha',
-    capacity: '10',
+    capacity: 10,
     panelTag: 'Commercial',
     paymentType: 'Subsidy + Direct',
     status: 'active',
@@ -68,12 +70,14 @@ const demoPayments: Enquiry[] = [
   },
 ];
 
+
 export default function PaymentsPage() {
   const { data: session, status } = useSession();
   const { isDemoMode, showDemoAlert } = useDemoMode();
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState<PaymentType | 'all'>('all');
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,12 +88,13 @@ export default function PaymentsPage() {
         return;
       }
 
+
       // Try API if authenticated
       if (status === 'authenticated') {
         try {
           const response = await fetch('/api/enquiries');
           if (!response.ok) throw new Error('API failed');
-          
+
           const data = await response.json();
           const enquiriesWithDates = data.map((e: any) => ({
             ...e,
@@ -97,7 +102,7 @@ export default function PaymentsPage() {
             updatedAt: new Date(e.updatedAt),
             paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
           }));
-          
+
           setEnquiries(enquiriesWithDates);
         } catch (err) {
           console.log('Using demo data');
@@ -108,8 +113,10 @@ export default function PaymentsPage() {
       }
     };
 
+
     fetchData();
   }, [status]);
+
 
   const handleRecordPayment = (id: string) => {
     if (isDemoMode || status === 'unauthenticated') {
@@ -119,12 +126,14 @@ export default function PaymentsPage() {
     alert(`Record payment for ${id}`);
   };
 
+
   const pending = enquiries.filter(e => !e.paymentDate && e.registrationId);
   const paid = enquiries.filter(e => e.paymentDate);
-  
+
   const totalPending = pending.reduce((sum, e) => sum + (e.estimatedCost || 0), 0);
   const totalReceived = paid.reduce((sum, e) => sum + (e.initialPayment || 0), 0);
   const totalSubsidy = enquiries.reduce((sum, e) => sum + (e.subsidyAmount || 0), 0);
+
 
   if (loading) {
     return (
@@ -133,6 +142,7 @@ export default function PaymentsPage() {
       </div>
     );
   }
+
 
   return (
     <div>
@@ -144,6 +154,7 @@ export default function PaymentsPage() {
           </h1>
           <p className="text-gray-600 mt-2">Track payments and subsidy disbursement</p>
         </div>
+
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -160,6 +171,7 @@ export default function PaymentsPage() {
             </div>
           </div>
 
+
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -173,6 +185,7 @@ export default function PaymentsPage() {
             </div>
           </div>
 
+
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -185,11 +198,13 @@ export default function PaymentsPage() {
             </div>
           </div>
 
+
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg shadow-md p-6 text-white">
             <p className="text-sm font-medium opacity-90">Total Revenue</p>
             <p className="text-3xl font-bold mt-2">₹{((totalPending + totalReceived) / 100000).toFixed(2)}L</p>
           </div>
         </div>
+
 
         {/* Filter */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center gap-4">
@@ -205,6 +220,7 @@ export default function PaymentsPage() {
             <option value="Bank Loan">Bank Loan</option>
           </select>
         </div>
+
 
         {/* Pending Payments */}
         {pending.length > 0 && (
@@ -242,6 +258,7 @@ export default function PaymentsPage() {
           </div>
         )}
 
+
         {/* Payment Received */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 border-b">
@@ -267,9 +284,9 @@ export default function PaymentsPage() {
                   <td className="py-3 px-6 text-gray-700">{e.customerName}</td>
                   <td className="py-3 px-6 font-mono text-sm text-gray-700">{e.registrationId}</td>
                   <td className="py-3 px-6">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      e.panelTag === 'RTS' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                    }`}>
+                    <span className={
+                      e.panelTag === 'RTS' ? 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs' : 'bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs'
+                    }>
                       {e.panelTag}
                     </span>
                   </td>

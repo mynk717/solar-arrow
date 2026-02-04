@@ -55,7 +55,7 @@ export const demoLeads: Lead[] = [
   },
 ];
 
-// Enquiries Demo Data (existing + new)
+// Enquiries Demo Data
 export const demoEnquiries: Enquiry[] = [
   {
     id: 'ENQ-2024-001',
@@ -64,7 +64,7 @@ export const demoEnquiries: Enquiry[] = [
     email: 'rajesh.kumar@example.com',
     address: '123 Civil Lines, Sector 10',
     area: 'Civil Lines',
-    capacity: '5',
+    capacity: 5,  // FIXED: number not string
     panelTag: 'RTS',
     paymentType: 'Direct',
     status: 'active',
@@ -95,10 +95,10 @@ export const demoEnquiries: Enquiry[] = [
     email: 'priya.patel@example.com',
     address: '456 Pandri Road, Near Bus Stand',
     area: 'Pandri',
-    capacity: '3',
+    capacity: 3,  // FIXED: number not string
     panelTag: 'RTS',
     paymentType: 'Direct',
-    status: 'payment_pending',
+    status: 'payment-pending',  // FIXED: hyphen not underscore
     createdAt: new Date('2024-01-20'),
     updatedAt: new Date('2024-01-28'),
     surveyDate: new Date('2024-01-23'),
@@ -120,10 +120,10 @@ export const demoEnquiries: Enquiry[] = [
     email: 'suresh.yadav@example.com',
     address: '789 Telibandha, Behind Market',
     area: 'Telibandha',
-    capacity: '10',
+    capacity: 10,  // FIXED: number not string
     panelTag: 'RTS',
     paymentType: 'Direct',
-    status: 'survey_pending',
+    status: 'survey-pending',  // FIXED: hyphen not underscore
     createdAt: new Date('2024-02-01'),
     updatedAt: new Date('2024-02-05'),
     surveyDate: new Date('2024-02-08'),
@@ -136,10 +136,10 @@ export const demoEnquiries: Enquiry[] = [
     email: 'meera.singh@example.com',
     address: '321 Shankar Nagar, Near School',
     area: 'Shankar Nagar',
-    capacity: '7',
+    capacity: 7,  // FIXED: number not string
     panelTag: 'RTS',
-    paymentType: 'Subsidy',
-    status: 'installation_completed',
+    paymentType: 'Subsidy + Direct',  // FIXED: changed from 'Subsidy' to valid type
+    status: 'installation-completed',  // FIXED: hyphen not underscore
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-02-18'),
     surveyDate: new Date('2024-01-13'),
@@ -167,7 +167,7 @@ export const demoEnquiries: Enquiry[] = [
     email: 'arjun.desai@example.com',
     address: '654 GE Road, Opposite Mall',
     area: 'GE Road',
-    capacity: '4',
+    capacity: 4,  // FIXED: number not string
     panelTag: 'RTS',
     paymentType: 'Direct',
     status: 'new',

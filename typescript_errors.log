@@ -1,0 +1,175 @@
+[96msrc/app/kanban/page.tsx[0m:[93m37[0m:[93m15[0m - [91merror[0m[90m TS2352: [0mConversion of type '("survey_pending" | "survey_completed")[]' to type 'EnquiryStatus[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '"survey_pending" | "survey_completed"' is not comparable to type 'EnquiryStatus'.
+    Type '"survey_completed"' is not comparable to type 'EnquiryStatus'.
+
+[7m37[0m     statuses: ['survey_pending', 'survey_completed'] as EnquiryStatus[],
+[7m  [0m [91m              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/app/kanban/page.tsx[0m:[93m44[0m:[93m15[0m - [91merror[0m[90m TS2352: [0mConversion of type '("registration_completed" | "registration_pending")[]' to type 'EnquiryStatus[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '"registration_completed" | "registration_pending"' is not comparable to type 'EnquiryStatus'.
+    Type '"registration_pending"' is not comparable to type 'EnquiryStatus'.
+
+[7m44[0m     statuses: ['registration_pending', 'registration_completed'] as EnquiryStatus[],
+[7m  [0m [91m              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/app/kanban/page.tsx[0m:[93m51[0m:[93m15[0m - [91merror[0m[90m TS2352: [0mConversion of type '("payment_pending" | "payment_received")[]' to type 'EnquiryStatus[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '"payment_pending" | "payment_received"' is not comparable to type 'EnquiryStatus'.
+    Type '"payment_received"' is not comparable to type 'EnquiryStatus'.
+
+[7m51[0m     statuses: ['payment_pending', 'payment_received'] as EnquiryStatus[],
+[7m  [0m [91m              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/app/survey/page.tsx[0m:[93m74[0m:[93m5[0m - [91merror[0m[90m TS2367: [0mThis comparison appears to be unintentional because the types 'EnquiryStatus' and '"survey_pending"' have no overlap.
+
+[7m74[0m     e.status === 'survey_pending' || e.status === 'new'
+[7m  [0m [91m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/app/survey/page.tsx[0m:[93m78[0m:[93m5[0m - [91merror[0m[90m TS2367: [0mThis comparison appears to be unintentional because the types 'EnquiryStatus' and '"survey_completed"' have no overlap.
+
+[7m78[0m     e.status === 'survey_completed' ||
+[7m  [0m [91m    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/components/StatusBadge.tsx[0m:[93m10[0m:[93m3[0m - [91merror[0m[90m TS2561: [0mObject literal may only specify known properties, but 'survey_pending' does not exist in type 'Record<EnquiryStatus, { label: string; color: string; }>'. Did you mean to write 'survey-pending'?
+
+[7m10[0m   survey_pending: { label: 'Survey Pending', color: 'bg-yellow-100 text-yellow-800' },
+[7m  [0m [91m  ~~~~~~~~~~~~~~[0m
+
+[96msrc/lib/demoData.ts[0m:[93m67[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m67[0m     capacity: '5',
+[7m  [0m [91m    ~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m75[0m:[93m3[0m
+    [7m75[0m   capacity: number; // in kW
+    [7m  [0m [96m  ~~~~~~~~[0m
+    The expected type comes from property 'capacity' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m98[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m98[0m     capacity: '3',
+[7m  [0m [91m    ~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m75[0m:[93m3[0m
+    [7m75[0m   capacity: number; // in kW
+    [7m  [0m [96m  ~~~~~~~~[0m
+    The expected type comes from property 'capacity' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m101[0m:[93m5[0m - [91merror[0m[90m TS2820: [0mType '"payment_pending"' is not assignable to type 'EnquiryStatus'. Did you mean '"payment-pending"'?
+
+[7m101[0m     status: 'payment_pending',
+[7m   [0m [91m    ~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m76[0m:[93m3[0m
+    [7m76[0m   status: EnquiryStatus;
+    [7m  [0m [96m  ~~~~~~[0m
+    The expected type comes from property 'status' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m123[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m123[0m     capacity: '10',
+[7m   [0m [91m    ~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m75[0m:[93m3[0m
+    [7m75[0m   capacity: number; // in kW
+    [7m  [0m [96m  ~~~~~~~~[0m
+    The expected type comes from property 'capacity' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m126[0m:[93m5[0m - [91merror[0m[90m TS2820: [0mType '"survey_pending"' is not assignable to type 'EnquiryStatus'. Did you mean '"survey-pending"'?
+
+[7m126[0m     status: 'survey_pending',
+[7m   [0m [91m    ~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m76[0m:[93m3[0m
+    [7m76[0m   status: EnquiryStatus;
+    [7m  [0m [96m  ~~~~~~[0m
+    The expected type comes from property 'status' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m139[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m139[0m     capacity: '7',
+[7m   [0m [91m    ~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m75[0m:[93m3[0m
+    [7m75[0m   capacity: number; // in kW
+    [7m  [0m [96m  ~~~~~~~~[0m
+    The expected type comes from property 'capacity' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m141[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '"Subsidy"' is not assignable to type 'PaymentType | undefined'.
+
+[7m141[0m     paymentType: 'Subsidy',
+[7m   [0m [91m    ~~~~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m139[0m:[93m3[0m
+    [7m139[0m   paymentType?: PaymentType;
+    [7m   [0m [96m  ~~~~~~~~~~~[0m
+    The expected type comes from property 'paymentType' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m142[0m:[93m5[0m - [91merror[0m[90m TS2820: [0mType '"installation_completed"' is not assignable to type 'EnquiryStatus'. Did you mean '"installation-completed"'?
+
+[7m142[0m     status: 'installation_completed',
+[7m   [0m [91m    ~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m76[0m:[93m3[0m
+    [7m76[0m   status: EnquiryStatus;
+    [7m  [0m [96m  ~~~~~~[0m
+    The expected type comes from property 'status' which is declared here on type 'Enquiry'
+
+[96msrc/lib/demoData.ts[0m:[93m170[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType 'string' is not assignable to type 'number'.
+
+[7m170[0m     capacity: '4',
+[7m   [0m [91m    ~~~~~~~~[0m
+
+  [96msrc/lib/types.ts[0m:[93m75[0m:[93m3[0m
+    [7m75[0m   capacity: number; // in kW
+    [7m  [0m [96m  ~~~~~~~~[0m
+    The expected type comes from property 'capacity' which is declared here on type 'Enquiry'
+
+[96msrc/lib/notifications.ts[0m:[93m8[0m:[93m7[0m - [91merror[0m[90m TS2367: [0mThis comparison appears to be unintentional because the types 'EnquiryStatus' and '"registration_completed"' have no overlap.
+
+[7m8[0m   if (enquiry.status === 'registration_completed' && !enquiry.paymentDate) {
+[7m [0m [91m      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m23[0m:[93m7[0m - [91merror[0m[90m TS18048: [0m'enquiry.paymentType' is possibly 'undefined'.
+
+[7m23[0m   if (enquiry.paymentType.includes('Subsidy') && !enquiry.subsidyStatus) {
+[7m  [0m [91m      ~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m38[0m:[93m7[0m - [91merror[0m[90m TS2367: [0mThis comparison appears to be unintentional because the types 'EnquiryStatus' and '"payment_received"' have no overlap.
+
+[7m38[0m   if (enquiry.status === 'payment_received' && !enquiry.quotationId) {
+[7m  [0m [91m      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m53[0m:[93m49[0m - [91merror[0m[90m TS2339: [0mProperty 'bom' does not exist on type 'Enquiry'.
+
+[7m53[0m   if (enquiry.quotationApprovedDate && !enquiry.bom) {
+[7m  [0m [91m                                                ~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m68[0m:[93m7[0m - [91merror[0m[90m TS2367: [0mThis comparison appears to be unintentional because the types 'EnquiryStatus' and '"installation_completed"' have no overlap.
+
+[7m68[0m   if (enquiry.status === 'installation_completed' && !enquiry.wcr) {
+[7m  [0m [91m      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m68[0m:[93m63[0m - [91merror[0m[90m TS2339: [0mProperty 'wcr' does not exist on type 'Enquiry'.
+
+[7m68[0m   if (enquiry.status === 'installation_completed' && !enquiry.wcr) {
+[7m  [0m [91m                                                              ~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m83[0m:[93m15[0m - [91merror[0m[90m TS2339: [0mProperty 'dispatch' does not exist on type 'Enquiry'.
+
+[7m83[0m   if (enquiry.dispatch?.status === 'delayed') {
+[7m  [0m [91m              ~~~~~~~~[0m
+
+[96msrc/lib/notifications.ts[0m:[93m88[0m:[93m73[0m - [91merror[0m[90m TS2339: [0mProperty 'dispatch' does not exist on type 'Enquiry'.
+
+[7m88[0m       message: `Dispatch delayed for ${enquiry.customerName}: ${enquiry.dispatch.delayReason}`,
+[7m  [0m [91m                                                                        ~~~~~~~~[0m
+
+
+Found 23 errors in 5 files.
+
+Errors  Files
+     3  src/app/kanban/page.tsx[90m:37[0m
+     2  src/app/survey/page.tsx[90m:74[0m
+     1  src/components/StatusBadge.tsx[90m:10[0m
+     9  src/lib/demoData.ts[90m:67[0m
+     8  src/lib/notifications.ts[90m:8[0m

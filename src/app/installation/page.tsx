@@ -10,20 +10,15 @@ import DemoBanner from '@/components/DemoBanner';
 import { demoEnquiries } from '@/lib/demoData';
 import { useDemoMode } from '@/contexts/DemoContext';
 
-const installationTeams = [
-  'Tech Team A',
-  'Tech Team B', 
-  'Tech Team C'
-];
+const installationTeams = ['Tech Team A', 'Tech Team B', 'Tech Team C'];
 
 export default function InstallationPage() {
   const { data: session, status } = useSession();
   const { isDemoMode, showDemoAlert } = useDemoMode();
-  
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Fetch enquiries from API or use demo data
   useEffect(() => {
     const fetchData = async () => {
@@ -40,9 +35,8 @@ export default function InstallationPage() {
           setLoading(true);
           const response = await fetch('/api/enquiries');
           if (!response.ok) throw new Error('Failed to fetch enquiries');
-          
           const data = await response.json();
-          
+
           // Convert date strings back to Date objects
           const enquiriesWithDates = data.map((e: any) => ({
             ...e,
@@ -56,7 +50,7 @@ export default function InstallationPage() {
             inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
             activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
           }));
-          
+
           setEnquiries(enquiriesWithDates);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -65,33 +59,32 @@ export default function InstallationPage() {
         }
       }
     };
-    
+
     fetchData();
   }, [status]);
-  
-  const readyForDispatch = enquiries.filter(e => e.status === 'payment_received');
-  const dispatched = enquiries.filter(e => e.status === 'dispatched' || e.status === 'dispatch_pending');
+
+  // FIXED: Changed underscore to hyphen for all status values
+  const readyForDispatch = enquiries.filter(e => e.status === 'payment-received');
+  const dispatched = enquiries.filter(e => e.status === 'dispatched' || e.status === 'dispatch-pending');
   const inInstallation = enquiries.filter(e => 
-    e.status === 'installation_pending' || (e.dispatchDate && !e.installationDate)
+    e.status === 'installation-pending' || (e.dispatchDate && !e.installationDate)
   );
   const installationCompleted = enquiries.filter(e => 
-    e.status === 'installation_completed' || e.installationDate
+    e.status === 'installation-completed' && e.installationDate
   );
-  const awaitingInspection = enquiries.filter(e => 
-    e.installationDate && !e.inspectionDate
-  );
+  const awaitingInspection = enquiries.filter(e => e.installationDate && !e.inspectionDate);
 
   const handleDispatch = (enquiryId: string) => {
     if (isDemoMode) {
       showDemoAlert();
       return;
     }
-    
+
     setEnquiries(prev => prev.map(e => 
       e.id === enquiryId 
         ? { 
             ...e, 
-            dispatchDate: new Date(),
+            dispatchDate: new Date(), 
             status: 'dispatched' as any,
             updatedAt: new Date()
           }
@@ -104,14 +97,14 @@ export default function InstallationPage() {
       showDemoAlert();
       return;
     }
-    
+
     setEnquiries(prev => prev.map(e => 
       e.id === enquiryId 
         ? { 
             ...e, 
-            installationDate: new Date(),
+            installationDate: new Date(), 
             installedBy: team,
-            status: 'installation_completed' as any,
+            status: 'installation-completed' as any,
             updatedAt: new Date()
           }
         : e
@@ -123,16 +116,16 @@ export default function InstallationPage() {
       showDemoAlert();
       return;
     }
-    
+
     setEnquiries(prev => prev.map(e => 
       e.id === enquiryId 
         ? { 
             ...e, 
-            inspectionDate: new Date(),
+            inspectionDate: new Date(), 
             inspectionOfficer: officer,
             inspectionApproved: approved,
             activationDate: approved ? new Date() : undefined,
-            status: approved ? 'active' as any : 'installation_completed' as any,
+            status: (approved ? 'active' : 'installation-completed') as any,
             updatedAt: new Date()
           }
         : e
@@ -169,7 +162,6 @@ export default function InstallationPage() {
   return (
     <div>
       <DemoBanner />
-      
       <div className="p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -185,38 +177,38 @@ export default function InstallationPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <StatCard
-            title="Ready for Dispatch"
-            value={readyForDispatch.length}
-            icon={<Package />}
+          <StatCard 
+            title="Ready for Dispatch" 
+            value={readyForDispatch.length} 
+            icon={Package} 
             color="bg-blue-500"
             isDemoMode={isDemoMode}
           />
-          <StatCard
-            title="Dispatched"
-            value={dispatched.length}
-            icon={<Truck />}
+          <StatCard 
+            title="Dispatched" 
+            value={dispatched.length} 
+            icon={Truck} 
             color="bg-purple-500"
             isDemoMode={isDemoMode}
           />
-          <StatCard
-            title="In Installation"
-            value={inInstallation.length}
-            icon={<Wrench />}
+          <StatCard 
+            title="In Installation" 
+            value={inInstallation.length} 
+            icon={Wrench} 
             color="bg-orange-500"
             isDemoMode={isDemoMode}
           />
-          <StatCard
-            title="Awaiting Inspection"
-            value={awaitingInspection.length}
-            icon={<ClipboardCheck />}
+          <StatCard 
+            title="Awaiting Inspection" 
+            value={awaitingInspection.length} 
+            icon={ClipboardCheck} 
             color="bg-yellow-500"
             isDemoMode={isDemoMode}
           />
-          <StatCard
-            title="Completed"
-            value={installationCompleted.filter(e => e.status === 'active').length}
-            icon={<ClipboardCheck />}
+          <StatCard 
+            title="Completed" 
+            value={installationCompleted.filter(e => e.status === 'active').length} 
+            icon={ClipboardCheck} 
             color="bg-green-500"
             isDemoMode={isDemoMode}
           />
@@ -229,12 +221,11 @@ export default function InstallationPage() {
               <Package className="text-blue-500" size={24} />
               Ready for Dispatch
             </h2>
-            
             <div className="space-y-4">
               {readyForDispatch.map(enquiry => (
                 <DispatchCard 
                   key={enquiry.id} 
-                  enquiry={enquiry}
+                  enquiry={enquiry} 
                   onDispatch={handleDispatch}
                   isDemoMode={isDemoMode}
                 />
@@ -250,12 +241,11 @@ export default function InstallationPage() {
               <Wrench className="text-orange-500" size={24} />
               Installation in Progress
             </h2>
-            
             <div className="space-y-4">
               {[...dispatched, ...inInstallation].map(enquiry => (
                 <InstallationCard 
                   key={enquiry.id} 
-                  enquiry={enquiry}
+                  enquiry={enquiry} 
                   onComplete={handleInstallation}
                   isDemoMode={isDemoMode}
                 />
@@ -271,12 +261,11 @@ export default function InstallationPage() {
               <ClipboardCheck className="text-yellow-500" size={24} />
               Awaiting Government Inspection
             </h2>
-            
             <div className="space-y-4">
               {awaitingInspection.map(enquiry => (
                 <InspectionCard 
                   key={enquiry.id} 
-                  enquiry={enquiry}
+                  enquiry={enquiry} 
                   onInspect={handleInspection}
                   isDemoMode={isDemoMode}
                 />
@@ -291,7 +280,6 @@ export default function InstallationPage() {
             <ClipboardCheck className="text-green-500" size={24} />
             Completed & Active Systems
           </h2>
-          
           {installationCompleted.length === 0 ? (
             <p className="text-gray-600 text-center py-8">No completed installations yet</p>
           ) : (
@@ -320,14 +308,18 @@ export default function InstallationPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-gray-700">{enquiry.capacity} kW</td>
-                      <td className="py-3 px-4 text-sm text-gray-700">{enquiry.dispatchDate?.toLocaleDateString()}</td>
-                      <td className="py-3 px-4 text-sm text-gray-700">{enquiry.installationDate?.toLocaleDateString()}</td>
+                      <td className="py-3 px-4 text-sm text-gray-700">
+                        {enquiry.dispatchDate?.toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-700">
+                        {enquiry.installationDate?.toLocaleDateString()}
+                      </td>
                       <td className="py-3 px-4 text-sm text-gray-700">{enquiry.installedBy}</td>
                       <td className="py-3 px-4 text-sm">
                         {enquiry.inspectionApproved ? (
-                          <span className="text-green-600">✅ Approved</span>
+                          <span className="text-green-600">✓ Approved</span>
                         ) : enquiry.inspectionDate ? (
-                          <span className="text-red-600">❌ Rejected</span>
+                          <span className="text-red-600">✗ Rejected</span>
                         ) : (
                           <span className="text-yellow-600">⏳ Pending</span>
                         )}
@@ -347,7 +339,7 @@ export default function InstallationPage() {
   );
 }
 
-function StatCard({ title, value, icon, color, isDemoMode }: any) {
+function StatCard({ title, value, icon: Icon, color, isDemoMode }: any) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 relative">
       {isDemoMode && (
@@ -361,7 +353,7 @@ function StatCard({ title, value, icon, color, isDemoMode }: any) {
           <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
         </div>
         <div className={`${color} text-white p-3 rounded-lg`}>
-          {icon}
+          <Icon size={24} />
         </div>
       </div>
     </div>
@@ -385,7 +377,7 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
       </div>
 
       <div className="bg-white rounded-lg p-4 mb-4">
-        <h4 className="font-semibold text-gray-900 mb-3">Materials to Dispatch:</h4>
+        <h4 className="font-semibold text-gray-900 mb-3">Materials to Dispatch</h4>
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -407,7 +399,7 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
       </div>
 
       {!isDispatching ? (
-        <button
+        <button 
           onClick={() => setIsDispatching(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
         >
@@ -420,37 +412,34 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tracking Number
             </label>
-            <input
-              type="text"
+            <input 
+              type="text" 
               placeholder="Enter shipment tracking number"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Transport Company
             </label>
-            <input
-              type="text"
+            <input 
+              type="text" 
               placeholder="e.g., Transport Co. Ltd"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Expected Delivery Date
             </label>
-            <input
-              type="date"
+            <input 
+              type="date" 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               min={new Date().toISOString().split('T')[0]}
             />
           </div>
-
           <div className="flex gap-2">
-            <button
+            <button 
               onClick={() => {
                 onDispatch(enquiry.id);
                 setIsDispatching(false);
@@ -459,7 +448,7 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
             >
               Confirm Dispatch
             </button>
-            <button
+            <button 
               onClick={() => setIsDispatching(false)}
               className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
             >
@@ -485,15 +474,13 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
           <p className="text-sm text-gray-600 mt-1">
             Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}
           </p>
-          <p className="text-sm font-medium text-gray-700 mt-2">
-            📍 {enquiry.address}
-          </p>
+          <p className="text-sm font-medium text-gray-700 mt-2">{enquiry.address}</p>
         </div>
         <StatusBadge status={enquiry.status} />
       </div>
 
       {!isCompleting ? (
-        <button
+        <button 
           onClick={() => setIsCompleting(true)}
           className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2"
         >
@@ -516,46 +503,18 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
               ))}
             </select>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Installation Notes
             </label>
-            <textarea
+            <textarea 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               rows={3}
-              placeholder="Enter installation details, any issues, etc..."
+              placeholder="Enter installation details, any issues, etc."
             />
           </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm font-semibold text-blue-900 mb-2">Installation Checklist:</p>
-            <div className="space-y-1 text-sm text-blue-800">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                All panels mounted and secured
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                Inverter installed and configured
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                Wiring completed and tested
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                Safety measures verified
-              </label>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded" />
-                Customer briefed on system usage
-              </label>
-            </div>
-          </div>
-
           <div className="flex gap-2">
-            <button
+            <button 
               onClick={() => {
                 onComplete(enquiry.id, selectedTeam);
                 setIsCompleting(false);
@@ -564,7 +523,7 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
             >
               Complete Installation
             </button>
-            <button
+            <button 
               onClick={() => setIsCompleting(false)}
               className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
             >
@@ -579,7 +538,6 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
 
 function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
   const [isInspecting, setIsInspecting] = useState(false);
-  const [officer, setOfficer] = useState('');
 
   return (
     <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
@@ -591,30 +549,19 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
             Installation Completed: {enquiry.installationDate?.toLocaleDateString()}
           </p>
           <p className="text-sm text-gray-600">
-            Installed By: {enquiry.installedBy}
+            Installed by: {enquiry.installedBy}
           </p>
         </div>
         <StatusBadge status={enquiry.status} />
       </div>
 
-      <div className="bg-white rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <ClipboardCheck className="text-yellow-600 flex-shrink-0 mt-1" size={20} />
-          <div className="text-sm">
-            <p className="font-semibold text-gray-900 mb-1">Awaiting CSPDCL Inspection</p>
-            <p className="text-gray-600">
-              Government inspection required before system activation
-            </p>
-          </div>
-        </div>
-      </div>
-
       {!isInspecting ? (
-        <button
+        <button 
           onClick={() => setIsInspecting(true)}
-          className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
+          className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 flex items-center gap-2"
         >
-          Record Inspection Result
+          <ClipboardCheck size={20} />
+          Record Inspection
         </button>
       ) : (
         <div className="bg-white rounded-lg p-4 space-y-3">
@@ -622,57 +569,48 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Inspection Officer
             </label>
-            <input
-              type="text"
-              placeholder="Enter officer name"
+            <input 
+              type="text" 
+              placeholder="Officer name"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              value={officer}
-              onChange={(e) => setOfficer(e.target.value)}
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Inspection Notes
             </label>
-            <textarea
+            <textarea 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              rows={3}
-              placeholder="Enter inspection findings..."
+              rows={2}
+              placeholder="Inspection findings..."
             />
           </div>
-
           <div className="flex gap-2">
-            <button
+            <button 
               onClick={() => {
-                if (officer) {
-                  onInspect(enquiry.id, true, officer);
-                  setIsInspecting(false);
-                }
+                onInspect(enquiry.id, true, 'Government Inspector');
+                setIsInspecting(false);
               }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex-1"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
-              ✅ Approve & Activate
+              ✓ Approve
             </button>
-            <button
+            <button 
               onClick={() => {
-                if (officer) {
-                  onInspect(enquiry.id, false, officer);
-                  setIsInspecting(false);
-                }
+                onInspect(enquiry.id, false, 'Government Inspector');
+                setIsInspecting(false);
               }}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex-1"
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
             >
-              ❌ Reject
+              ✗ Reject
+            </button>
+            <button 
+              onClick={() => setIsInspecting(false)}
+              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+            >
+              Cancel
             </button>
           </div>
-          
-          <button
-            onClick={() => setIsInspecting(false)}
-            className="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-          >
-            Cancel
-          </button>
         </div>
       )}
     </div>
