@@ -33,9 +33,9 @@ export async function POST(request: Request) {
     
     const drive = google.drive({ version: 'v3', auth });
 
+    // ✅ Fixed: Removed spaces parameter
     const existingFiles = await drive.files.list({
       q: `name='${CONFIG_FILE_NAME}' and trashed=false`,
-      spaces: 'appDataFolder',
       fields: 'files(id, name)'
     });
 
@@ -58,10 +58,10 @@ export async function POST(request: Request) {
         }
       });
     } else {
+      // ✅ Fixed: Removed parents appDataFolder
       await drive.files.create({
         requestBody: {
-          name: CONFIG_FILE_NAME,
-          parents: ['appDataFolder']
+          name: CONFIG_FILE_NAME
         },
         media: {
           mimeType: 'application/json',
@@ -116,9 +116,9 @@ export async function GET() {
     
     const drive = google.drive({ version: 'v3', auth });
 
+    // ✅ Fixed: Removed spaces parameter
     const files = await drive.files.list({
       q: `name='${CONFIG_FILE_NAME}' and trashed=false`,
-      spaces: 'appDataFolder',
       fields: 'files(id, name)'
     });
 
