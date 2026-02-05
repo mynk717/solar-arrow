@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Image from 'next/image';
 import {
   LayoutDashboard,
   Users,
@@ -21,13 +20,14 @@ import {
   Settings,
   Menu,
   X,
-  Zap,
   TrendingUp,
+  Kanban,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Kanban', href: '/kanban', icon: Kanban },
   { name: 'Leads', href: '/leads', icon: Users },
   { name: 'Enquiries', href: '/enquiries', icon: FileText },
   { name: 'Survey', href: '/survey', icon: ClipboardCheck },
@@ -47,7 +47,23 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [imageError, setImageError] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Prevent scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
 
   // Don't show sidebar on login/onboard/setup pages
   if (['/login', '/onboard', '/setup'].includes(pathname)) {
@@ -56,93 +72,140 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {/* Mobile menu button - Fixed with safe area */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-md shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all touch-manipulation"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
       >
         {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white transform transition-transform duration-300 ease-in-out overflow-y-auto ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`
+          fixed lg:static inset-y-0 left-0 z-40 
+          w-72 lg:w-64 
+          bg-gradient-to-b from-blue-600 to-blue-800 
+          text-white 
+          transform transition-transform duration-300 ease-in-out 
+          overflow-y-auto overflow-x-hidden
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+        style={{
+          // PWA safe area support for iOS notch
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
         {/* Header with Logo - Clickable */}
-        <Link href="/" className="block">
+        <Link href="/dashboard" className="block">
           <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
               {/* Logo */}
-              <div className="bg-blue-500 rounded-lg w-12 h-12 p-2 flex items-center justify-center">
+              <div className="bg-blue-500 rounded-lg w-12 h-12 p-2 flex items-center justify-center flex-shrink-0">
                 <img 
                   src="/SA_logo.png" 
                   alt="Solar Arrow Logo" 
                   className="w-8 h-8 object-contain"
                 />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Solar Arrow</h1>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold truncate">Solar Arrow</h1>
                 <p className="text-blue-200 text-xs mt-0.5">CSPDCL Dashboard</p>
               </div>
             </div>
           </div>
         </Link>
 
+        {/* User Info - Mobile Only */}
+        {session?.user && (
+          <div className="lg:hidden px-6 py-3 bg-blue-700/30 border-b border-blue-500/30">
+            <p className="text-sm font-medium truncate">{session.user.name}</p>
+            <p className="text-xs text-blue-200 truncate">{session.user.email}</p>
+            <span className="inline-block mt-1 text-xs bg-blue-500 px-2 py-0.5 rounded-full">
+              {session.user.role || 'User'}
+            </span>
+          </div>
+        )}
+
         {/* Navigation */}
-        <nav className="pb-20">
+        <nav className="pb-24 pt-2">
           {navigation.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 px-6 py-3 transition-colors ${
-                  isActive
-                    ? 'bg-blue-700 border-l-4 border-white'
-                    : 'hover:bg-blue-700/50'
-                }`}
+                className={`
+                  flex items-center gap-3 px-6 py-3.5 
+                  transition-all duration-200
+                  touch-manipulation
+                  active:scale-98
+                  ${
+                    isActive
+                      ? 'bg-blue-700 border-l-4 border-white font-semibold'
+                      : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+                  }
+                `}
               >
-                <item.icon size={20} />
+                <item.icon size={20} className="flex-shrink-0" />
                 <span className="text-sm">{item.name}</span>
               </Link>
             );
           })}
 
           {/* Admin-only Project Tracker Link */}
-          {session?.user?.role === 'admin' || session?.user?.role === 'owner' ? (
+          {(session?.user?.accountType === 'admin' && 
+            (session?.user?.role === 'admin' || session?.user?.role === 'owner')) && (
             <Link
               href="/admin/tracker"
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-6 py-3 transition-colors border-t border-blue-500 mt-2 ${
-                pathname === '/admin/tracker'
-                  ? 'bg-blue-700 border-l-4 border-white'
-                  : 'hover:bg-blue-700/50'
-              }`}
+              className={`
+                flex items-center gap-3 px-6 py-3.5 
+                transition-all duration-200
+                border-t border-blue-500 mt-2
+                touch-manipulation
+                active:scale-98
+                ${
+                  pathname === '/admin/tracker'
+                    ? 'bg-blue-700 border-l-4 border-white font-semibold'
+                    : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+                }
+              `}
             >
-              <TrendingUp size={20} />
+              <TrendingUp size={20} className="flex-shrink-0" />
               <span className="text-sm">Project Tracker</span>
               <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
                 Admin
               </span>
             </Link>
-          ) : null}
+          )}
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50 backdrop-blur">
-          <p className="text-xs text-blue-200">© 2026 Solar Arrow</p>
-          <p className="text-xs text-blue-300 mt-1">v1.0.0</p>
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50 backdrop-blur border-t border-blue-500/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-blue-200">© 2026 Solar Arrow</p>
+              <p className="text-xs text-blue-300 mt-1">v1.0.0</p>
+            </div>
+            {/* PWA Install Indicator */}
+            {typeof window !== 'undefined' && 
+             window.matchMedia('(display-mode: standalone)').matches && (
+              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                PWA
+              </span>
+            )}
+          </div>
         </div>
       </aside>
 
       {/* Overlay for mobile */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          className="lg:hidden fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
         />
       )}
     </>

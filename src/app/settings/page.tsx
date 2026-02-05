@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+
 
 interface SheetConfig {
   sheetId: string;

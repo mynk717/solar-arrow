@@ -21,6 +21,7 @@ import {
   Scale,
   CheckSquare,
   IndianRupee,
+  Kanban,
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
@@ -49,38 +50,30 @@ export default function DashboardPage() {
   const router = useRouter();
   const { isDemoMode } = useDemoMode();
   const [stats, setStats] = useState(demoStats);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Don't redirect - allow demo mode
-    if (status === 'authenticated') {
+    if (status === 'authenticated' || status === 'unauthenticated') {
       setStats(demoStats);
-      setLoading(false);
-    } else if (status === 'unauthenticated') {
-      // Show demo data
-      setStats(demoStats);
-      setLoading(false);
+      // Simulate realistic loading time
+      setTimeout(() => setLoading(false), 300);
     }
   }, [status]);
 
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin h-12 w-12 text-blue-600" />
-      </div>
-    );
+  if (status === 'loading' || loading) {
+    return <DashboardSkeleton />;
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       <DemoBanner />
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Welcome{session?.user?.name ? ` back, ${session.user.name}` : ' to Solar Arrow'}! 👋
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
             {isDemoMode 
               ? 'Explore the complete solar installation workflow with demo data' 
               : "Here's what's happening with your solar installations today"
@@ -88,8 +81,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Key Metrics - Responsive Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <MetricCard
             title="Total Leads"
             value={stats.leads}
@@ -120,113 +113,41 @@ export default function DashboardPage() {
         </div>
 
         {/* Workflow Pipeline */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Installation Pipeline</h2>
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Installation Pipeline</h2>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
-            <PipelineStage
-              name="Leads"
-              count={stats.leads}
-              icon={Users}
-              color="gray"
-              href="/leads"
-            />
-            <PipelineStage
-              name="Enquiries"
-              count={stats.enquiries}
-              icon={FileText}
-              color="blue"
-              href="/enquiries"
-            />
-            <PipelineStage
-              name="Survey"
-              count={stats.surveys}
-              icon={ClipboardCheck}
-              color="purple"
-              href="/survey"
-            />
-            <PipelineStage
-              name="Quotation"
-              count={stats.quotations}
-              icon={FileCheck}
-              color="indigo"
-              href="/quotation"
-            />
-            <PipelineStage
-              name="Registration"
-              count={stats.registrations}
-              icon={Scale}
-              color="pink"
-              href="/registration"
-            />
-            <PipelineStage
-              name="Payment"
-              count={stats.payments}
-              icon={DollarSign}
-              color="yellow"
-              href="/payments"
-            />
-            <PipelineStage
-              name="Installation"
-              count={stats.installations}
-              icon={Wrench}
-              color="orange"
-              href="/installation"
-            />
+          {/* First Row - Main Pipeline */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
+            <PipelineStage name="Leads" count={stats.leads} icon={Users} color="gray" href="/leads" />
+            <PipelineStage name="Enquiries" count={stats.enquiries} icon={FileText} color="blue" href="/enquiries" />
+            <PipelineStage name="Survey" count={stats.surveys} icon={ClipboardCheck} color="purple" href="/survey" />
+            <PipelineStage name="Quotation" count={stats.quotations} icon={FileCheck} color="indigo" href="/quotation" />
+            <PipelineStage name="Registration" count={stats.registrations} icon={Scale} color="pink" href="/registration" />
+            <PipelineStage name="Payment" count={stats.payments} icon={DollarSign} color="yellow" href="/payments" />
+            <PipelineStage name="Installation" count={stats.installations} icon={Wrench} color="orange" href="/installation" />
           </div>
 
-          {/* Second Row */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4">
-            <PipelineStage
-              name="BOM"
-              count={stats.bom}
-              icon={Package}
-              color="teal"
-              href="/bom"
-            />
-            <PipelineStage
-              name="Dispatch"
-              count={stats.dispatch}
-              icon={Truck}
-              color="cyan"
-              href="/dispatch"
-            />
-            <PipelineStage
-              name="Liaison"
-              count={stats.liaison}
-              icon={Scale}
-              color="violet"
-              href="/liaison"
-            />
-            <PipelineStage
-              name="WCR"
-              count={stats.wcr}
-              icon={CheckSquare}
-              color="fuchsia"
-              href="/wcr"
-            />
-            <PipelineStage
-              name="Subsidy"
-              count={stats.subsidy}
-              icon={IndianRupee}
-              color="rose"
-              href="/subsidy"
-            />
-            <PipelineStage
-              name="Active"
-              count={stats.active}
-              icon={Zap}
-              color="green"
-              href="/liaison"
-            />
+          {/* Second Row - Post-Installation */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-3 sm:mt-4">
+            <PipelineStage name="BOM" count={stats.bom} icon={Package} color="teal" href="/bom" />
+            <PipelineStage name="Dispatch" count={stats.dispatch} icon={Truck} color="cyan" href="/dispatch" />
+            <PipelineStage name="Liaison" count={stats.liaison} icon={Scale} color="violet" href="/liaison" />
+            <PipelineStage name="WCR" count={stats.wcr} icon={CheckSquare} color="fuchsia" href="/wcr" />
+            <PipelineStage name="Subsidy" count={stats.subsidy} icon={IndianRupee} color="rose" href="/subsidy" />
+            <PipelineStage name="Active" count={stats.active} icon={Zap} color="green" href="/liaison" />
           </div>
         </div>
 
-        {/* Process Flowchart */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Complete Solar Installation Workflow</h2>
+        {/* Process Flowchart - Collapsible on Mobile */}
+        <details className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md mb-6 sm:mb-8 group" open>
+          <summary className="p-4 sm:p-6 cursor-pointer list-none">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Complete Solar Installation Workflow</h2>
+              <ArrowRight className="transform group-open:rotate-90 transition-transform text-blue-600" size={20} />
+            </div>
+          </summary>
           
-          <div className="space-y-3">
+          <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-2 sm:space-y-3">
             <FlowStep number="1" title="Lead Generation" description="Capture potential customers" />
             <FlowArrow />
             <FlowStep number="2" title="Enquiry" description="Initial customer interest and details" />
@@ -253,10 +174,10 @@ export default function DashboardPage() {
             <FlowArrow />
             <FlowStep number="13" title="Active System" description="Grid synchronized and generating power" highlight />
           </div>
-        </div>
+        </details>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Quick Actions - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <QuickActionCard
             title="New Lead"
             description="Add a new potential customer"
@@ -272,12 +193,48 @@ export default function DashboardPage() {
             color="indigo"
           />
           <QuickActionCard
-            title="View Pipeline"
-            description="Track all stages"
-            icon={TrendingUp}
+            title="View Kanban"
+            description="Track all stages visually"
+            icon={Kanban}
             href="/kanban"
             color="green"
           />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Loading Skeleton Component
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-50 animate-pulse">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Header Skeleton */}
+        <div className="mb-6 sm:mb-8">
+          <div className="h-8 bg-gray-300 rounded w-3/4 sm:w-1/2 mb-3"></div>
+          <div className="h-4 bg-gray-200 rounded w-full sm:w-2/3"></div>
+        </div>
+
+        {/* Metrics Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="h-12 w-12 bg-gray-300 rounded-lg mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+              <div className="h-8 bg-gray-300 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline Skeleton */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="h-6 bg-gray-300 rounded w-1/3 mb-4"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="border-2 border-gray-200 rounded-lg p-4 h-24"></div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -305,14 +262,14 @@ function MetricCard({ title, value, icon: Icon, color, href }: MetricCardProps) 
 
   return (
     <Link href={href || '#'}>
-      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-3 rounded-lg`}>
-            <Icon size={24} />
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg active:scale-98 transition-all cursor-pointer touch-manipulation">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-2 sm:p-3 rounded-lg`}>
+            <Icon size={20} className="sm:w-6 sm:h-6" />
           </div>
         </div>
-        <p className="text-gray-600 text-sm font-medium">{title}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        <p className="text-gray-600 text-xs sm:text-sm font-medium truncate">{title}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{value}</p>
       </div>
     </Link>
   );
@@ -348,12 +305,12 @@ function PipelineStage({ name, count, icon: Icon, color, href }: PipelineStagePr
 
   return (
     <Link href={href}>
-      <div className={`${colorClasses[color]} border-2 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer`}>
+      <div className={`${colorClasses[color]} border-2 rounded-lg p-3 sm:p-4 hover:shadow-md active:scale-98 transition-all cursor-pointer touch-manipulation`}>
         <div className="flex items-center justify-between mb-2">
-          <Icon size={20} />
-          <span className="text-2xl font-bold">{count}</span>
+          <Icon size={18} className="sm:w-5 sm:h-5 flex-shrink-0" />
+          <span className="text-xl sm:text-2xl font-bold">{count}</span>
         </div>
-        <p className="text-sm font-medium">{name}</p>
+        <p className="text-xs sm:text-sm font-medium truncate">{name}</p>
       </div>
     </Link>
   );
@@ -369,15 +326,17 @@ interface FlowStepProps {
 
 function FlowStep({ number, title, description, highlight }: FlowStepProps) {
   return (
-    <div className={`flex items-center gap-4 p-4 rounded-lg ${highlight ? 'bg-green-100 border-2 border-green-500' : 'bg-white'}`}>
-      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+    <div className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg ${
+      highlight ? 'bg-green-100 border-2 border-green-500' : 'bg-white'
+    }`}>
+      <div className={`flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base ${
         highlight ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
       }`}>
         {number}
       </div>
-      <div className="flex-1">
-        <h3 className="font-bold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-gray-900 text-sm sm:text-base truncate">{title}</h3>
+        <p className="text-xs sm:text-sm text-gray-600 truncate">{description}</p>
       </div>
     </div>
   );
@@ -387,7 +346,7 @@ function FlowStep({ number, title, description, highlight }: FlowStepProps) {
 function FlowArrow() {
   return (
     <div className="flex justify-center">
-      <ArrowRight size={24} className="text-blue-600" />
+      <ArrowRight size={20} className="text-blue-600 sm:w-6 sm:h-6" />
     </div>
   );
 }
@@ -412,12 +371,12 @@ function QuickActionCard({ title, description, icon: Icon, href, color }: QuickA
 
   return (
     <Link href={href}>
-      <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer">
-        <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-3 rounded-lg inline-block mb-4`}>
-          <Icon size={24} />
+      <div className="bg-white rounded-lg shadow-md p-5 sm:p-6 hover:shadow-lg active:scale-98 transition-all cursor-pointer touch-manipulation">
+        <div className={`bg-gradient-to-br ${colorClasses[color]} text-white p-2.5 sm:p-3 rounded-lg inline-block mb-3 sm:mb-4`}>
+          <Icon size={20} className="sm:w-6 sm:h-6" />
         </div>
-        <h3 className="font-bold text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600">{description}</p>
+        <h3 className="font-bold text-gray-900 mb-2 text-sm sm:text-base">{title}</h3>
+        <p className="text-xs sm:text-sm text-gray-600">{description}</p>
       </div>
     </Link>
   );
