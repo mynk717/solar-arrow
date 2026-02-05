@@ -14,12 +14,13 @@ import { getValidAccessToken } from './tokenRefresh';
 async function getAuthClient() {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.organizationId) {
+  if (!session?.user?.organizationId || !session?.user?.email) {
     throw new Error('Not authenticated');
-  }
+  }  
 
   // Get valid access token (auto-refreshes if expired)
-  const accessToken = await getValidAccessToken(session.user.organizationId);
+  const accessToken = await getValidAccessToken(session.user.organizationId, session.user.email!);
+
   
   if (!accessToken) {
     throw new Error('Failed to get valid access token. Please re-authenticate.');
