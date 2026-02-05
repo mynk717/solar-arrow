@@ -192,10 +192,22 @@ export const authOptions: AuthOptions = {
         const org = await redis.get(`org:${admin.organizationId}:info`) as any
         token.sheetId = org?.sheetId
         token.organizationName = org?.name
+        
+        // ✅ ADD THIS - Update Redis (mirrors signIn callback logic)
+        if (admin?.organizationId && user?.email) {
+          await redis.set(`org:${admin.organizationId}:oauth:${user.email}`, {
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+            expiresAt: account.expires_at,
+            updatedAt: new Date().toISOString(),
+          });
+          console.log('✅ JWT callback updated Redis tokens for:', user.email);
+        }
       }
       
       return token
     },
+    
     
 
     async session({ session, token }: { 
