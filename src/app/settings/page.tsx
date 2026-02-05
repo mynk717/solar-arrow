@@ -130,13 +130,38 @@ export default function SettingsPage() {
   };
 
   const handleRefreshToken = async () => {
-    setIsLoading(true);
-    setMessage({ type: 'success', text: 'Refreshing authentication...' });
-
-    // Sign out and back in to refresh token
-    await signOut({ redirect: false });
-    await signIn('google');
-  };
+    setIsLoading(true)
+    setMessage({ type: 'success', text: 'Refreshing authentication...' })
+    
+    try {
+      // Step 1: Sign out
+      await signOut({ redirect: false })
+      
+      // Step 2: Sign in with Google (forces OAuth consent)
+      const result = await signIn('google', { 
+        redirect: false,
+        callbackUrl: '/settings'
+      })
+      
+      if (result?.ok) {
+        // Step 3: Force update Redis tokens
+        await fetch('/api/auth/refresh-tokens', { method: 'POST' })
+        
+        // Step 4: Re-check token status
+        await checkTokenStatus()
+        
+        setMessage({ type: 'success', text: 'Authentication refreshed successfully!' })
+      } else {
+        setMessage({ type: 'error', text: 'Re-authentication failed. Please try again.' })
+      }
+    } catch (error) {
+      console.error('Refresh error:', error)
+      setMessage({ type: 'error', text: 'An error occurred during refresh.' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  
 
   // Not signed in
   if (status === 'unauthenticated') {

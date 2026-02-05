@@ -166,39 +166,37 @@ export const authOptions: AuthOptions = {
       return true;
     },
 
-    async jwt({ token, user, account }: { 
-      token: JWT; 
-      user?: User | any; 
-      account?: Account | null 
-    }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.organizationId = user.organizationId;
-        token.sheetId = user.sheetId;
-        token.accountType = user.accountType || 'admin'; // Default to admin for Google
-        token.accessToken = user.accessToken;
-        token.refreshToken = user.refreshToken;
-        
-        if (account?.provider === 'google') {
-          token.accessToken = account.access_token!
-          token.refreshToken = account.refresh_token!
-          // Fetch admin details
-          const admin = await redis.get(`admin:${user.email}:info`) as any;
-          token.role = admin?.role || 'owner';
-          token.organizationId = admin?.organizationId;
-          token.accountType = 'admin';
-          token.permissions = admin?.permissions;
-          
-          // Get org details
-          const org = await redis.get(`org:${admin.organizationId}:info`) as any;
-          token.sheetId = org?.sheetId || '';
-          token.organizationName = org?.name || '';
-        }
+        token.id = user.id
+        token.role = user.role
+        token.organizationId = user.organizationId
+        token.sheetId = user.sheetId
+        token.accountType = user.accountType ?? 'admin'
+        token.accessToken = user.accessToken
+        token.refreshToken = user.refreshToken
       }
       
-      return token;
+      if (account?.provider === 'google') {
+        token.accessToken = account.access_token!
+        token.refreshToken = account.refresh_token!
+        
+        // Fetch admin details
+        const admin = await redis.get(`admin:${user.email}:info`) as any
+        token.role = admin?.role ?? 'owner'
+        token.organizationId = admin?.organizationId
+        token.accountType = 'admin'
+        token.permissions = admin?.permissions
+        
+        // Get org details
+        const org = await redis.get(`org:${admin.organizationId}:info`) as any
+        token.sheetId = org?.sheetId
+        token.organizationName = org?.name
+      }
+      
+      return token
     },
+    
 
     async session({ session, token }: { 
       session: Session; 
