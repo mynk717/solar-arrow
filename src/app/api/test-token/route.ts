@@ -7,14 +7,17 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.organizationId) {
+    if (!session?.user?.organizationId || !session?.user?.email) {
       return NextResponse.json({ 
         error: 'Not authenticated',
         status: 'expired' 
       }, { status: 401 });
     }
 
-    const accessToken = await getValidAccessToken(session.user.organizationId);
+    const accessToken = await getValidAccessToken(
+      session.user.organizationId,
+      session.user.email
+    );
     
     if (!accessToken) {
       return NextResponse.json({ 
