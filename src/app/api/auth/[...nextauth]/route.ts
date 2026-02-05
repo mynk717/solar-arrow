@@ -156,6 +156,7 @@ export const authOptions: AuthOptions = {
           accessToken: account.access_token,
           refreshToken: account.refresh_token,
           expiresAt: account.expires_at,
+          scope: account.scope,
           updatedAt: new Date().toISOString(),
         });
 
@@ -199,6 +200,7 @@ export const authOptions: AuthOptions = {
             accessToken: account.access_token,
             refreshToken: account.refresh_token,
             expiresAt: account.expires_at,
+            scope: account.scope,
             updatedAt: new Date().toISOString(),
           });
           console.log('✅ JWT callback updated Redis tokens for:', user.email);
