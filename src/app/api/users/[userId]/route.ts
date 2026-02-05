@@ -4,10 +4,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { redis } from '@/lib/redis'; 
 
+
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const { userId } = await params;
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.organizationId) {
@@ -19,7 +22,6 @@ export async function PATCH(
     }
 
     const updates = await request.json();
-    const { userId } = params;
 
     // Find user by ID
     const userEmails = await redis.smembers(`org:${session.user.organizationId}:users`) || [];
@@ -56,10 +58,13 @@ export async function PATCH(
   }
 }
 
+
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const { userId } = await params;
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.organizationId) {
@@ -69,8 +74,6 @@ export async function DELETE(
     if (session.user.role !== 'admin' && session.user.role !== 'owner') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    const { userId } = params;
 
     // Find and remove user
     const userEmails = await redis.smembers(`org:${session.user.organizationId}:users`) || [];
