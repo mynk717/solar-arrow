@@ -7,7 +7,7 @@ interface TokenData {
   refreshToken: string;
   expiresAt: number;
   updatedAt: string;
-  updatedBy: string;
+  scope?: string;
 }
 
 /**
@@ -20,32 +20,51 @@ export function isTokenExpired(expiresAt: number): boolean {
 }
 
 /**
+ * Get any admin's token from organization (handles multi-user orgs)
+ */
+async function getOrganizationTokens(organizationId: string): Promise<TokenData | null> {
+  // Get all admins in this org
+  const admins = await redis.smembers(`org:${organizationId}:admins`) as string[];
+  
+  // Try each admin's tokens
+  for (const adminEmail of admins) {
+    const tokens = await redis.get(`org:${organizationId}:oauth:${adminEmail}`) as TokenData;
+    if (tokens?.accessToken) {
+      return tokens;
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Refresh OAuth token for an organization
  */
 export async function refreshOrganizationToken(
-  organizationId: string
+  organizationId: string,
+  adminEmail: string
 ): Promise<string | null> {
   try {
     // Get current tokens from Redis
-    const tokenData = await redis.get(`org:${organizationId}:tokens`) as TokenData;
+    const tokenData = await redis.get(`org:${organizationId}:oauth:${adminEmail}`) as TokenData;
 
     if (!tokenData || !tokenData.refreshToken) {
-      console.error('No refresh token found');
+      console.error('No refresh token found for:', adminEmail);
       return null;
     }
 
     // Check if refresh needed
     if (!isTokenExpired(tokenData.expiresAt)) {
-      return tokenData.accessToken; // Still valid
+      return tokenData.accessToken;
     }
 
-    console.log(`Refreshing token for org: ${organizationId}`);
+    console.log(`Refreshing token for org: ${organizationId}, admin: ${adminEmail}`);
 
     // Create OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.NEXTAUTH_URL + '/api/auth/callback/google'
+      `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
     );
 
     // Set credentials
@@ -60,20 +79,20 @@ export async function refreshOrganizationToken(
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = credentials.expiry_date 
       ? Math.floor(credentials.expiry_date / 1000)
-      : now + 3600; // Default 1 hour
+      : now + 3600;
 
     // Save refreshed token to Redis
     const newTokenData: TokenData = {
       accessToken: credentials.access_token!,
-      refreshToken: credentials.refresh_token || tokenData.refreshToken, // Keep old if not provided
+      refreshToken: credentials.refresh_token || tokenData.refreshToken,
       expiresAt,
       updatedAt: new Date().toISOString(),
-      updatedBy: 'system-refresh'
+      scope: tokenData.scope, // Preserve original scopes
     };
 
-    await redis.set(`org:${organizationId}:tokens`, newTokenData);
+    await redis.set(`org:${organizationId}:oauth:${adminEmail}`, newTokenData);
 
-    console.log(`Token refreshed successfully for org: ${organizationId}`);
+    console.log(`✅ Token refreshed for org: ${organizationId}`);
     return credentials.access_token!;
 
   } catch (error) {
@@ -86,21 +105,39 @@ export async function refreshOrganizationToken(
  * Get valid access token (refreshes if needed)
  */
 export async function getValidAccessToken(
-  organizationId: string
+  organizationId: string,
+  adminEmail?: string  // Optional: specify which admin's token to use
 ): Promise<string | null> {
   try {
-    const tokenData = await redis.get(`org:${organizationId}:tokens`) as TokenData;
+    let tokens: TokenData | null = null;
 
-    if (!tokenData) {
+    // If specific admin email provided, use that
+    if (adminEmail) {
+      tokens = await redis.get(`org:${organizationId}:oauth:${adminEmail}`) as TokenData;
+    } else {
+      // Otherwise get any admin's token
+      tokens = await getOrganizationTokens(organizationId);
+    }
+
+    if (!tokens?.accessToken) {
+      console.log('❌ No tokens found');
       return null;
     }
 
     // Check if expired
-    if (isTokenExpired(tokenData.expiresAt)) {
-      return await refreshOrganizationToken(organizationId);
+    if (isTokenExpired(tokens.expiresAt)) {
+      // Try to refresh (use first admin if multiple)
+      const firstAdmin = await redis.smembers(`org:${organizationId}:admins`);
+      return await refreshOrganizationToken(organizationId, firstAdmin[0]);
     }
 
-    return tokenData.accessToken;
+    // Validate scopes (Sheets required)
+    if (!tokens.scope?.includes('spreadsheets')) {
+      console.log('❌ Token missing spreadsheets scope');
+      return null;
+    }
+
+    return tokens.accessToken;
   } catch (error) {
     console.error('Error getting valid token:', error);
     return null;
