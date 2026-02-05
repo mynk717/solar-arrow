@@ -24,7 +24,9 @@ const publicRoutes = [
   '/kanban',
   '/reports',
   '/unauthorized',
-  '/settings'
+  '/settings',
+  '/privacy',
+  '/terms'
 ];
 
 // Check if route is public
