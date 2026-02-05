@@ -1,19 +1,26 @@
-// src/lib/tokenRefresh.ts - COMPLETE FIXED VERSION
 import { redis } from './redis';
 import { google } from 'googleapis';
 
 interface TokenData {
   accessToken: string;
   refreshToken: string;
-  expiresAt: number;
+  expiresAt: number | string;
   updatedAt: string;
   scope?: string;
 }
 
-export function isTokenExpired(expiresAt: number): boolean {
+export function isTokenExpired(expiresAt: number | string): boolean {
+  let expiryTimestamp: number;
+  
+  if (typeof expiresAt === 'string') {
+    expiryTimestamp = Math.floor(new Date(expiresAt).getTime() / 1000);
+  } else {
+    expiryTimestamp = expiresAt;
+  }
+  
   const now = Math.floor(Date.now() / 1000);
   const buffer = 5 * 60;
-  return expiresAt < (now + buffer);
+  return expiryTimestamp < (now + buffer);
 }
 
 export async function refreshOrganizationToken(
@@ -22,10 +29,9 @@ export async function refreshOrganizationToken(
 ): Promise<string | null> {
   try {
     const key = `org:${organizationId}:oauth:${adminEmail}`;
-    const tokenData = await redis.get(key) as any;
+    const tokenData = await redis.get(key) as TokenData;
 
     if (!tokenData?.refreshToken) {
-      console.error('No refresh token:', key);
       return null;
     }
 
@@ -34,8 +40,8 @@ export async function refreshOrganizationToken(
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID!,
-      process.env.GOOGLE_CLIENT_SECRET!,
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
       `${process.env.NEXTAUTH_URL}/api/auth/callback/google`
     );
 
@@ -62,34 +68,21 @@ export async function refreshOrganizationToken(
   }
 }
 
-/**
- * Fixed: Directly use session email, no smembers
- */
 export async function getValidAccessToken(
-  organizationId: string
+  organizationId: string,
+  adminEmail: string
 ): Promise<string | null> {
   try {
-    // ✅ Use known admin email from session (no smembers needed)
-    const key = `org:${organizationId}:oauth:shukla.mayank247@gmail.com`;
-    
-    let tokens = await redis.get(key) as any;
+    const key = `org:${organizationId}:oauth:${adminEmail}`;
+    const tokens = await redis.get(key) as TokenData;
     
     if (!tokens?.accessToken) {
+      console.error('No token found for:', key);
       return null;
-    }
-
-    // Fix expiresAt if it's ISO string
-    if (typeof tokens.expiresAt === 'string') {
-      tokens.expiresAt = Math.floor(new Date(tokens.expiresAt).getTime() / 1000);
     }
 
     if (isTokenExpired(tokens.expiresAt)) {
-      const refreshed = await refreshOrganizationToken(organizationId, 'shukla.mayank247@gmail.com');
-      return refreshed;
-    }
-
-    if (!tokens.scope?.includes('spreadsheets')) {
-      return null;
+      return await refreshOrganizationToken(organizationId, adminEmail);
     }
 
     return tokens.accessToken;
