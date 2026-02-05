@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { google } from 'googleapis';
+import { getValidAccessToken } from '@/lib/tokenRefresh';  // ✅ Import fixed function
 
 const CONFIG_FILE_NAME = 'solar_arrow_config.json';
 
@@ -10,14 +11,22 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.organizationId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // ✅ Use validated token with refresh
+    const accessToken = await getValidAccessToken(session.user.organizationId);
+    if (!accessToken) {
+      return NextResponse.json({ 
+        error: 'Authentication expired. Please re-authenticate.' 
+      }, { status: 401 });
     }
 
     const { sheetId, sheetName, organizationDomain } = await request.json();
     
     const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: session.accessToken });
+    auth.setCredentials({ access_token: accessToken });  // ✅ Validated token
     
     const drive = google.drive({ version: 'v3', auth });
 
@@ -69,6 +78,14 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Error saving config:', error);
+    
+    // ✅ Better error messages
+    if (error.status === 401 || error.code === 401) {
+      return NextResponse.json({ 
+        error: 'Authentication expired. Please re-authenticate.' 
+      }, { status: 401 });
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to save configuration' },
       { status: 500 }
@@ -80,12 +97,20 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!session?.user?.organizationId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // ✅ Use validated token
+    const accessToken = await getValidAccessToken(session.user.organizationId);
+    if (!accessToken) {
+      return NextResponse.json({ 
+        error: 'Authentication expired. Please re-authenticate.' 
+      }, { status: 401 });
     }
 
     const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: session.accessToken });
+    auth.setCredentials({ access_token: accessToken });
     
     const drive = google.drive({ version: 'v3', auth });
 
@@ -124,6 +149,13 @@ export async function GET() {
 
   } catch (error: any) {
     console.error('Error getting config:', error);
+    
+    if (error.status === 401 || error.code === 401) {
+      return NextResponse.json({ 
+        error: 'Authentication expired. Please re-authenticate.' 
+      }, { status: 401 });
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to get configuration' },
       { status: 500 }

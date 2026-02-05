@@ -314,7 +314,7 @@ export default function SettingsPage() {
 
       {/* Token Expired Warning */}
       {tokenStatus === 'expired' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6 text-gray-900">
           <div className="flex items-start gap-3">
             <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
             <div>
