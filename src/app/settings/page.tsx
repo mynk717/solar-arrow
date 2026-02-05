@@ -48,17 +48,29 @@ export default function SettingsPage() {
 
   const checkTokenStatus = async () => {
     try {
-      // Simple test to check if token is valid
-      const response = await fetch('/api/test-token');
+      const response = await fetch('/api/test-token')
+      const data = await response.json()
+      
       if (response.ok) {
-        setTokenStatus('valid');
+        setTokenStatus('valid')
+        setMessage(null) // Clear any previous errors
       } else {
-        setTokenStatus('expired');
+        setTokenStatus('expired')
+        // ✅ Show the actual error to user
+        setMessage({ 
+          type: 'error', 
+          text: data.error || 'Authentication expired. Please refresh connection.' 
+        })
       }
     } catch (error) {
-      setTokenStatus('unknown');
+      setTokenStatus('unknown')
+      setMessage({ 
+        type: 'error', 
+        text: 'Failed to check authentication status.' 
+      })
     }
-  };
+  }
+  
 
   const handleCopyTemplate = async () => {
     setIsLoading(true);
@@ -237,16 +249,16 @@ export default function SettingsPage() {
             <h2 className="text-xl font-bold text-gray-900">{session?.user?.name}</h2>
             <p className="text-gray-600">{session?.user?.email}</p>
             <div className="mt-2 flex items-center gap-4">
-              <span className={`inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full \${
-                tokenStatus === 'valid' 
-                  ? 'text-green-700 bg-green-50' 
-                  : tokenStatus === 'expired'
-                  ? 'text-red-700 bg-red-50'
-                  : 'text-gray-700 bg-gray-50'
-              }`}>
-                {tokenStatus === 'valid' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-                {tokenStatus === 'valid' ? 'Connected to Google' : tokenStatus === 'expired' ? 'Connection Expired' : 'Checking...'}
-              </span>
+  <span className={`inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full ${
+    tokenStatus === 'valid' 
+      ? 'text-green-700 bg-green-50' 
+      : tokenStatus === 'expired'
+      ? 'text-red-700 bg-red-50'
+      : 'text-gray-700 bg-gray-50'
+  }`}>
+    {tokenStatus === 'valid' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+    {tokenStatus === 'valid' ? 'Connected to Google' : tokenStatus === 'expired' ? 'Connection Expired' : 'Checking...'}
+  </span>
               {tokenStatus === 'expired' && (
                 <button
                   onClick={handleRefreshToken}
