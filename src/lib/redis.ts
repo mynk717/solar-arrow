@@ -71,3 +71,27 @@ export async function getOrganizationDepartments(orgId: string) {
   );
   return departments.filter(Boolean);
 }
+// Telegram helpers
+export async function saveTelegramChatId(userId: string, chatId: string) {
+  await redis.set(`user:${userId}:telegram`, chatId);
+  // Also save reverse lookup
+  await redis.set(`telegram:chatid:${chatId}`, userId);
+}
+
+export async function getTelegramChatId(userId: string) {
+  return await redis.get(`user:${userId}:telegram`);
+}
+
+export async function getUserByTelegramChatId(chatId: string) {
+  const userId = await redis.get(`telegram:chatid:${chatId}`);
+  if (!userId) return null;
+  return await getUserById(userId as string);
+}
+
+export async function removeTelegramChatId(userId: string) {
+  const chatId = await redis.get(`user:${userId}:telegram`);
+  if (chatId) {
+    await redis.del(`telegram:chatid:${chatId}`);
+  }
+  await redis.del(`user:${userId}:telegram`);
+}

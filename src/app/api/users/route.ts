@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import bcrypt from 'bcryptjs';
 import { redis, saveUser, getOrganizationUsers } from '@/lib/redis';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { nanoid } from 'nanoid';
 
 // Create user
 export async function POST(request: Request) {
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  if (session.user.role !== 'admin') {
+  if (session.user.role !== 'admin' && session.user.role !== 'owner') {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
@@ -31,10 +32,12 @@ export async function POST(request: Request) {
   
   // Save user
   const userData = {
+    id: `user-${nanoid(12)}`,
     email,
     name,
     passwordHash,
     role,
+    department: null,
     organizationId: session.user.organizationId!, // ✅ Non-null assertion
     isActive: true,
     createdAt: new Date().toISOString(),
@@ -58,7 +61,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  if (!['admin', 'manager'].includes(session.user.role)) {
+  if (!['admin', 'manager', 'owner'].includes(session.user.role)) { 
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
@@ -76,7 +79,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  if (session.user.role !== 'admin') {
+  if (session.user.role !== 'admin' && session.user.role !== 'owner') {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 
@@ -112,7 +115,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  if (session.user.role !== 'admin') {
+  if (session.user.role !== 'admin' && session.user.role !== 'owner') {
     return NextResponse.json({ error: 'Admin only' }, { status: 403 });
   }
 

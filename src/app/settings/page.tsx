@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Download, Smartphone, Check } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 
@@ -24,7 +25,10 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [tokenStatus, setTokenStatus] = useState<'valid' | 'expired' | 'unknown'>('unknown');
-
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
+  
   // Load config on mount
   useEffect(() => {
     if (session) {
@@ -32,6 +36,37 @@ export default function SettingsPage() {
       checkTokenStatus();
     }
   }, [session]);
+
+  // PWA Install Prompt Handler
+useEffect(() => {
+  // Check if already installed
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    setIsInstalled(true);
+    return;
+  }
+
+  // Listen for install prompt
+  const handleBeforeInstallPrompt = (e: any) => {
+    e.preventDefault();
+    setDeferredPrompt(e);
+    setIsInstallable(true);
+  };
+
+  // Listen for successful install
+  const handleAppInstalled = () => {
+    setIsInstalled(true);
+    setIsInstallable(false);
+    setDeferredPrompt(null);
+  };
+
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  window.addEventListener('appinstalled', handleAppInstalled);
+
+  return () => {
+    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.removeEventListener('appinstalled', handleAppInstalled);
+  };
+}, []);
 
   const loadConfig = async () => {
     try {
@@ -176,7 +211,20 @@ export default function SettingsPage() {
     }
   }
   
-
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+  
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('PWA installed');
+    }
+    
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
+  
   // Not signed in
   if (status === 'unauthenticated') {
     return (
@@ -274,7 +322,47 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-
+      {/* PWA Install Section */}
+<div className="bg-white rounded-lg shadow-md p-6 mb-6">
+  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+    <Smartphone size={24} className="text-blue-600" />
+    Progressive Web App
+  </h2>
+  
+  {isInstalled ? (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+      <Check size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
+      <div>
+        <p className="font-medium text-green-900">App Installed Successfully!</p>
+        <p className="text-sm text-green-700 mt-1">
+          Solar Arrow is installed on your device. You can access it from your home screen.
+        </p>
+      </div>
+    </div>
+  ) : isInstallable ? (
+    <div>
+      <p className="text-gray-700 mb-4">
+        Install Solar Arrow as a Progressive Web App for quick access from your home screen.
+      </p>
+      <button
+        onClick={handleInstallClick}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors font-medium"
+      >
+        <Download size={20} />
+        Install App
+      </button>
+    </div>
+  ) : (
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <p className="text-gray-700">
+        Installation not available. The app may already be installed, or your browser doesn't support PWA installation.
+      </p>
+      <p className="text-sm text-gray-600 mt-2">
+        Try using Chrome, Edge, or Safari on mobile devices.
+      </p>
+    </div>
+  )}
+</div>
       {/* Current Connection Status */}
       {config && config.configured && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">

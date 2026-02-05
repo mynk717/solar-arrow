@@ -45,13 +45,14 @@ export default withAuth(
     }
     
     const userRole = token?.role as UserRole;
+    const accountType = token?.accountType as string;
     
-    // Admin can access everything
-    if (userRole === 'admin') {
+    // ✅ Admin/Owner has access to ALL pages by default
+    if (accountType === 'admin' || userRole === 'admin' || token?.role === 'owner') {
       return NextResponse.next();
     }
     
-    // Role-based access control mapping
+    // Role-based access control for regular users
     const roleRoutes: Record<UserRole, string[]> = {
       admin: ['*'],
       sales: ['/prospects', '/leads', '/kanban'],
@@ -92,6 +93,7 @@ export default withAuth(
     }
   }
 );
+
 
 export const config = {
   matcher: [

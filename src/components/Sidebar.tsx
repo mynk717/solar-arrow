@@ -22,6 +22,7 @@ import {
   X,
   TrendingUp,
   Kanban,
+  Shield,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -156,30 +157,74 @@ export default function Sidebar() {
           })}
 
           {/* Admin-only Project Tracker Link */}
-          {(session?.user?.accountType === 'admin' && 
-            (session?.user?.role === 'admin' || session?.user?.role === 'owner')) && (
-            <Link
-              href="/admin/tracker"
-              className={`
-                flex items-center gap-3 px-6 py-3.5 
-                transition-all duration-200
-                border-t border-blue-500 mt-2
-                touch-manipulation
-                active:scale-98
-                ${
-                  pathname === '/admin/tracker'
-                    ? 'bg-blue-700 border-l-4 border-white font-semibold'
-                    : 'hover:bg-blue-700/50 active:bg-blue-700/70'
-                }
-              `}
-            >
-              <TrendingUp size={20} className="flex-shrink-0" />
-              <span className="text-sm">Project Tracker</span>
-              <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
-                Admin
-              </span>
-            </Link>
-          )}
+          {/* Admin-only Links */}
+{(session?.user?.accountType === 'admin' && 
+  (session?.user?.role === 'admin' || session?.user?.role === 'owner')) && (
+  <div className="border-t border-blue-500 mt-2">
+    <Link
+      href="/settings/users"
+      className={`
+        flex items-center gap-3 px-6 py-3.5 
+        transition-all duration-200
+        touch-manipulation
+        active:scale-98
+        ${
+          pathname === '/settings/users'
+            ? 'bg-blue-700 border-l-4 border-white font-semibold'
+            : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+        }
+      `}
+    >
+      <Users size={20} className="flex-shrink-0" />
+      <span className="text-sm">User Management</span>
+      <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
+        Admin
+      </span>
+    </Link>
+
+    <Link
+      href="/settings/roles"
+      className={`
+        flex items-center gap-3 px-6 py-3.5 
+        transition-all duration-200
+        touch-manipulation
+        active:scale-98
+        ${
+          pathname === '/settings/roles'
+            ? 'bg-blue-700 border-l-4 border-white font-semibold'
+            : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+        }
+      `}
+    >
+      <Shield size={20} className="flex-shrink-0" />
+      <span className="text-sm">Roles & Departments</span>
+      <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
+        Admin
+      </span>
+    </Link>
+
+    <Link
+      href="/admin/tracker"
+      className={`
+        flex items-center gap-3 px-6 py-3.5 
+        transition-all duration-200
+        touch-manipulation
+        active:scale-98
+        ${
+          pathname === '/admin/tracker'
+            ? 'bg-blue-700 border-l-4 border-white font-semibold'
+            : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+        }
+      `}
+    >
+      <TrendingUp size={20} className="flex-shrink-0" />
+      <span className="text-sm">Project Tracker</span>
+      <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
+        Admin
+      </span>
+    </Link>
+  </div>
+)}
         </nav>
 
         {/* Footer */}
