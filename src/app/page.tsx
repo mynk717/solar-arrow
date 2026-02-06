@@ -53,18 +53,32 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const const fetchStats = async () => {
       if (status === 'unauthenticated') {
         setStats(demoStats);
         setLoading(false);
         return;
       }
-  
+    
       if (status === 'authenticated') {
         try {
+          console.log('🔍 [Dashboard] Fetching enquiries from API...');
           const response = await fetch('/api/enquiries');
+          console.log('📡 [Dashboard] Response status:', response.status);
+          console.log('📡 [Dashboard] Response ok:', response.ok);
+          
           if (response.ok) {
             const enquiries = await response.json();
+            console.log('📊 [Dashboard] Raw response:', enquiries);
+            console.log('📊 [Dashboard] Total enquiries:', enquiries.length);
+            console.log('📊 [Dashboard] First enquiry:', enquiries[0]);
+            
+            if (enquiries.length === 0) {
+              console.warn('⚠️ [Dashboard] No enquiries returned - using demo data');
+              setStats(demoStats);
+              setLoading(false);
+              return;
+            }
             
             // Calculate real stats from enquiries
             const realStats = {
@@ -91,23 +105,24 @@ export default function DashboardPage() {
               pendingRevenue: enquiries.filter((e: any) => e.status !== 'active').reduce((sum: number, e: any) => 
                 sum + (parseFloat(e.estimatedCost) || 0), 0
               ),
-            };            
+            };
             
+            console.log('📈 [Dashboard] Calculated stats:', realStats);
             setStats(realStats);
           } else {
-            // Fallback to demo if API fails
-            console.log('Using demo data - API returned error');
+            const errorText = await response.text();
+            console.error('❌ [Dashboard] API error:', response.status, errorText);
+            console.log('🔄 [Dashboard] Falling back to demo data');
             setStats(demoStats);
           }
         } catch (error) {
-          console.error('Failed to fetch stats:', error);
+          console.error('💥 [Dashboard] Exception:', error);
           setStats(demoStats);
         } finally {
           setLoading(false);
         }
       }
-    };
-  
+    };    
     fetchStats();
   }, [status]);
   

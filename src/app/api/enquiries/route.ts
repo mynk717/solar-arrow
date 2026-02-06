@@ -6,23 +6,40 @@ import { fetchEnquiries, createEnquiry } from '@/lib/googleSheets';
 // GET all enquiries
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 [API] /api/enquiries called');
     const session = await getServerSession(authOptions);
     
+    console.log('👤 [API] Session:', {
+      email: session?.user?.email,
+      sheetId: session?.user?.sheetId,
+      organizationId: session?.user?.organizationId
+    });
+
     if (!session?.user?.email) {
+      console.error('❌ [API] No session/email');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!session?.user?.sheetId) {
+      console.error('❌ [API] No sheetId configured');
+      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
+    }
+
+    console.log('📊 [API] Fetching from Google Sheets...');
     const enquiries = await fetchEnquiries();
+    console.log('✅ [API] Fetched enquiries:', enquiries.length);
     
+    if (enquiries.length > 0) {
+      console.log('📋 [API] Sample enquiry:', enquiries[0]);
+    }
+
     return NextResponse.json(enquiries);
   } catch (error: any) {
-    console.error('Error fetching enquiries:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch enquiries' },
-      { status: 500 }
-    );
+    console.error('💥 [API] Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
 
 // POST create new enquiry
 export async function POST(request: NextRequest) {
