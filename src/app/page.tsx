@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const const fetchStats = async () => {
+    const fetchStats = async () => {
       if (status === 'unauthenticated') {
         setStats(demoStats);
         setLoading(false);
