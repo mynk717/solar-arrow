@@ -22,6 +22,7 @@ export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -38,11 +39,13 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
+      setError(null);
       const response = await fetch('/api/users');
       const data = await response.json();
-      setUsers(data.users);
+      setUsers(data.users || []);
     } catch (error) {
       console.error('Failed to fetch users', error);
+      setError('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
     }

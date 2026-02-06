@@ -88,6 +88,7 @@ export default function DashboardPage() {
             setStats(realStats);
           } else {
             // Fallback to demo if API fails
+            console.log('Using demo data - API returned error');
             setStats(demoStats);
           }
         } catch (error) {

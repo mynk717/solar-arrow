@@ -30,12 +30,42 @@ export default function SettingsPage() {
   const [isInstalled, setIsInstalled] = useState(false);
   
   // Load config on mount
-  useEffect(() => {
-    if (session) {
-      loadConfig();
-      checkTokenStatus();
+  // PWA Install Prompt Handler
+useEffect(() => {
+  // Check if already installed (client-side only)
+  const checkInstalled = () => {
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return true;
     }
-  }, [session]);
+    return false;
+  };
+
+  if (checkInstalled()) return;
+
+  // Listen for install prompt
+  const handleBeforeInstallPrompt = (e: any) => {
+    e.preventDefault();
+    setDeferredPrompt(e);
+    setIsInstallable(true);
+  };
+
+  // Listen for successful install
+  const handleAppInstalled = () => {
+    setIsInstalled(true);
+    setIsInstallable(false);
+    setDeferredPrompt(null);
+  };
+
+  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  window.addEventListener('appinstalled', handleAppInstalled);
+
+  return () => {
+    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.removeEventListener('appinstalled', handleAppInstalled);
+  };
+}, []);
+
 
   // PWA Install Prompt Handler
 useEffect(() => {
@@ -389,7 +419,7 @@ useEffect(() => {
                 </div>
               </div>
               <a
-                href={`https://docs.google.com/spreadsheets/d/\${config.sheetId}/edit`}
+                href={`https://docs.google.com/spreadsheets/d/${config.sheetId}/edit`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-green-700 hover:text-green-800 mt-3 font-medium"
@@ -486,7 +516,7 @@ useEffect(() => {
 
             {sheetId && (
               <a
-                href={`https://docs.google.com/spreadsheets/d/\${sheetId}/edit`}
+              href={`https://docs.google.com/spreadsheets/d/${sheetId}/edit`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700"
@@ -499,7 +529,7 @@ useEffect(() => {
 
           {/* Message */}
           {message && (
-            <div className={`mt-4 p-4 rounded-lg \${
+            <div className={`mt-4 p-4 rounded-lg ${
               message.type === 'success'
                 ? 'bg-green-50 border border-green-200 text-green-800'
                 : 'bg-red-50 border border-red-200 text-red-800'

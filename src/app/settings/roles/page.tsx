@@ -55,12 +55,27 @@ export default function RolesPage() {
         fetch('/api/departments'),
         fetch('/api/roles'),
       ]);
-      const deptData = await deptRes.json();
-      const rolesData = await rolesRes.json();
-      setDepartments(deptData.departments);
-      setRoles(rolesData.roles);
+      
+      // ✅ Check if responses are OK
+      if (deptRes.ok) {
+        const deptData = await deptRes.json();
+        setDepartments(deptData.departments || []);
+      } else {
+        console.error('Failed to fetch departments');
+        setDepartments([]);
+      }
+      
+      if (rolesRes.ok) {
+        const rolesData = await rolesRes.json();
+        setRoles(rolesData.roles || []);
+      } else {
+        console.error('Failed to fetch roles');
+        setRoles([]);
+      }
     } catch (error) {
       console.error('Failed to fetch data', error);
+      setDepartments([]);
+      setRoles([]);
     } finally {
       setLoading(false);
     }
@@ -153,34 +168,42 @@ export default function RolesPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {departments.map(dept => (
-              <div key={dept.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building size={24} className="text-blue-600" />
+          {departments.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Building size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-2">No departments yet</p>
+              <p className="text-sm text-gray-500">Create your first department to organize your team</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {departments.map(dept => (
+                <div key={dept.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Building size={24} className="text-blue-600" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="text-blue-600 hover:text-blue-800">
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDepartment(dept.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="text-blue-600 hover:text-blue-800">
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDepartment(dept.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{dept.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4">{dept.description}</p>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Users size={16} />
+                    <span className="text-sm">{dept.userCount} members</span>
                   </div>
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg mb-2">{dept.name}</h3>
-                <p className="text-gray-600 text-sm mb-4">{dept.description}</p>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Users size={16} />
-                  <span className="text-sm">{dept.userCount} members</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -191,18 +214,28 @@ export default function RolesPage() {
             <h2 className="text-xl font-bold text-gray-900">Roles & Permissions</h2>
             <button
               onClick={() => setShowAddRoleModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 opacity-50 cursor-not-allowed"
+              disabled
+              title="Custom roles coming soon"
             >
               <Plus size={20} />
               Add Role
             </button>
           </div>
 
-          <div className="space-y-4">
-            {roles.map(role => (
-              <RoleCard key={role.id} role={role} />
-            ))}
-          </div>
+          {roles.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Shield size={48} className="mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600 mb-2">No roles configured</p>
+              <p className="text-sm text-gray-500">Using default system roles</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {roles.map(role => (
+                <RoleCard key={role.id} role={role} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -226,7 +259,7 @@ function RoleCard({ role }: { role: Role }) {
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <Shield size={24} className="text-blue-600" />
-            <h3 className="font-bold text-gray-900 text-lg">{role.name}</h3>
+            <h3 className="font-bold text-gray-900 text-lg capitalize">{role.name}</h3>
             <span className="text-sm text-gray-600">({role.userCount} users)</span>
           </div>
           <button
@@ -237,11 +270,11 @@ function RoleCard({ role }: { role: Role }) {
           </button>
         </div>
         <div className="flex gap-2">
-          <button className="text-blue-600 hover:text-blue-800">
+          <button className="text-blue-600 hover:text-blue-800" disabled title="Coming soon">
             <Edit2 size={18} />
           </button>
           {role.name !== 'owner' && role.name !== 'admin' && (
-            <button className="text-red-600 hover:text-red-800">
+            <button className="text-red-600 hover:text-red-800" disabled title="Coming soon">
               <Trash2 size={18} />
             </button>
           )}
@@ -251,7 +284,7 @@ function RoleCard({ role }: { role: Role }) {
       {expanded && (
         <div className="mt-6 border-t pt-4">
           <h4 className="font-semibold text-gray-900 mb-3">Permissions</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(role.permissions).map(([module, perms]) => (
               <div key={module} className="bg-gray-50 rounded-lg p-4">
                 <h5 className="font-medium text-gray-900 mb-2 capitalize">{module}</h5>
@@ -305,7 +338,7 @@ function AddDepartmentModal({ onClose, onSubmit }: any) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               placeholder="e.g., Sales, Engineering, Operations"
               required
             />
@@ -315,7 +348,7 @@ function AddDepartmentModal({ onClose, onSubmit }: any) {
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               rows={3}
               placeholder="Brief description of the department"
             />
@@ -323,14 +356,14 @@ function AddDepartmentModal({ onClose, onSubmit }: any) {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-medium"
             >
               Add Department
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg"
+              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg font-medium"
             >
               Cancel
             </button>
