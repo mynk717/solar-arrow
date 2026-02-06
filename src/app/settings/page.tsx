@@ -123,74 +123,122 @@ const checkTokenStatus = async () => {
 
   
 
-  const handleCopyTemplate = async () => {
-    setIsLoading(true);
-    setMessage(null);
+const handleCopyTemplate = async () => {
+  setIsLoading(true);
+  setMessage(null);
+  
+  try {
+    const response = await fetch('/api/sheets/copy-template', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        title: `Solar Arrow Data - ${new Date().toLocaleDateString()}` 
+      }),
+    });
 
-    try {
-      const response = await fetch('/api/sheets/copy-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: `Solar Arrow Data - ${new Date().toLocaleDateString()}` })
+    const data = await response.json();
+
+    if (response.ok) {
+      setSheetId(data.sheetId!);
+      setMessage({ 
+        type: 'success', 
+        text: 'Template copied! Opening your new sheet...' 
       });
 
-      const data = await response.json();
+      // Save the new sheet config to BOTH Drive and Redis
+      await saveConfig(data.sheetId!, sheetName);
 
-      if (response.ok) {
-        setSheetId(data.sheetId!);
-        setMessage({ type: 'success', text: 'Template copied! Opening your new sheet...' });
-
-        // Save the new sheet config
-        await saveConfig(data.sheetId!, sheetName);
-
-        // Open the new sheet
-        window.open(data.sheetUrl, '_blank');
+      // Open the new sheet
+      window.open(data.sheetUrl, '_blank');
+    } else {
+      // ✅ Add error handling
+      if (data.error?.includes('authentication')) {
+        setMessage({ 
+          type: 'error', 
+          text: 'Authentication expired. Please sign out and sign in again.' 
+        });
+        setTokenStatus('expired');
       } else {
-        if (data.error?.includes('authentication')) {
-          setMessage({ 
-            type: 'error', 
-            text: 'Authentication expired. Please sign out and sign in again.' 
-          });
-          setTokenStatus('expired');
-        } else {
-          setMessage({ type: 'error', text: data.error || 'Failed to copy template' });
-        }
+        setMessage({ 
+          type: 'error', 
+          text: data.error || 'Failed to copy template' 
+        });
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'An error occurred while copying template' });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    // ✅ Add catch error handling
+    setMessage({ 
+      type: 'error', 
+      text: 'An error occurred while copying template' 
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
 
   const saveConfig = async (id?: string, name?: string) => {
     setIsLoading(true);
     setMessage(null);
-
+    
     try {
-      const response = await fetch('/api/sheets/save-config', {
+      const sheetIdToSave = id || sheetId;
+      const sheetNameToSave = name || sheetName;
+  
+      // 1. Save to Google Drive (existing behavior)
+      const driveResponse = await fetch('/api/sheets/save-config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sheetId: id || sheetId,
-          sheetName: name || sheetName
-        })
+          sheetId: sheetIdToSave,
+          sheetName: sheetNameToSave
+        }),
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Configuration saved successfully!' });
-        await loadConfig(); // Reload to show updated info
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to save configuration' });
+  
+      const driveData = await driveResponse.json();
+  
+      if (!driveResponse.ok) {
+        setMessage({ type: 'error', text: driveData.error || 'Failed to save to Drive' });
+        setIsLoading(false);
+        return;
       }
+  
+      // 2. ✅ ALSO Save to Redis (for per-org access)
+      const redisResponse = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sheetId: sheetIdToSave,
+          sheetName: sheetNameToSave
+        }),
+      });
+  
+      const redisData = await redisResponse.json();
+  
+      if (!redisResponse.ok) {
+        console.warn('Redis save failed:', redisData.error);
+        // Don't fail the whole operation if Redis fails
+      }
+  
+      // Success!
+      setMessage({ 
+        type: 'success', 
+        text: 'Configuration saved successfully! Please sign out and sign in again to refresh your session.'
+      });
+      
+      await loadConfig(); // Reload to show updated info
     } catch (error) {
-      setMessage({ type: 'error', text: 'An error occurred while saving' });
+      console.error('Save error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: 'An error occurred while saving configuration' 
+      });
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const handleRefreshToken = async () => {
     setIsLoading(true)
