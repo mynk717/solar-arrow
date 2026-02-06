@@ -69,21 +69,29 @@ export default function DashboardPage() {
             // Calculate real stats from enquiries
             const realStats = {
               leads: enquiries.filter((e: any) => e.status === 'lead').length,
-              enquiries: enquiries.filter((e: any) => e.status === 'new' || e.status === 'prospect').length,
+              enquiries: enquiries.filter((e: any) => 
+                e.status === 'new' || e.status === 'prospect' || e.status?.includes('pending')
+              ).length,
               surveys: enquiries.filter((e: any) => e.status?.includes('survey')).length,
               quotations: enquiries.filter((e: any) => e.status?.includes('quotation')).length,
               registrations: enquiries.filter((e: any) => e.status?.includes('registration')).length,
               payments: enquiries.filter((e: any) => e.status?.includes('payment')).length,
-              bom: enquiries.filter((e: any) => e.status === 'bom-pending').length,
+              bom: enquiries.filter((e: any) => e.status?.includes('bom')).length,
               dispatch: enquiries.filter((e: any) => e.status?.includes('dispatch')).length,
               installations: enquiries.filter((e: any) => e.status?.includes('installation')).length,
-              liaison: enquiries.filter((e: any) => e.status?.includes('liaison') || e.status?.includes('inspection')).length,
+              liaison: enquiries.filter((e: any) => 
+                e.status?.includes('liaison') || e.status?.includes('inspection')
+              ).length,
               wcr: enquiries.filter((e: any) => e.status?.includes('wcr')).length,
               subsidy: enquiries.filter((e: any) => e.status?.includes('subsidy')).length,
               active: enquiries.filter((e: any) => e.status === 'active').length,
-              totalRevenue: enquiries.reduce((sum: number, e: any) => sum + (e.totalCost || 0), 0),
-              pendingRevenue: enquiries.filter((e: any) => e.status !== 'active').reduce((sum: number, e: any) => sum + (e.totalCost || 0), 0),
-            };
+              totalRevenue: enquiries.reduce((sum: number, e: any) => 
+                sum + (parseFloat(e.estimatedCost) || 0), 0
+              ),
+              pendingRevenue: enquiries.filter((e: any) => e.status !== 'active').reduce((sum: number, e: any) => 
+                sum + (parseFloat(e.estimatedCost) || 0), 0
+              ),
+            };            
             
             setStats(realStats);
           } else {
