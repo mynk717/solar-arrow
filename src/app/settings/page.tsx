@@ -28,9 +28,16 @@ export default function SettingsPage() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  
-  // Load config on mount
-  // PWA Install Prompt Handler
+
+// Load config and check token on mount
+useEffect(() => {
+  if (session) {
+    loadConfig();
+    checkTokenStatus(); // ✅ Actually call it!
+  }
+}, [session]);
+
+// PWA Install Prompt Handler - FIXED VERSION
 useEffect(() => {
   // Check if already installed (client-side only)
   const checkInstalled = () => {
@@ -66,77 +73,54 @@ useEffect(() => {
   };
 }, []);
 
+const loadConfig = async () => {
+  try {
+    const response = await fetch('/api/sheets/save-config');
+    const data = await response.json();
 
-  // PWA Install Prompt Handler
-useEffect(() => {
-  // Check if already installed
-  if (window.matchMedia('(display-mode: standalone)').matches) {
-    setIsInstalled(true);
-    return;
-  }
-
-  // Listen for install prompt
-  const handleBeforeInstallPrompt = (e: any) => {
-    e.preventDefault();
-    setDeferredPrompt(e);
-    setIsInstallable(true);
-  };
-
-  // Listen for successful install
-  const handleAppInstalled = () => {
-    setIsInstalled(true);
-    setIsInstallable(false);
-    setDeferredPrompt(null);
-  };
-
-  window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  window.addEventListener('appinstalled', handleAppInstalled);
-
-  return () => {
-    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.removeEventListener('appinstalled', handleAppInstalled);
-  };
-}, []);
-
-  const loadConfig = async () => {
-    try {
-      const response = await fetch('/api/sheets/save-config');
-      const data = await response.json();
-
-      if (data.configured) {
-        setConfig(data);
-        setSheetId(data.sheetId);
-        setSheetName(data.sheetName);
-      }
-    } catch (error) {
-      console.error('Failed to load config:', error);
+    if (data.configured) {
+      setConfig(data);
+      setSheetId(data.sheetId);
+      setSheetName(data.sheetName);
     }
-  };
+  } catch (error) {
+    console.error('Failed to load config:', error);
+  }
+};
 
-  const checkTokenStatus = async () => {
-    try {
-      const response = await fetch('/api/test-token')
-      const data = await response.json()
-      
-      if (response.ok) {
-        setTokenStatus('valid')
-        setMessage(null) // Clear any previous errors
-      } else {
-        setTokenStatus('expired')
-        // ✅ Show the actual error to user
-        setMessage({ 
-          type: 'error', 
-          text: data.error || 'Authentication expired. Please refresh connection.' 
-        })
-      }
-    } catch (error) {
-      setTokenStatus('unknown')
+const checkTokenStatus = async () => {
+  try {
+    const response = await fetch('/api/test-token');
+    const data = await response.json();
+    
+    // ✅ Match your API's response format
+    if (response.ok && data.status === 'valid') {
+      setTokenStatus('valid');
+      setMessage(null);
+    } else if (data.status === 'expired') {
+      setTokenStatus('expired');
       setMessage({ 
         type: 'error', 
-        text: 'Failed to check authentication status.' 
-      })
+        text: data.error || 'Authentication expired. Please refresh connection.' 
+      });
+    } else {
+      setTokenStatus('unknown');
+      setMessage({ 
+        type: 'error', 
+        text: data.error || 'Failed to check authentication status.' 
+      });
     }
+  } catch (error) {
+    console.error('Token check failed:', error);
+    setTokenStatus('expired');
+    setMessage({ 
+      type: 'error', 
+      text: 'Failed to check authentication status. Please try refreshing.' 
+    });
   }
+};
+
+
   
 
   const handleCopyTemplate = async () => {
