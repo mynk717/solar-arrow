@@ -59,6 +59,8 @@ function rowToEnquiry(row: any[]): Enquiry | null {
   const [
     id, customerName, phone, email, address, area, capacity, status,
     createdAt, updatedAt, panelTag,
+    // Lead fields (7 fields) - NEW
+    leadSource, leadNotes, leadQualified, leadQualifiedDate, leadConvertedDate, leadAssignedTo, leadStatus,
     // Survey (8 fields)
     surveyDate, surveyedBy, surveyNotes, surveyApproved, surveyScheduledDate, surveyCompletedDate, surveyRejectedReason, surveyPhotos,
     // Loan (14 fields)
@@ -83,8 +85,8 @@ function rowToEnquiry(row: any[]): Enquiry | null {
     // Tracking (6 fields)
     allottedUser, priority, isBlocked, blockedReason, lastEditedBy, lastEditedAt,
     lastFollowupDate, nextActionDate,
-    registrationId, registrationDate, governmentPortalRef,
-    dispatchDate, installedBy, activationDate, assignedTo
+    // NEW: Extra fields from your sheet
+    tags, notes
   ] = row;
 
   return {
@@ -94,7 +96,7 @@ function rowToEnquiry(row: any[]): Enquiry | null {
     email: email || '',
     address: address || '',
     area: area || '',
-    capacity: capacity || 3,
+    capacity: parseFloat(capacity) || 3,
     status: (status || 'new') as EnquiryStatus,
     createdAt: createdAt ? new Date(createdAt) : new Date(),
     updatedAt: updatedAt ? new Date(updatedAt) : new Date(),
@@ -223,17 +225,9 @@ function rowToEnquiry(row: any[]): Enquiry | null {
     lastEditedAt: lastEditedAt ? new Date(lastEditedAt) : undefined,
     lastFollowupDate: lastFollowupDate ? new Date(lastFollowupDate) : undefined,
     nextActionDate: nextActionDate ? new Date(nextActionDate) : undefined,
-
-    // Legacy fields for backward compatibility
-    registrationId: registrationId || undefined,
-    registrationDate: registrationDate ? new Date(registrationDate) : undefined,
-    governmentPortalRef: governmentPortalRef || undefined,
-    dispatchDate: dispatchDate ? new Date(dispatchDate) : undefined,
-    installedBy: installedBy || undefined,
-    activationDate: activationDate ? new Date(activationDate) : undefined,
-    assignedTo: assignedTo || undefined,
   };
 }
+
 
 /** Convert Enquiry object to row array */
 function enquiryToRow(enquiry: Enquiry): any[] {
@@ -385,7 +379,7 @@ export async function fetchEnquiries(): Promise<Enquiry[]> {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:DQ', // 120 columns
+      range: 'ENQUIRIES!A2:DR', // 116 columns
     });
 
     const rows = response.data.values || [];
