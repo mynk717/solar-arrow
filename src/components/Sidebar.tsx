@@ -73,14 +73,28 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button - Fixed with safe area */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all touch-manipulation"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        aria-label="Toggle menu"
-      >
-        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Mobile Header - Fixed Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50 shadow-sm">
+        {/* Logo/Title on Left */}
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <img src="/SA_logo.png" alt="Logo" className="w-6 h-6 object-contain" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-900">Solar Arrow</h1>
+        </Link>
+
+        {/* Menu Icon on Right */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Add spacing for fixed header on mobile */}
+      <div className="lg:hidden h-14" />
 
       {/* Sidebar */}
       <aside
@@ -99,8 +113,8 @@ export default function Sidebar() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {/* Header with Logo - Clickable */}
-        <Link href="/dashboard" className="block">
+        {/* Header with Logo - Desktop Only */}
+        <Link href="/dashboard" className="hidden lg:block">
           <div className="p-6 sticky top-0 bg-blue-600 z-10 hover:bg-blue-700 transition-colors cursor-pointer">
             <div className="flex items-center gap-3">
               {/* Logo */}

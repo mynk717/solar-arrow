@@ -53,12 +53,55 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === 'authenticated' || status === 'unauthenticated') {
-      setStats(demoStats);
-      // Simulate realistic loading time
-      setTimeout(() => setLoading(false), 300);
-    }
+    const fetchStats = async () => {
+      if (status === 'unauthenticated') {
+        setStats(demoStats);
+        setLoading(false);
+        return;
+      }
+  
+      if (status === 'authenticated') {
+        try {
+          const response = await fetch('/api/enquiries');
+          if (response.ok) {
+            const enquiries = await response.json();
+            
+            // Calculate real stats from enquiries
+            const realStats = {
+              leads: enquiries.filter((e: any) => e.status === 'lead').length,
+              enquiries: enquiries.filter((e: any) => e.status === 'new' || e.status === 'prospect').length,
+              surveys: enquiries.filter((e: any) => e.status?.includes('survey')).length,
+              quotations: enquiries.filter((e: any) => e.status?.includes('quotation')).length,
+              registrations: enquiries.filter((e: any) => e.status?.includes('registration')).length,
+              payments: enquiries.filter((e: any) => e.status?.includes('payment')).length,
+              bom: enquiries.filter((e: any) => e.status === 'bom-pending').length,
+              dispatch: enquiries.filter((e: any) => e.status?.includes('dispatch')).length,
+              installations: enquiries.filter((e: any) => e.status?.includes('installation')).length,
+              liaison: enquiries.filter((e: any) => e.status?.includes('liaison') || e.status?.includes('inspection')).length,
+              wcr: enquiries.filter((e: any) => e.status?.includes('wcr')).length,
+              subsidy: enquiries.filter((e: any) => e.status?.includes('subsidy')).length,
+              active: enquiries.filter((e: any) => e.status === 'active').length,
+              totalRevenue: enquiries.reduce((sum: number, e: any) => sum + (e.totalCost || 0), 0),
+              pendingRevenue: enquiries.filter((e: any) => e.status !== 'active').reduce((sum: number, e: any) => sum + (e.totalCost || 0), 0),
+            };
+            
+            setStats(realStats);
+          } else {
+            // Fallback to demo if API fails
+            setStats(demoStats);
+          }
+        } catch (error) {
+          console.error('Failed to fetch stats:', error);
+          setStats(demoStats);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+  
+    fetchStats();
   }, [status]);
+  
 
   if (status === 'loading' || loading) {
     return <DashboardSkeleton />;

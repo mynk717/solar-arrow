@@ -1,238 +1,137 @@
 {
-    "name": "Solar Arrow - CSPDCL Dashboard",
-    "short_name": "Solar Arrow",
-    "description": "Solar Panel Management System for Chhattisgarh State Power Distribution Company Limited",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#2563eb",
-    "orientation": "portrait-primary",
-    "scope": "/",
-    "lang": "en-US",
-    "dir": "ltr",
-    "categories": ["business", "productivity", "utilities"],
-    "icons": [
-      {
-        "src": "/android/android-launchericon-512-512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "any maskable"
-      },
-      {
-        "src": "/android/android-launchericon-192-192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any maskable"
-      },
-      {
-        "src": "/android/android-launchericon-144-144.png",
-        "sizes": "144x144",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/android/android-launchericon-96-96.png",
-        "sizes": "96x96",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/android/android-launchericon-72-72.png",
-        "sizes": "72x72",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/android/android-launchericon-48-48.png",
-        "sizes": "48x48",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/180.png",
-        "sizes": "180x180",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/167.png",
-        "sizes": "167x167",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/152.png",
-        "sizes": "152x152",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/144.png",
-        "sizes": "144x144",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/128.png",
-        "sizes": "128x128",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/120.png",
-        "sizes": "120x120",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/114.png",
-        "sizes": "114x114",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/100.png",
-        "sizes": "100x100",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/87.png",
-        "sizes": "87x87",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/80.png",
-        "sizes": "80x80",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/76.png",
-        "sizes": "76x76",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/72.png",
-        "sizes": "72x72",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/64.png",
-        "sizes": "64x64",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/60.png",
-        "sizes": "60x60",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/58.png",
-        "sizes": "58x58",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/57.png",
-        "sizes": "57x57",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/50.png",
-        "sizes": "50x50",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/40.png",
-        "sizes": "40x40",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/32.png",
-        "sizes": "32x32",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/29.png",
-        "sizes": "29x29",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/20.png",
-        "sizes": "20x20",
-        "type": "image/png",
-        "purpose": "any"
-      },
-      {
-        "src": "/ios/16.png",
-        "sizes": "16x16",
-        "type": "image/png",
-        "purpose": "any"
-      }
-    ],
-    "screenshots": [
-      {
-        "src": "/screenshots/dashboard-mobile.png",
-        "sizes": "540x720",
-        "type": "image/png",
-        "form_factor": "narrow"
-      },
-      {
-        "src": "/screenshots/dashboard-desktop.png",
-        "sizes": "1280x720",
-        "type": "image/png",
-        "form_factor": "wide"
-      }
-    ],
-    "shortcuts": [
-      {
-        "name": "Dashboard",
-        "short_name": "Dashboard",
-        "description": "View your solar installation dashboard",
-        "url": "/dashboard",
-        "icons": [
-          {
-            "src": "/ios/96.png",
-            "sizes": "96x96"
-          }
-        ]
-      },
-      {
-        "name": "Enquiries",
-        "short_name": "Enquiries",
-        "description": "Manage customer enquiries",
-        "url": "/enquiries",
-        "icons": [
-          {
-            "src": "/ios/96.png",
-            "sizes": "96x96"
-          }
-        ]
-      },
-      {
-        "name": "Settings",
-        "short_name": "Settings",
-        "description": "Configure Google Sheets integration",
-        "url": "/settings",
-        "icons": [
-          {
-            "src": "/ios/96.png",
-            "sizes": "96x96"
-          }
-        ]
-      }
-    ],
-    "prefer_related_applications": false
-  }
-  
+  "name": "Solar Arrow - CSPDCL Dashboard",
+  "short_name": "Solar Arrow",
+  "description": "Solar Panel Management System for Chhattisgarh State Power Distribution Company Limited. Track installations from enquiry to activation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/android/android-launchericon-512-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android/android-launchericon-192-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android/android-launchericon-144-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android/android-launchericon-96-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android/android-launchericon-72-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android/android-launchericon-48-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ios/180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ios/167.png",
+      "sizes": "167x167",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ios/152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ios/120.png",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ios/76.png",
+      "sizes": "76x76",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your solar installation dashboard",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Enquiries",
+      "short_name": "Enquiries",
+      "description": "Manage customer enquiries",
+      "url": "/enquiries",
+      "icons": [
+        {
+          "src": "/android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Kanban Board",
+      "short_name": "Kanban",
+      "description": "Visual project pipeline",
+      "url": "/kanban",
+      "icons": [
+        {
+          "src": "/android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Configure Google Sheets integration",
+      "url": "/settings",
+      "icons": [
+        {
+          "src": "/android/android-launchericon-96-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}

@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
-// ✅ Separate viewport export (Next.js 14+ best practice)
+// Viewport config
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -18,13 +18,35 @@ export const viewport: Viewport = {
   themeColor: '#2563eb',
 };
 
-// ✅ Full PWA metadata
+// Full PWA and Social Media metadata
 export const metadata: Metadata = {
-  title: 'Solar Arrow - Solar Panel Management System',
-  description: 'Manage solar panel enquiries, surveys, and installations for CSPDCL',
+  metadataBase: new URL('https://sa.mktgdime.com'),
+  
+  title: {
+    default: 'Solar Arrow - CSPDCL Solar Panel Management',
+    template: '%s | Solar Arrow'
+  },
+  
+  description: 'Complete solar panel installation management system for CSPDCL. Track enquiries, surveys, registrations, payments, installations, and subsidies in one platform.',
+  
+  keywords: [
+    'solar panel management',
+    'CSPDCL',
+    'Chhattisgarh solar',
+    'solar installation tracking',
+    'solar ERP',
+    'renewable energy management',
+    'solar panel CRM'
+  ],
+  
+  authors: [{ name: 'MKTGDIME', url: 'https://mktgdime.com' }],
+  
+  creator: 'MKTGDIME',
+  
   manifest: '/manifest.json',
+  
   verification: {
-    google: 'vrsBC-Lhh5mYq6Y962bknJ_IPObALDYs4dMKErfkeBg'
+    google: 'vrsBC-Lhh5mYq6Y962bknJIPObALDYs4dMKErfkeBg',
   },
   
   // PWA App Configuration
@@ -34,13 +56,13 @@ export const metadata: Metadata = {
     title: 'Solar Arrow',
     startupImage: [
       {
-        url: '/ios/1024.png',
-        media: '(device-width: 1024px) and (device-height: 1366px)',
+        url: '/ios/180.png',
+        media: '(device-width: 375px) and (device-height: 812px)',
       },
     ],
   },
   
-  // Icons for different platforms
+  // Icons
   icons: {
     icon: [
       { url: '/android/android-launchericon-48-48.png', sizes: '48x48', type: 'image/png' },
@@ -55,26 +77,60 @@ export const metadata: Metadata = {
       { url: '/ios/167.png', sizes: '167x167', type: 'image/png' },
       { url: '/ios/152.png', sizes: '152x152', type: 'image/png' },
       { url: '/ios/120.png', sizes: '120x120', type: 'image/png' },
-      { url: '/ios/114.png', sizes: '114x114', type: 'image/png' },
-      { url: '/ios/76.png', sizes: '76x76', type: 'image/png' },
     ],
   },
   
-  // Open Graph (for social sharing)
+  // Open Graph for Facebook, LinkedIn, etc.
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://sa.mktgdime.com',
-    title: 'Solar Arrow - CSPDCL Dashboard',
-    description: 'Solar Panel Management System for Chhattisgarh',
     siteName: 'Solar Arrow',
+    title: 'Solar Arrow - CSPDCL Solar Panel Management System',
+    description: 'Complete solar panel installation management for CSPDCL. Track your solar projects from enquiry to grid synchronization with ease.',
+    images: [
+      {
+        url: '/og-image.png', // Create this 1200x630px image
+        width: 1200,
+        height: 630,
+        alt: 'Solar Arrow Dashboard - Solar Panel Management System',
+        type: 'image/png',
+      },
+      {
+        url: '/android/android-launchericon-512-512.png',
+        width: 512,
+        height: 512,
+        alt: 'Solar Arrow Logo',
+      },
+    ],
   },
   
-  // Twitter Card
+  // Twitter Card for Twitter/X sharing
   twitter: {
     card: 'summary_large_image',
-    title: 'Solar Arrow - CSPDCL Dashboard',
-    description: 'Solar Panel Management System',
+    site: '@https://x.com/MarketingDime', // Replace with your Twitter handle if you have one
+    creator: '@mktgdime',
+    title: 'Solar Arrow - CSPDCL Solar Panel Management',
+    description: 'Complete solar installation management system for CSPDCL. Track enquiries, installations, and subsidies in one place.',
+    images: ['/og-image.png'], // Same as OG image
+  },
+  
+  // Additional metadata for better SEO
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  
+  // Alternate for different languages (if needed)
+  alternates: {
+    canonical: 'https://sa.mktgdime.com',
   },
 };
 
@@ -101,9 +157,7 @@ export default function RootLayout({
             <div className="flex flex-col min-h-screen bg-gray-50">
               <div className="flex flex-1">
                 <Sidebar />
-                <main className="flex-1">
-                  {children}
-                </main>
+                <main className="flex-1">{children}</main>
               </div>
               <Footer />
             </div>
