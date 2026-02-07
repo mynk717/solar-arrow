@@ -143,14 +143,21 @@ export interface Enquiry {
   paymentVerificationDate?: Date;
   paymentUTR?: string;
 
-  // Quotation (7 fields)
-  quotationId?: string;
-  quotationDate?: Date;
-  quotationAmount?: number;
-  quotationApprovedDate?: Date;
-  quotationApprovedBy?: string;
-  quotationRejectedReason?: string;
-  quotationDocumentPath?: string;
+ // Quotation (12 fields)
+quotationId?: string;
+quotationDate?: Date;
+quotationAmount?: number;
+quotationApprovedDate?: Date;
+quotationApprovedBy?: string;
+quotationRejectedReason?: string;
+quotationDocumentPath?: string;
+panelType?: string; // ADD THIS
+systemCost?: number; // ADD THIS
+finalCost?: number; // ADD THIS
+quotationValidTill?: Date; // ADD THIS
+quotationStatus?: 'draft' | 'sent' | 'approved' | 'rejected'; // ADD THIS
+quotationSentDate?: Date; // ADD THIS
+
 
   // System Specifications (10 fields)
   systemCapacity?: number;
@@ -225,6 +232,20 @@ export interface Enquiry {
   // Additional fields
   installationDate?: Date; // Legacy - use installationCompletedDate
   attachments?: string[];
+
+  registrationStage?: 'not_started' | 'consumer_registered' | 'application_submitted' | 'feasibility_approved' | 'vendor_selected' | 'project_inspection' | 'work_started' | 'project_commissioned';
+
+  // WCR fields (add to Installation section or create new WCR section)
+wcrStatus?: 'pending' | 'submitted' | 'approved' | 'rejected';
+wcrSubmittedDate?: Date;
+wcrApprovedDate?: Date;
+panelsInstalled?: boolean;
+inverterInstalled?: boolean;
+wiringComplete?: boolean;
+safetyMeasures?: boolean;
+systemTested?: boolean;
+customerBriefed?: boolean;
+
 }
 
 // ============================================

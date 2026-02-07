@@ -4,7 +4,7 @@ import { Enquiry, EnquiryStatus, PanelTag, PaymentType, SubsidyStatus } from './
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
-
+import { telegramBot } from './telegram'; 
 
 // ============================================
 // AUTHENTICATION
@@ -35,6 +35,10 @@ async function getAuthClient() {
 async function getSheets() {
   const auth = await getAuthClient();
   return google.sheets({ version: 'v4', auth });
+}
+/** Get Google Sheets API instance (alias for backward compatibility) */
+async function getGoogleSheetsClient() {
+  return await getSheets();
 }
 
 /** Get Sheet ID from session */
@@ -544,5 +548,124 @@ export async function fetchFollowups(enquiryId: string): Promise<any[]> {
   } catch (error: any) {
     console.error('Error fetching follow-ups:', error);
     return [];
+  }
+}
+
+// Add these functions to src/lib/googleSheets.ts
+
+export async function fetchEnquiryById(enquiryId: string): Promise<any> {
+  const enquiries = await fetchEnquiries();
+  return enquiries.find((enq: any) => enq.id === enquiryId);
+}
+
+export async function updateEnquiryInSheet(
+  enquiryId: string, 
+  updateData: Record<string, any>
+): Promise<void> {
+  try {
+    const sheets = await getSheets(); // Changed from getGoogleSheetsClient
+    const sheetId = await getSheetId(); // Use your existing helper
+    
+    // Find row index for this enquiry
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'ENQUIRIES!A:A', // Match your sheet name
+    });
+    
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex((row: any[]) => row[0] === enquiryId); // Fixed type
+    
+    if (rowIndex === -1) {
+      throw new Error('Enquiry not found');
+    }
+    
+    // Map updateData to column letters (customize based on your sheet structure)
+    const updates = Object.entries(updateData).map(([key, value]) => {
+      const columnLetter = getColumnLetterForField(key);
+      return {
+        range: `ENQUIRIES!${columnLetter}${rowIndex + 2}`, // +2 for header row
+        values: [[value]],
+      };
+    });
+    
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        data: updates,
+        valueInputOption: 'USER_ENTERED',
+      },
+    });
+  } catch (error: any) {
+    console.error('Error updating enquiry in sheet:', error);
+    throw new Error('Failed to update enquiry');
+  }
+}
+
+function getColumnLetterForField(fieldName: string): string {
+  const fieldMap: Record<string, string> = {
+    'dispatchDate': 'AH',
+    'trackingNumber': 'AI',
+    'transportCompany': 'AJ',
+    'deliveredDate': 'AK',
+    'materialReturnDate': 'AL',
+    // Add more mappings based on your sheet structure
+  };
+  
+  return fieldMap[fieldName] || 'A';
+}
+
+// ============================================
+// TELEGRAM NOTIFICATIONS
+// ============================================
+
+/**
+ * Notify via Telegram when BOM is marked as delivered
+ */
+export async function notifyBOMMarkedAsDelivered(
+  enquiryId: string,
+  customerName: string,
+  registrationId: string
+): Promise<void> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    // Read chat IDs from BOM_NOTIFY sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'BOM_NOTIFY!A:A',
+    });
+
+    const rows = response.data.values || [];
+    const chatIds = rows.map((row: any[]) => row[0]); // Fixed type
+
+    if (chatIds.length === 0) {
+      console.log('No Telegram chat IDs configured for BOM notifications');
+      return;
+    }
+
+    const message = `
+🎉 *BOM Marked as Delivered*
+
+📋 *Enquiry:* ${enquiryId}
+👤 *Customer:* ${customerName}
+🆔 *Registration:* ${registrationId}
+
+✅ Bill of Materials has been marked as delivered.
+    `.trim();
+
+    // Send notification to all registered chat IDs
+    for (const chatId of chatIds) {
+      if (chatId && chatId.trim()) {
+        try {
+          await telegramBot.sendMessage(chatId.trim(), message, 'Markdown');
+        } catch (error) {
+          console.error(`Failed to send Telegram notification to ${chatId}:`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sending BOM delivery notification:', error);
+    // Don't throw - notifications are non-critical
   }
 }

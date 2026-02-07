@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Enquiry } from '@/lib/types';
 import StatusBadge from '@/components/StatusBadge';
-import { Truck, Wrench, ClipboardCheck, Package, Loader2 } from 'lucide-react';
+import { Truck, Wrench, ClipboardCheck, Package, Loader2, RefreshCcw, Search, Filter } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { demoEnquiries } from '@/lib/demoData';
 import { useDemoMode } from '@/contexts/DemoContext';
@@ -18,52 +18,125 @@ export default function InstallationPage() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stageFilter, setStageFilter] = useState<'all' | 'dispatch' | 'installation' | 'inspection' | 'completed'>('all');
+  
+  // Sorting & Pagination
+  const [sortField, setSortField] = useState<'createdAt' | 'customerName' | 'dispatchDate'>('dispatchDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch enquiries from API or use demo data
   useEffect(() => {
-    const fetchData = async () => {
-      // If not authenticated, use demo data
-      if (status === 'unauthenticated') {
-        setEnquiries(demoEnquiries);
-        setLoading(false);
-        return;
-      }
-
-      // If authenticated, fetch real data
-      if (status === 'authenticated') {
-        try {
-          setLoading(true);
-          const response = await fetch('/api/enquiries');
-          if (!response.ok) throw new Error('Failed to fetch enquiries');
-          const data = await response.json();
-
-          // Convert date strings back to Date objects
-          const enquiriesWithDates = data.map((e: any) => ({
-            ...e,
-            createdAt: new Date(e.createdAt),
-            updatedAt: new Date(e.updatedAt),
-            surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
-            registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
-            paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
-            dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
-            installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
-            inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
-            activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
-          }));
-
-          setEnquiries(enquiriesWithDates);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Failed to load data');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
     fetchData();
   }, [status]);
 
-  // FIXED: Changed underscore to hyphen for all status values
+  const fetchData = async () => {
+    if (status === 'unauthenticated') {
+      setEnquiries(demoEnquiries);
+      setLoading(false);
+      return;
+    }
+
+    if (status === 'authenticated') {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/enquiries');
+        if (!response.ok) throw new Error('Failed to fetch enquiries');
+        const data = await response.json();
+
+        const enquiriesWithDates = data.map((e: any) => ({
+          ...e,
+          createdAt: new Date(e.createdAt),
+          updatedAt: new Date(e.updatedAt),
+          surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
+          registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
+          paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
+          dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
+          installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
+          inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
+          activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
+        }));
+
+        setEnquiries(enquiriesWithDates);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (isDemoMode) {
+      showDemoAlert();
+      return;
+    }
+    await fetchData();
+  };
+
+  // Filter by stage and search
+  const getFilteredEnquiries = () => {
+    let filtered = enquiries.filter(e => {
+      const matchesSearch = 
+        e.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.area.toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      switch (stageFilter) {
+        case 'dispatch':
+          return e.status === 'payment-received';
+        case 'installation':
+          return e.status === 'dispatched' || e.status === 'dispatch-pending' || 
+                 e.status === 'installation-pending' || (e.dispatchDate && !e.installationDate);
+        case 'inspection':
+          return e.installationDate && !e.inspectionDate;
+        case 'completed':
+          return e.status === 'installation-completed' || e.status === 'active';
+        default:
+          return true;
+      }
+    });
+
+    return filtered;
+  };
+
+  const filteredEnquiries = getFilteredEnquiries();
+
+  // Sort enquiries
+  const sortedEnquiries = [...filteredEnquiries].sort((a, b) => {
+    let comparison = 0;
+    
+    if (sortField === 'createdAt') {
+      comparison = a.createdAt.getTime() - b.createdAt.getTime();
+    } else if (sortField === 'customerName') {
+      comparison = a.customerName.localeCompare(b.customerName);
+    } else if (sortField === 'dispatchDate') {
+      const aDate = a.dispatchDate?.getTime() || 0;
+      const bDate = b.dispatchDate?.getTime() || 0;
+      comparison = aDate - bDate;
+    }
+    
+    return sortOrder === 'desc' ? -comparison : comparison;
+  });
+
+  // Paginate
+  const totalPages = Math.ceil(sortedEnquiries.length / itemsPerPage);
+  const paginatedEnquiries = sortedEnquiries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, stageFilter]);
+
   const readyForDispatch = enquiries.filter(e => e.status === 'payment-received');
   const dispatched = enquiries.filter(e => e.status === 'dispatched' || e.status === 'dispatch-pending');
   const inInstallation = enquiries.filter(e => 
@@ -74,62 +147,120 @@ export default function InstallationPage() {
   );
   const awaitingInspection = enquiries.filter(e => e.installationDate && !e.inspectionDate);
 
-  const handleDispatch = (enquiryId: string) => {
+  const handleDispatch = async (enquiryId: string, trackingNumber: string, transportCompany: string) => {
     if (isDemoMode) {
       showDemoAlert();
       return;
     }
 
-    setEnquiries(prev => prev.map(e => 
-      e.id === enquiryId 
-        ? { 
-            ...e, 
-            dispatchDate: new Date(), 
-            status: 'dispatched' as any,
-            updatedAt: new Date()
-          }
-        : e
-    ));
+    try {
+      const response = await fetch('/api/installation/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enquiryId, 
+          trackingNumber, 
+          transportCompany 
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to mark as dispatched');
+
+      setEnquiries(prev => prev.map(e => 
+        e.id === enquiryId 
+          ? { 
+              ...e, 
+              dispatchDate: new Date(), 
+              status: 'dispatched' as any,
+              updatedAt: new Date()
+            }
+          : e
+      ));
+
+      alert('✅ Dispatched successfully! Telegram notification sent.');
+    } catch (error) {
+      console.error('Error dispatching:', error);
+      alert('❌ Failed to dispatch. Please try again.');
+    }
   };
 
-  const handleInstallation = (enquiryId: string, team: string) => {
+  const handleInstallation = async (enquiryId: string, team: string, notes: string) => {
     if (isDemoMode) {
       showDemoAlert();
       return;
     }
 
-    setEnquiries(prev => prev.map(e => 
-      e.id === enquiryId 
-        ? { 
-            ...e, 
-            installationDate: new Date(), 
-            installedBy: team,
-            status: 'installation-completed' as any,
-            updatedAt: new Date()
-          }
-        : e
-    ));
+    try {
+      const response = await fetch('/api/installation/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enquiryId, 
+          installedBy: team,
+          installationNotes: notes
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to mark installation as complete');
+
+      setEnquiries(prev => prev.map(e => 
+        e.id === enquiryId 
+          ? { 
+              ...e, 
+              installationDate: new Date(), 
+              installedBy: team,
+              status: 'installation-completed' as any,
+              updatedAt: new Date()
+            }
+          : e
+      ));
+
+      alert('✅ Installation completed! Telegram notification sent.');
+    } catch (error) {
+      console.error('Error completing installation:', error);
+      alert('❌ Failed to complete installation. Please try again.');
+    }
   };
 
-  const handleInspection = (enquiryId: string, approved: boolean, officer: string) => {
+  const handleInspection = async (enquiryId: string, approved: boolean, officer: string, notes: string) => {
     if (isDemoMode) {
       showDemoAlert();
       return;
     }
 
-    setEnquiries(prev => prev.map(e => 
-      e.id === enquiryId 
-        ? { 
-            ...e, 
-            inspectionDate: new Date(), 
-            inspectionOfficer: officer,
-            inspectionApproved: approved,
-            activationDate: approved ? new Date() : undefined,
-            status: (approved ? 'active' : 'installation-completed') as any,
-            updatedAt: new Date()
-          }
-        : e
-    ));
+    try {
+      const response = await fetch('/api/installation/inspection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enquiryId, 
+          approved,
+          inspectionOfficer: officer,
+          inspectionNotes: notes
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to record inspection');
+
+      setEnquiries(prev => prev.map(e => 
+        e.id === enquiryId 
+          ? { 
+              ...e, 
+              inspectionDate: new Date(), 
+              inspectionOfficer: officer,
+              inspectionApproved: approved,
+              activationDate: approved ? new Date() : undefined,
+              status: (approved ? 'active' : 'installation-completed') as any,
+              updatedAt: new Date()
+            }
+          : e
+      ));
+
+      alert(`✅ Inspection ${approved ? 'approved' : 'rejected'}! Telegram notification sent.`);
+    } catch (error) {
+      console.error('Error recording inspection:', error);
+      alert('❌ Failed to record inspection. Please try again.');
+    }
   };
 
   // Loading state
@@ -144,7 +275,7 @@ export default function InstallationPage() {
     );
   }
 
-  // Error state (only for authenticated users)
+  // Error state
   if (error && !isDemoMode) {
     return (
       <div>
@@ -163,16 +294,27 @@ export default function InstallationPage() {
     <div>
       <DemoBanner />
       <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Installation Management {isDemoMode && <span className="text-blue-600">(Demo)</span>}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {isDemoMode 
-              ? 'Viewing sample installation data - Sign in to manage real installations'
-              : 'Manage dispatch, installation, and inspection process'
-            }
-          </p>
+        {/* Header */}
+        <div className="mb-8 flex justify-between items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Installation Management {isDemoMode && <span className="text-blue-600">(Demo)</span>}
+            </h1>
+            <p className="text-gray-600 mt-2">
+              {isDemoMode 
+                ? 'Viewing sample installation data - Sign in to manage real installations'
+                : 'Manage dispatch, installation, and inspection process'
+              }
+            </p>
+          </div>
+          
+          <button 
+            onClick={handleRefresh}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <RefreshCcw size={20} />
+            Refresh
+          </button>
         </div>
 
         {/* Stats */}
@@ -214,126 +356,110 @@ export default function InstallationPage() {
           />
         </div>
 
-        {/* Ready for Dispatch */}
-        {readyForDispatch.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Package className="text-blue-500" size={24} />
-              Ready for Dispatch
-            </h2>
-            <div className="space-y-4">
-              {readyForDispatch.map(enquiry => (
-                <DispatchCard 
-                  key={enquiry.id} 
-                  enquiry={enquiry} 
-                  onDispatch={handleDispatch}
-                  isDemoMode={isDemoMode}
-                />
-              ))}
+        {/* Filters & Search */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search by customer name, ID, or area..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <select
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-900"
+                value={stageFilter}
+                onChange={(e) => setStageFilter(e.target.value as any)}
+              >
+                <option value="all">All Stages</option>
+                <option value="dispatch">Ready for Dispatch</option>
+                <option value="installation">In Installation</option>
+                <option value="inspection">Awaiting Inspection</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
           </div>
-        )}
 
-        {/* Dispatched & In Installation */}
-        {(dispatched.length > 0 || inInstallation.length > 0) && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Wrench className="text-orange-500" size={24} />
-              Installation in Progress
-            </h2>
-            <div className="space-y-4">
-              {[...dispatched, ...inInstallation].map(enquiry => (
-                <InstallationCard 
-                  key={enquiry.id} 
-                  enquiry={enquiry} 
-                  onComplete={handleInstallation}
-                  isDemoMode={isDemoMode}
-                />
-              ))}
-            </div>
+          {/* Sort Controls */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <label className="text-sm font-medium text-gray-700">Sort by:</label>
+            <select
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as any)}
+            >
+              <option value="dispatchDate">Dispatch Date</option>
+              <option value="customerName">Customer Name</option>
+              <option value="createdAt">Date Created</option>
+            </select>
+            
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            >
+              {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+            </button>
+            
+            <span className="text-sm text-gray-600 ml-auto">
+              Showing {paginatedEnquiries.length} of {sortedEnquiries.length} installations
+            </span>
           </div>
-        )}
-
-        {/* Awaiting Inspection */}
-        {awaitingInspection.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <ClipboardCheck className="text-yellow-500" size={24} />
-              Awaiting Government Inspection
-            </h2>
-            <div className="space-y-4">
-              {awaitingInspection.map(enquiry => (
-                <InspectionCard 
-                  key={enquiry.id} 
-                  enquiry={enquiry} 
-                  onInspect={handleInspection}
-                  isDemoMode={isDemoMode}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Completed Installations */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <ClipboardCheck className="text-green-500" size={24} />
-            Completed & Active Systems
-          </h2>
-          {installationCompleted.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No completed installations yet</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">ID</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Customer</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Capacity</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Dispatch Date</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Installation Date</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Installed By</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Inspection</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {installationCompleted.map(enquiry => (
-                    <tr key={enquiry.id} className="border-t border-gray-200 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-700">{enquiry.id}</td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <div className="font-medium text-gray-900">{enquiry.customerName}</div>
-                          <div className="text-sm text-gray-600">{enquiry.area}</div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">{enquiry.capacity} kW</td>
-                      <td className="py-3 px-4 text-sm text-gray-700">
-                        {enquiry.dispatchDate?.toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-700">
-                        {enquiry.installationDate?.toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4 text-sm text-gray-700">{enquiry.installedBy}</td>
-                      <td className="py-3 px-4 text-sm">
-                        {enquiry.inspectionApproved ? (
-                          <span className="text-green-600">✓ Approved</span>
-                        ) : enquiry.inspectionDate ? (
-                          <span className="text-red-600">✗ Rejected</span>
-                        ) : (
-                          <span className="text-yellow-600">⏳ Pending</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <StatusBadge status={enquiry.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
+
+        {/* Installation Cards */}
+        <div className="space-y-6">
+          {paginatedEnquiries.map((enquiry) => {
+            // Determine which card to show
+            if (enquiry.status === 'payment-received') {
+              return <DispatchCard key={enquiry.id} enquiry={enquiry} onDispatch={handleDispatch} isDemoMode={isDemoMode} />;
+            } else if (enquiry.status === 'dispatched' || enquiry.status === 'dispatch-pending' || 
+                       enquiry.status === 'installation-pending' || (enquiry.dispatchDate && !enquiry.installationDate)) {
+              return <InstallationCard key={enquiry.id} enquiry={enquiry} onComplete={handleInstallation} isDemoMode={isDemoMode} />;
+            } else if (enquiry.installationDate && !enquiry.inspectionDate) {
+              return <InspectionCard key={enquiry.id} enquiry={enquiry} onInspect={handleInspection} isDemoMode={isDemoMode} />;
+            } else if (enquiry.status === 'installation-completed' || enquiry.status === 'active') {
+              return <CompletedCard key={enquiry.id} enquiry={enquiry} />;
+            }
+            return null;
+          })}
+        </div>
+
+        {sortedEnquiries.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md p-12 text-center">
+            <p className="text-gray-600">No installations found matching your criteria</p>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 bg-white rounded-lg shadow-md px-6 py-4 flex items-center justify-between">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+            >
+              Previous
+            </button>
+            
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -362,12 +488,14 @@ function StatCard({ title, value, icon: Icon, color, isDemoMode }: any) {
 
 function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
   const [isDispatching, setIsDispatching] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [transportCompany, setTransportCompany] = useState('');
 
   return (
-    <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+    <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
+          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
           <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
           <p className="text-sm text-gray-600 mt-1">
             Payment Received: {enquiry.paymentDate?.toLocaleDateString()}
@@ -381,7 +509,7 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
         <ul className="space-y-2 text-sm text-gray-700">
           <li className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            Solar Panels: {parseInt(enquiry.capacity) * 3} units (330W each)
+            Solar Panels: {Math.ceil(enquiry.capacity * 3)} units (330W each)
           </li>
           <li className="flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -410,39 +538,39 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
         <div className="bg-white rounded-lg p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tracking Number
+              Tracking Number *
             </label>
             <input 
               type="text" 
               placeholder="Enter shipment tracking number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Transport Company
+              Transport Company *
             </label>
             <input 
               type="text" 
               placeholder="e.g., Transport Co. Ltd"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expected Delivery Date
-            </label>
-            <input 
-              type="date" 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              value={transportCompany}
+              onChange={(e) => setTransportCompany(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => {
-                onDispatch(enquiry.id);
+                if (!trackingNumber || !transportCompany) {
+                  alert('Please fill in all required fields');
+                  return;
+                }
+                onDispatch(enquiry.id, trackingNumber, transportCompany);
                 setIsDispatching(false);
+                setTrackingNumber('');
+                setTransportCompany('');
               }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
@@ -464,12 +592,13 @@ function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
 function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(installationTeams[0]);
+  const [notes, setNotes] = useState('');
 
   return (
-    <div className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+    <div className="border border-orange-200 bg-orange-50 rounded-lg p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
+          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
           <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
           <p className="text-sm text-gray-600 mt-1">
             Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}
@@ -491,10 +620,10 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
         <div className="bg-white rounded-lg p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Installation Team
+              Installation Team *
             </label>
             <select 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
             >
@@ -508,16 +637,19 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
               Installation Notes
             </label>
             <textarea 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               rows={3}
               placeholder="Enter installation details, any issues, etc."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => {
-                onComplete(enquiry.id, selectedTeam);
+                onComplete(enquiry.id, selectedTeam, notes);
                 setIsCompleting(false);
+                setNotes('');
               }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
@@ -538,12 +670,14 @@ function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
 
 function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
   const [isInspecting, setIsInspecting] = useState(false);
+  const [officer, setOfficer] = useState('');
+  const [notes, setNotes] = useState('');
 
   return (
-    <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+    <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-6">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="font-bold text-gray-900">{enquiry.id} - {enquiry.customerName}</h3>
+          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
           <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
           <p className="text-sm text-gray-600 mt-1">
             Installation Completed: {enquiry.installationDate?.toLocaleDateString()}
@@ -567,12 +701,14 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
         <div className="bg-white rounded-lg p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Inspection Officer
+              Inspection Officer *
             </label>
             <input 
               type="text" 
               placeholder="Officer name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              value={officer}
+              onChange={(e) => setOfficer(e.target.value)}
             />
           </div>
           <div>
@@ -580,16 +716,24 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
               Inspection Notes
             </label>
             <textarea 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
               rows={2}
               placeholder="Inspection findings..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => {
-                onInspect(enquiry.id, true, 'Government Inspector');
+                if (!officer) {
+                  alert('Please enter inspector name');
+                  return;
+                }
+                onInspect(enquiry.id, true, officer, notes);
                 setIsInspecting(false);
+                setOfficer('');
+                setNotes('');
               }}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             >
@@ -597,8 +741,14 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
             </button>
             <button 
               onClick={() => {
-                onInspect(enquiry.id, false, 'Government Inspector');
+                if (!officer) {
+                  alert('Please enter inspector name');
+                  return;
+                }
+                onInspect(enquiry.id, false, officer, notes);
                 setIsInspecting(false);
+                setOfficer('');
+                setNotes('');
               }}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
             >
@@ -613,6 +763,33 @@ function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CompletedCard({ enquiry }: any) {
+  return (
+    <div className="border border-green-200 bg-green-50 rounded-lg p-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
+          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
+          <div className="mt-3 space-y-1 text-sm text-gray-700">
+            <p>✓ Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}</p>
+            <p>✓ Installed: {enquiry.installationDate?.toLocaleDateString()} by {enquiry.installedBy}</p>
+            {enquiry.inspectionDate && (
+              <p>
+                {enquiry.inspectionApproved ? '✓' : '✗'} Inspection: {enquiry.inspectionDate.toLocaleDateString()}
+                {enquiry.inspectionApproved && ' - Approved'}
+              </p>
+            )}
+            {enquiry.activationDate && (
+              <p>✓ Activated: {enquiry.activationDate.toLocaleDateString()}</p>
+            )}
+          </div>
+        </div>
+        <StatusBadge status={enquiry.status} />
+      </div>
     </div>
   );
 }

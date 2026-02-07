@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Enquiry, EnquiryStatus } from '@/lib/types';
 import StatusBadge from '@/components/StatusBadge';
-import { Search, Filter, Plus, Eye, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, Eye, Loader2, RefreshCcw } from 'lucide-react';
 import EnquiryForm from '@/components/EnquiryForm';
 import DemoBanner from '@/components/DemoBanner';
 import { demoEnquiries } from '@/lib/demoData';
@@ -22,18 +22,22 @@ export default function EnquiriesPage() {
   const [statusFilter, setStatusFilter] = useState<EnquiryStatus | 'all'>('all');
   const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // Sorting & Pagination
+  const [sortField, setSortField] = useState<'createdAt' | 'customerName' | 'capacity'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Fetch enquiries from API or use demo data
   useEffect(() => {
     const fetchData = async () => {
-      // If not authenticated, use demo data
       if (status === 'unauthenticated') {
         setEnquiries(demoEnquiries);
         setLoading(false);
         return;
       }
 
-      // If authenticated, fetch real data from Google Sheets
       if (status === 'authenticated') {
         try {
           setLoading(true);
@@ -45,7 +49,6 @@ export default function EnquiriesPage() {
           
           const data = await response.json();
           
-          // Convert date strings back to Date objects
           const enquiriesWithDates = data.map((e: any) => ({
             ...e,
             createdAt: new Date(e.createdAt),
@@ -71,6 +74,7 @@ export default function EnquiriesPage() {
     fetchData();
   }, [status]);
 
+  // Filter, Sort, and Paginate
   const filteredEnquiries = enquiries.filter(e => {
     const matchesSearch = 
       e.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,6 +86,31 @@ export default function EnquiriesPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const sortedEnquiries = [...filteredEnquiries].sort((a, b) => {
+    let comparison = 0;
+    
+    if (sortField === 'createdAt') {
+      comparison = a.createdAt.getTime() - b.createdAt.getTime();
+    } else if (sortField === 'customerName') {
+      comparison = a.customerName.localeCompare(b.customerName);
+    } else if (sortField === 'capacity') {
+      comparison = a.capacity - b.capacity;
+    }
+    
+    return sortOrder === 'desc' ? -comparison : comparison;
+  });
+
+  const totalPages = Math.ceil(sortedEnquiries.length / itemsPerPage);
+  const paginatedEnquiries = sortedEnquiries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Handle form submission
   const handleFormSubmit = (newEnquiry: Enquiry) => {
     if (isDemoMode) {
@@ -92,6 +121,37 @@ export default function EnquiriesPage() {
     
     setEnquiries(prev => [newEnquiry, ...prev]);
     setShowForm(false);
+  };
+
+  // Refresh data
+  const handleRefresh = async () => {
+    if (isDemoMode) {
+      showDemoAlert();
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch('/api/enquiries');
+      const data = await response.json();
+      const enquiriesWithDates = data.map((e: any) => ({
+        ...e,
+        createdAt: new Date(e.createdAt),
+        updatedAt: new Date(e.updatedAt),
+        surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
+        registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
+        paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
+        dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
+        installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
+        inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
+        activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
+      }));
+      setEnquiries(enquiriesWithDates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to refresh');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Loading state
@@ -106,7 +166,7 @@ export default function EnquiriesPage() {
     );
   }
 
-  // Error state (only for authenticated users)
+  // Error state
   if (error && !isDemoMode) {
     return (
       <div>
@@ -126,7 +186,8 @@ export default function EnquiriesPage() {
       <DemoBanner />
       
       <div className="p-8">
-        <div className="mb-8 flex justify-between items-center">
+        {/* Header */}
+        <div className="mb-8 flex justify-between items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Enquiry Management {isDemoMode && <span className="text-blue-600">(Demo)</span>}
@@ -138,19 +199,30 @@ export default function EnquiriesPage() {
               }
             </p>
           </div>
-          <button 
-            onClick={() => {
-              if (isDemoMode) {
-                showDemoAlert();
-              } else {
-                setShowForm(true);
-              }
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <Plus size={20} />
-            New Enquiry
-          </button>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={handleRefresh}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <RefreshCcw size={20} />
+              Refresh
+            </button>
+            
+            <button 
+              onClick={() => {
+                if (isDemoMode) {
+                  showDemoAlert();
+                } else {
+                  setShowForm(true);
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              <Plus size={20} />
+              New Enquiry
+            </button>
+          </div>
         </div>
 
         {showForm && !isDemoMode && (
@@ -160,9 +232,9 @@ export default function EnquiriesPage() {
           />
         )}
 
-        {/* Filters */}
+        {/* Filters & Sort */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -192,6 +264,31 @@ export default function EnquiriesPage() {
               </select>
             </div>
           </div>
+
+          {/* Sort Controls */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <label className="text-sm font-medium text-gray-700">Sort by:</label>
+            <select
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as any)}
+            >
+              <option value="createdAt">Date Created</option>
+              <option value="customerName">Customer Name</option>
+              <option value="capacity">Capacity</option>
+            </select>
+            
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            >
+              {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+            </button>
+            
+            <span className="text-sm text-gray-600 ml-auto">
+              Showing {paginatedEnquiries.length} of {sortedEnquiries.length} enquiries
+            </span>
+          </div>
         </div>
 
         {/* Enquiries Table */}
@@ -210,7 +307,7 @@ export default function EnquiriesPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredEnquiries.map((enquiry) => (
+                {paginatedEnquiries.map((enquiry) => (
                   <tr key={enquiry.id} className="border-t border-gray-200 hover:bg-gray-50">
                     <td className="py-4 px-6 font-medium text-gray-900">{enquiry.id}</td>
                     <td className="py-4 px-6">
@@ -248,9 +345,34 @@ export default function EnquiriesPage() {
             </table>
           </div>
 
-          {filteredEnquiries.length === 0 && (
+          {sortedEnquiries.length === 0 && (
             <div className="text-center py-12 text-gray-600">
               No enquiries found matching your criteria
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+              >
+                Previous
+              </button>
+              
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
@@ -266,6 +388,7 @@ export default function EnquiriesPage() {
     </div>
   );
 }
+
 
 function EnquiryModal({ enquiry, onClose }: { enquiry: Enquiry; onClose: () => void }) {
   return (
