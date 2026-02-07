@@ -151,13 +151,6 @@ export default function DashboardPage() {
         {/* Key Metrics - Responsive Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <MetricCard
-            title="Total Leads"
-            value={stats.leads}
-            icon={Users}
-            color="blue"
-            href="/leads"
-          />
-          <MetricCard
             title="Active Enquiries"
             value={stats.enquiries}
             icon={FileText}
@@ -185,7 +178,6 @@ export default function DashboardPage() {
           
           {/* First Row - Main Pipeline */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
-            <PipelineStage name="Leads" count={stats.leads} icon={Users} color="gray" href="/leads" />
             <PipelineStage name="Enquiries" count={stats.enquiries} icon={FileText} color="blue" href="/enquiries" />
             <PipelineStage name="Survey" count={stats.surveys} icon={ClipboardCheck} color="purple" href="/survey" />
             <PipelineStage name="Quotation" count={stats.quotations} icon={FileCheck} color="indigo" href="/quotation" />
@@ -213,45 +205,10 @@ export default function DashboardPage() {
               <ArrowRight className="transform group-open:rotate-90 transition-transform text-blue-600" size={20} />
             </div>
           </summary>
-          
-          <div className="px-4 pb-4 sm:px-6 sm:pb-6 space-y-2 sm:space-y-3">
-            <FlowStep number="1" title="Lead Generation" description="Capture potential customers" />
-            <FlowArrow />
-            <FlowStep number="2" title="Enquiry" description="Initial customer interest and details" />
-            <FlowArrow />
-            <FlowStep number="3" title="Site Survey" description="Technical assessment and feasibility" />
-            <FlowArrow />
-            <FlowStep number="4" title="Quotation" description="Generate and send price quote" />
-            <FlowArrow />
-            <FlowStep number="5" title="CSPDCL Registration" description="Register with electricity board" />
-            <FlowArrow />
-            <FlowStep number="6" title="Payment" description="Customer payment processing" />
-            <FlowArrow />
-            <FlowStep number="7" title="BOM Preparation" description="Bill of materials for installation" />
-            <FlowArrow />
-            <FlowStep number="8" title="Material Dispatch" description="Ship equipment to site" />
-            <FlowArrow />
-            <FlowStep number="9" title="Installation" description="Physical installation of system" />
-            <FlowArrow />
-            <FlowStep number="10" title="Liaison & Inspection" description="CSPDCL inspection and net metering" />
-            <FlowArrow />
-            <FlowStep number="11" title="WCR" description="Work completion report submission" />
-            <FlowArrow />
-            <FlowStep number="12" title="Subsidy" description="MNRE subsidy application & disbursement" />
-            <FlowArrow />
-            <FlowStep number="13" title="Active System" description="Grid synchronized and generating power" highlight />
-          </div>
         </details>
 
         {/* Quick Actions - Mobile Optimized */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <QuickActionCard
-            title="New Lead"
-            description="Add a new potential customer"
-            icon={Users}
-            href="/leads"
-            color="blue"
-          />
           <QuickActionCard
             title="Create Enquiry"
             description="Convert lead to enquiry"

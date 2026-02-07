@@ -29,7 +29,6 @@ import { useState, useEffect } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Kanban', href: '/kanban', icon: Kanban },
-  { name: 'Leads', href: '/leads', icon: Users },
   { name: 'Enquiries', href: '/enquiries', icon: FileText },
   { name: 'Survey', href: '/survey', icon: ClipboardCheck },
   { name: 'Quotation', href: '/quotation', icon: FileCheck },
