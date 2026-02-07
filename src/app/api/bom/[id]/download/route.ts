@@ -5,9 +5,11 @@ import { authOptions } from '../../../auth/[...nextauth]/route';
 import { fetchEnquiryById } from '@/lib/googleSheets';
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) {
+    const { id } = await params;
+  
   try {
     const session = await getServerSession(authOptions);
     
@@ -15,7 +17,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
     
     // Fetch enquiry data
     const enquiry = await fetchEnquiryById(id);
