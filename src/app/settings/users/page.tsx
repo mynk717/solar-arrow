@@ -3,11 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Users, UserPlus, Trash2, Edit2, Mail, Shield, Building, Loader2 } from 'lucide-react';
+import { Users, UserPlus, Trash2, Edit2, Mail, Shield, Building, Loader2, Key, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface User {
-  id: string;
   email: string;
   name: string;
   role: 'owner' | 'admin' | 'editor' | 'viewer';
@@ -15,6 +14,7 @@ interface User {
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
+  permissions?: Record<string, any>;
 }
 
 export default function UsersPage() {
@@ -28,7 +28,7 @@ export default function UsersPage() {
 
   // Only admin/owner can access
   useEffect(() => {
-    if (session?.user?.role !== 'admin' && session?.user?.role !== 'owner') {
+    if (session && session.user?.role !== 'admin' && session.user?.role !== 'owner') {
       router.push('/unauthorized');
     }
   }, [session, router]);
@@ -40,7 +40,11 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setError(null);
-      const response = await fetch('/api/users');
+      setLoading(true);
+      
+      const response = await fetch('/api/settings/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      
       const data = await response.json();
       setUsers(data.users || []);
     } catch (error) {
@@ -53,51 +57,68 @@ export default function UsersPage() {
 
   const handleAddUser = async (userData: Partial<User>) => {
     try {
-      const response = await fetch('/api/users', {
+      const response = await fetch('/api/settings/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData),
       });
 
-      if (response.ok) {
-        fetchUsers();
-        setShowAddModal(false);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to add user');
       }
-    } catch (error) {
+
+      await fetchUsers();
+      setShowAddModal(false);
+      alert('✅ User added successfully! They will receive login credentials via email.');
+    } catch (error: any) {
       console.error('Failed to add user', error);
+      alert(`❌ ${error.message}`);
     }
   };
 
-  const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
+  const handleUpdateUser = async (userEmail: string, updates: Partial<User>) => {
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch('/api/settings/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ email: userEmail, ...updates }),
       });
 
-      if (response.ok) {
-        fetchUsers();
-        setEditingUser(null);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update user');
       }
-    } catch (error) {
+
+      await fetchUsers();
+      setEditingUser(null);
+      alert('✅ User updated successfully!');
+    } catch (error: any) {
       console.error('Failed to update user', error);
+      alert(`❌ ${error.message}`);
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this user?')) return;
+  const handleDeleteUser = async (userEmail: string) => {
+    if (!confirm('Are you sure you want to remove this user? They will lose access immediately.')) return;
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch('/api/settings/users', {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
       });
 
-      if (response.ok) {
-        fetchUsers();
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete user');
       }
-    } catch (error) {
+
+      await fetchUsers();
+      alert('✅ User removed successfully!');
+    } catch (error: any) {
       console.error('Failed to delete user', error);
+      alert(`❌ ${error.message}`);
     }
   };
 
@@ -108,6 +129,27 @@ export default function UsersPage() {
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchUsers}
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const activeUsers = users.filter(u => u.isActive);
+  const adminUsers = users.filter(u => u.role === 'admin' || u.role === 'owner');
+  const inactiveUsers = users.filter(u => !u.isActive);
 
   return (
     <div className="p-6">
@@ -120,21 +162,30 @@ export default function UsersPage() {
           </h1>
           <p className="text-gray-600 mt-2">Manage team members and their access permissions</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-        >
-          <UserPlus size={20} />
-          Add User
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={fetchUsers}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <RefreshCw size={20} />
+            Refresh
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <UserPlus size={20} />
+            Add User
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Users" value={users.length} color="blue" />
-        <StatCard label="Active" value={users.filter(u => u.isActive).length} color="green" />
-        <StatCard label="Admins" value={users.filter(u => u.role === 'admin' || u.role === 'owner').length} color="purple" />
-        <StatCard label="Inactive" value={users.filter(u => !u.isActive).length} color="red" />
+        <StatCard label="Active" value={activeUsers.length} color="green" />
+        <StatCard label="Admins" value={adminUsers.length} color="purple" />
+        <StatCard label="Inactive" value={inactiveUsers.length} color="red" />
       </div>
 
       {/* Users Table */}
@@ -152,11 +203,11 @@ export default function UsersPage() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {users.map(user => (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr key={user.email} className="hover:bg-gray-50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">{user.name[0]}</span>
+                      <span className="text-blue-600 font-semibold">{user.name[0].toUpperCase()}</span>
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">{user.name}</div>
@@ -191,7 +242,7 @@ export default function UsersPage() {
                     </button>
                     {user.role !== 'owner' && (
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => handleDeleteUser(user.email)}
                         className="text-red-600 hover:text-red-800"
                         title="Remove"
                       >
@@ -204,6 +255,12 @@ export default function UsersPage() {
             ))}
           </tbody>
         </table>
+
+        {users.length === 0 && (
+          <div className="p-12 text-center text-gray-500">
+            No users found. Add your first team member!
+          </div>
+        )}
       </div>
 
       {/* Add User Modal */}
@@ -219,7 +276,7 @@ export default function UsersPage() {
         <EditUserModal
           user={editingUser}
           onClose={() => setEditingUser(null)}
-          onSubmit={(updates: Partial<User>) => handleUpdateUser(editingUser.id, updates)}
+          onSubmit={(updates: Partial<User>) => handleUpdateUser(editingUser.email, updates)}
         />
       )}
     </div>
@@ -228,10 +285,17 @@ export default function UsersPage() {
 
 // Helper Components
 function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  const colorMap: Record<string, string> = {
+    blue: 'text-blue-600',
+    green: 'text-green-600',
+    purple: 'text-purple-600',
+    red: 'text-red-600',
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4">
       <p className="text-gray-600 text-sm">{label}</p>
-      <p className={`text-3xl font-bold text-${color}-600 mt-2`}>{value}</p>
+      <p className={`text-3xl font-bold ${colorMap[color]} mt-2`}>{value}</p>
     </div>
   );
 }
@@ -256,12 +320,18 @@ function AddUserModal({ onClose, onSubmit }: any) {
     name: '',
     email: '',
     password: '',
-    role: 'viewer',
+    role: 'viewer' as 'viewer' | 'editor' | 'admin',
     department: '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.email || !formData.name || !formData.password) {
+      alert('Please fill all required fields');
+      return;
+    }
+
     onSubmit(formData);
   };
 
@@ -271,45 +341,47 @@ function AddUserModal({ onClose, onSubmit }: any) {
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Add New User</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               required
+              minLength={6}
             />
+            <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
-              <option value="viewer">Viewer</option>
-              <option value="editor">Editor</option>
-              <option value="admin">Admin</option>
+              <option value="viewer">Viewer - Read-only access</option>
+              <option value="editor">Editor - Can create & edit</option>
+              <option value="admin">Admin - Full access</option>
             </select>
           </div>
           <div>
@@ -318,7 +390,8 @@ function AddUserModal({ onClose, onSubmit }: any) {
               type="text"
               value={formData.department}
               onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
+              placeholder="e.g., Sales, Technical, Admin"
             />
           </div>
           <div className="flex gap-3 pt-4">
@@ -359,6 +432,7 @@ function EditUserModal({ user, onClose, onSubmit }: any) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Edit User</h2>
+        <p className="text-sm text-gray-600 mb-4">Editing: {user.email}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -366,7 +440,7 @@ function EditUserModal({ user, onClose, onSubmit }: any) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               required
             />
           </div>
@@ -375,7 +449,7 @@ function EditUserModal({ user, onClose, onSubmit }: any) {
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
               disabled={user.role === 'owner'}
             >
               <option value="viewer">Viewer</option>
@@ -383,6 +457,9 @@ function EditUserModal({ user, onClose, onSubmit }: any) {
               <option value="admin">Admin</option>
               {user.role === 'owner' && <option value="owner">Owner</option>}
             </select>
+            {user.role === 'owner' && (
+              <p className="text-xs text-gray-500 mt-1">Owner role cannot be changed</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
@@ -390,7 +467,7 @@ function EditUserModal({ user, onClose, onSubmit }: any) {
               type="text"
               value={formData.department}
               onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
             />
           </div>
           <div className="flex items-center gap-2">
