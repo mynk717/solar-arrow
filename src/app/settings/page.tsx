@@ -100,16 +100,24 @@ const checkTokenStatus = async () => {
     const response = await fetch('/api/test-token');
     const data = await response.json();
     
-    // ✅ Match your API's response format
     if (response.ok && data.status === 'valid') {
       setTokenStatus('valid');
       setMessage(null);
     } else if (data.status === 'expired') {
       setTokenStatus('expired');
-      setMessage({ 
-        type: 'error', 
-        text: data.error || 'Authentication expired. Please refresh connection.' 
-      });
+      
+      // ✅ Different message for users vs admins
+      if (session?.user?.accountType === 'user') {
+        setMessage({ 
+          type: 'error', 
+          text: 'Organization admin needs to refresh Google connection. Please contact your administrator.' 
+        });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: data.error || 'Authentication expired. Please refresh connection.' 
+        });
+      }
     } else {
       setTokenStatus('unknown');
       setMessage({ 
@@ -362,15 +370,36 @@ const saveConfig = async (id?: string, name?: string) => {
     {tokenStatus === 'valid' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
     {tokenStatus === 'valid' ? 'Connected to Google' : tokenStatus === 'expired' ? 'Connection Expired' : 'Checking...'}
   </span>
-              {tokenStatus === 'expired' && (
-                <button
-                  onClick={handleRefreshToken}
-                  className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
-                >
-                  <RefreshCw size={14} />
-                  Refresh Connection
-                </button>
-              )}
+{tokenStatus === 'expired' && (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+    <div className="flex items-start gap-3">
+      <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+      <div>
+        <h3 className="font-bold text-red-900 mb-2">
+          {session?.user?.accountType === 'user' 
+            ? 'Administrator Action Required' 
+            : 'Authentication Expired'}
+        </h3>
+        <p className="text-red-800 mb-3">
+          {session?.user?.accountType === 'user'
+            ? 'Your organization administrator needs to refresh the Google Sheets connection. Please contact them to resolve this issue.'
+            : 'Your Google authentication has expired. You need to re-authenticate to continue using Google Sheets.'}
+        </p>
+        {/* ✅ Only show button for admins */}
+        {session?.user?.accountType === 'admin' && (
+          <button
+            onClick={handleRefreshToken}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+          >
+            <RefreshCw size={16} className="inline mr-2" />
+            Re-authenticate Now
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
             </div>
           </div>
         </div>
