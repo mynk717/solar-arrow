@@ -60,7 +60,7 @@ const demoLiaisons = [
 
 export default function LiaisonPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [liaisons, setLiaisons] = useState(demoLiaisons);
   const [loading, setLoading] = useState(false);
   
@@ -115,7 +115,6 @@ export default function LiaisonPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -163,7 +162,6 @@ export default function LiaisonPage() {
 
   const handleRecordInspection = async (id: string, approved: boolean, officer: string, notes: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -191,7 +189,6 @@ export default function LiaisonPage() {
 
   const handleMeterInstallation = async (id: string, meterNumber: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -217,7 +214,6 @@ export default function LiaisonPage() {
 
   const handleGridSync = async (id: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -240,7 +236,6 @@ export default function LiaisonPage() {
 
   const handleUploadDocument = (id: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     alert(`Upload document for ${id}`);

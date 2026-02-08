@@ -73,7 +73,7 @@ const demoPayments: Enquiry[] = [
 
 export default function PaymentsPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState<PaymentType | 'all'>('all');
@@ -120,7 +120,6 @@ export default function PaymentsPage() {
 
   const handleRecordPayment = (id: string) => {
     if (isDemoMode || status === 'unauthenticated') {
-      showDemoAlert();
       return;
     }
     alert(`Record payment for ${id}`);

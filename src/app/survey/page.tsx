@@ -19,7 +19,7 @@ const surveyTeamMembers = [
 
 export default function SurveyPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
@@ -82,7 +82,6 @@ export default function SurveyPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -150,7 +149,6 @@ export default function SurveyPage() {
 
   const handleScheduleSurvey = async (enquiryId: string, surveyDate: Date, assignee: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     
@@ -177,7 +175,6 @@ export default function SurveyPage() {
 
   const handleApproveSurvey = async (enquiryId: string, approved: boolean, notes: string, roofType?: string, roofArea?: number) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     

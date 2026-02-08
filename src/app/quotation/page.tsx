@@ -39,7 +39,7 @@ const demoQuotations = [
 
 export default function QuotationPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [quotations, setQuotations] = useState(demoQuotations);
   const [loading, setLoading] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
@@ -94,7 +94,6 @@ export default function QuotationPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -138,7 +137,6 @@ export default function QuotationPage() {
 
   const handleGeneratePDF = async (quotId: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -170,7 +168,6 @@ export default function QuotationPage() {
 
   const handleSendEmail = async (quotId: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -193,7 +190,6 @@ export default function QuotationPage() {
 
   const handleApproveReject = async (quotId: string, approved: boolean) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -220,7 +216,6 @@ export default function QuotationPage() {
 
 const handleShare = async (quotation: any, method: 'email' | 'whatsapp' | 'copy') => {
   if (isDemoMode) {
-    showDemoAlert();
     return;
   }
 
@@ -296,7 +291,7 @@ Contact us for more details!
             </button>
             
             <button
-              onClick={() => isDemoMode ? showDemoAlert() : setShowCreateForm(true)}
+              onClick={() => !isDemoMode && setShowCreateForm(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
               <Plus size={20} />

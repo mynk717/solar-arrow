@@ -72,7 +72,7 @@ const registrationStages = [
 
 export default function RegistrationPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [registrations, setRegistrations] = useState(demoRegistrations);
   const [loading, setLoading] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
@@ -127,7 +127,6 @@ export default function RegistrationPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -172,7 +171,6 @@ export default function RegistrationPage() {
 
   const handleRegister = async (enquiryId: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -195,7 +193,6 @@ export default function RegistrationPage() {
 
   const handleUpdateStage = async (enquiryId: string, stage: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -218,7 +215,6 @@ export default function RegistrationPage() {
 
   const handleUploadDoc = (enquiryId: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     alert(`Upload document for ${enquiryId}`);

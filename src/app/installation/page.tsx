@@ -14,7 +14,7 @@ const installationTeams = ['Tech Team A', 'Tech Team B', 'Tech Team C'];
 
 export default function InstallationPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,6 @@ export default function InstallationPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -149,7 +148,6 @@ export default function InstallationPage() {
 
   const handleDispatch = async (enquiryId: string, trackingNumber: string, transportCompany: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -186,7 +184,6 @@ export default function InstallationPage() {
 
   const handleInstallation = async (enquiryId: string, team: string, notes: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -224,7 +221,6 @@ export default function InstallationPage() {
 
   const handleInspection = async (enquiryId: string, approved: boolean, officer: string, notes: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 

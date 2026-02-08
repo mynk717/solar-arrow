@@ -54,7 +54,7 @@ const demoSubsidies = [
 
 export default function SubsidyPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [subsidies, setSubsidies] = useState(demoSubsidies);
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +70,6 @@ export default function SubsidyPage() {
 
   const handleUpdateStatus = (id: string, newStatus: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     alert(`Update subsidy status for ${id} to ${newStatus}`);

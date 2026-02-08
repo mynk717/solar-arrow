@@ -91,7 +91,7 @@ const demoWCRs = [
 
 export default function WCRPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [wcrs, setWcrs] = useState(demoWCRs);
   const [loading, setLoading] = useState(false);
   const [selectedWCR, setSelectedWCR] = useState<any>(null);
@@ -147,7 +147,6 @@ export default function WCRPage() {
 
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     await fetchData();
@@ -155,7 +154,6 @@ export default function WCRPage() {
 
   const handleSubmitWCR = async (id: string, data: any) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -179,7 +177,6 @@ export default function WCRPage() {
 
   const handleApproveWCR = async (id: string, approved: boolean) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 
@@ -202,7 +199,6 @@ export default function WCRPage() {
 
   const handleUploadPhotos = (id: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     alert(`Upload photos for ${id}`);
@@ -394,7 +390,6 @@ export default function WCRPage() {
               onViewDetails={() => setSelectedWCR(wcr)}
               onUploadPhotos={handleUploadPhotos}
               isDemoMode={isDemoMode}
-              showDemoAlert={showDemoAlert}
             />
           ))}
         </div>
@@ -444,7 +439,7 @@ export default function WCRPage() {
   );
 }
 
-function WCRCard({ wcr, onSubmit, onApprove, onViewDetails, onUploadPhotos, isDemoMode, showDemoAlert }: any) {
+function WCRCard({ wcr, onSubmit, onApprove, onViewDetails, onUploadPhotos, isDemoMode }: any) {
   const isPending = wcr.wcrStatus === 'pending';
   const isSubmitted = wcr.wcrStatus === 'submitted';
   const isApproved = wcr.wcrStatus === 'approved';
@@ -563,7 +558,7 @@ function WCRCard({ wcr, onSubmit, onApprove, onViewDetails, onUploadPhotos, isDe
               View Details
             </button>
             <button
-              onClick={() => isDemoMode ? showDemoAlert() : alert('Download WCR PDF')}
+              onClick={() => !isDemoMode && alert('Download WCR PDF')}
               className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg text-sm flex items-center gap-2"
             >
               <Download size={16} />

@@ -70,7 +70,7 @@ const SCRUM_STAGES = [
 
 export default function ScrumBoard() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
@@ -124,7 +124,6 @@ export default function ScrumBoard() {
 
   const moveToNextStage = async (enquiry: Enquiry) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
 

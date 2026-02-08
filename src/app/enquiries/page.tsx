@@ -13,7 +13,7 @@ import { useDemoMode } from '@/contexts/DemoContext';
 
 export default function EnquiriesPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   
   const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
   const [loading, setLoading] = useState(true);
@@ -114,7 +114,6 @@ export default function EnquiriesPage() {
   // Handle form submission
   const handleFormSubmit = (newEnquiry: Enquiry) => {
     if (isDemoMode) {
-      showDemoAlert();
       setShowForm(false);
       return;
     }
@@ -126,7 +125,6 @@ export default function EnquiriesPage() {
   // Refresh data
   const handleRefresh = async () => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     
@@ -212,7 +210,6 @@ export default function EnquiriesPage() {
             <button 
               onClick={() => {
                 if (isDemoMode) {
-                  showDemoAlert();
                 } else {
                   setShowForm(true);
                 }

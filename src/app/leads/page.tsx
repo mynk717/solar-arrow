@@ -49,7 +49,7 @@ const demoLeads = [
 
 export default function LeadsPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [leads, setLeads] = useState(demoLeads);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -67,7 +67,6 @@ export default function LeadsPage() {
 
   const handleConvertToEnquiry = (leadId: string) => {
     if (isDemoMode) {
-      showDemoAlert();
       return;
     }
     // Convert lead to enquiry
@@ -101,7 +100,7 @@ export default function LeadsPage() {
             </p>
           </div>
           <button
-            onClick={() => isDemoMode ? showDemoAlert() : setShowForm(true)}
+            onClick={() => !isDemoMode && setShowForm(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus size={20} />
