@@ -209,7 +209,8 @@ export default function DispatchPage() {
 
   const handleMarkDispatched = async () => {
     if (!selectedDispatch || isDemoMode) {
-      if (isDemoMode) showDemoAlert();
+      if (isDemoMode) return;
+
       return;
     }
 
@@ -249,7 +250,8 @@ export default function DispatchPage() {
 
   const handleMarkDelivered = async () => {
     if (!selectedDispatch || isDemoMode) {
-      if (isDemoMode) showDemoAlert();
+      if (isDemoMode) return;
+
       return;
     }
 
