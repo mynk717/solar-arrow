@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
-
+import { redis } from './redis';
 // ============================================
 // AUTHENTICATION
 // ============================================
@@ -14,22 +14,34 @@ import { telegramBot } from './telegram';
 async function getAuthClient() {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user?.organizationId || !session?.user?.email) {
+  if (!session?.user?.organizationId) {
     throw new Error('Not authenticated');
-  }  
+  }
 
-  // Get valid access token (auto-refreshes if expired)
-  const accessToken = await getValidAccessToken(session.user.organizationId, session.user.email!);
-
+  // ✅ FIX: Get ANY admin's token from organization (not user's token)
+  const orgAdmins = await redis.smembers(`org:${session.user.organizationId}:admins`);
+  
+  let accessToken = null;
+  for (const adminEmail of orgAdmins) {
+    const tokens = await redis.get(`org:${session.user.organizationId}:oauth:${adminEmail}`) as any;
+    if (tokens?.accessToken) {
+      console.log('✅ Using admin token from:', adminEmail);
+      accessToken = tokens.accessToken;
+      break;
+    }
+  }
   
   if (!accessToken) {
-    throw new Error('Failed to get valid access token. Please re-authenticate.');
+    throw new Error('No valid admin token found. Please ensure at least one admin has connected their Google account.');
   }
 
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
+  
   return auth;
 }
+
+
 
 /** Get Google Sheets API instance */
 async function getSheets() {
