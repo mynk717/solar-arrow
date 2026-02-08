@@ -75,13 +75,20 @@ useEffect(() => {
 
 const loadConfig = async () => {
   try {
-    const response = await fetch('/api/sheets/save-config');
+    const response = await fetch('/api/settings'); // Changed from /api/sheets/save-config
     const data = await response.json();
 
-    if (data.configured) {
-      setConfig(data);
+    if (data.sheetId) { // Changed from data.configured
+      setConfig({
+        sheetId: data.sheetId,
+        sheetName: data.sheetName || 'Sheet1',
+        organizationDomain: session?.user?.organizationId || '',
+        updatedAt: data.updatedAt,
+        updatedBy: session?.user?.email || '',
+        configured: true
+      });
       setSheetId(data.sheetId);
-      setSheetName(data.sheetName);
+      setSheetName(data.sheetName || 'Sheet1');
     }
   } catch (error) {
     console.error('Failed to load config:', error);
@@ -178,66 +185,50 @@ const handleCopyTemplate = async () => {
 
 
 
-  const saveConfig = async (id?: string, name?: string) => {
-    setIsLoading(true);
-    setMessage(null);
-    
-    try {
-      const sheetIdToSave = id || sheetId;
-      const sheetNameToSave = name || sheetName;
+const saveConfig = async (id?: string, name?: string) => {
+  setIsLoading(true);
+  setMessage(null);
   
-      // 1. Save to Google Drive (existing behavior)
-      const driveResponse = await fetch('/api/sheets/save-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sheetId: sheetIdToSave,
-          sheetName: sheetNameToSave
-        }),
-      });
-  
-      const driveData = await driveResponse.json();
-  
-      if (!driveResponse.ok) {
-        setMessage({ type: 'error', text: driveData.error || 'Failed to save to Drive' });
-        setIsLoading(false);
-        return;
-      }
-  
-      // 2. ✅ ALSO Save to Redis (for per-org access)
-      const redisResponse = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sheetId: sheetIdToSave,
-          sheetName: sheetNameToSave
-        }),
-      });
-  
-      const redisData = await redisResponse.json();
-  
-      if (!redisResponse.ok) {
-        console.warn('Redis save failed:', redisData.error);
-        // Don't fail the whole operation if Redis fails
-      }
-  
-      // Success!
-      setMessage({ 
-        type: 'success', 
-        text: 'Configuration saved successfully! Please sign out and sign in again to refresh your session.'
-      });
-      
-      await loadConfig(); // Reload to show updated info
-    } catch (error) {
-      console.error('Save error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: 'An error occurred while saving configuration' 
-      });
-    } finally {
+  try {
+    const sheetIdToSave = id || sheetId;
+    const sheetNameToSave = name || sheetName;
+
+    // Save to Redis ONLY
+    const response = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sheetId: sheetIdToSave,
+        sheetName: sheetNameToSave
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage({ type: 'error', text: data.error || 'Failed to save configuration' });
       setIsLoading(false);
+      return;
     }
-  };
+
+    // Success!
+    setMessage({ 
+      type: 'success', 
+      text: 'Configuration saved successfully! Please sign out and sign in again to refresh your session.'
+    });
+    
+    await loadConfig(); // Reload to show updated info
+  } catch (error) {
+    console.error('Save error:', error);
+    setMessage({ 
+      type: 'error', 
+      text: 'An error occurred while saving configuration' 
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   
 
   const handleRefreshToken = async () => {
