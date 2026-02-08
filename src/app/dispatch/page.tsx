@@ -141,7 +141,7 @@ const demoDispatches: DispatchItem[] = [
 
 export default function DispatchPage() {
   const { data: session, status } = useSession();
-  const { isDemoMode, showDemoAlert } = useDemoMode();
+  const { isDemoMode } = useDemoMode();
   const [dispatches, setDispatches] = useState<DispatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDispatch, setSelectedDispatch] = useState<DispatchItem | null>(null);
