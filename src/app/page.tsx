@@ -22,13 +22,14 @@ import {
   CheckSquare,
   IndianRupee,
   Kanban,
+  PhoneCall, // NEW: For Leads icon
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
 
 // Demo stats
 const demoStats = {
-  leads: 12,
+  leads: 12, // NEW: Leads count
   enquiries: 8,
   surveys: 5,
   quotations: 4,
@@ -59,30 +60,46 @@ export default function DashboardPage() {
         setLoading(false);
         return;
       }
-    
+
       if (status === 'authenticated') {
         try {
-          console.log('🔍 [Dashboard] Fetching enquiries from API...');
-          const response = await fetch('/api/enquiries');
-          console.log('📡 [Dashboard] Response status:', response.status);
-          console.log('📡 [Dashboard] Response ok:', response.ok);
-          
-          if (response.ok) {
-            const enquiries = await response.json();
-            console.log('📊 [Dashboard] Raw response:', enquiries);
+          console.log('🔍 [Dashboard] Fetching data from API...');
+
+          // Fetch both leads and enquiries
+          const [leadsResponse, enquiriesResponse] = await Promise.all([
+            fetch('/api/leads'),
+            fetch('/api/enquiries')
+          ]);
+
+          console.log('📡 [Dashboard] Leads response:', leadsResponse.status);
+          console.log('📡 [Dashboard] Enquiries response:', enquiriesResponse.status);
+
+          let leads = [];
+          let enquiries = [];
+
+          // Get leads (don't fail if leads API doesn't work yet)
+          if (leadsResponse.ok) {
+            leads = await leadsResponse.json();
+            console.log('📊 [Dashboard] Total leads:', leads.length);
+          } else {
+            console.warn('⚠️ [Dashboard] Leads API not available yet');
+          }
+
+          // Get enquiries
+          if (enquiriesResponse.ok) {
+            enquiries = await enquiriesResponse.json();
             console.log('📊 [Dashboard] Total enquiries:', enquiries.length);
-            console.log('📊 [Dashboard] First enquiry:', enquiries[0]);
-            
-            if (enquiries.length === 0) {
-              console.warn('⚠️ [Dashboard] No enquiries returned - using demo data');
+
+            if (enquiries.length === 0 && leads.length === 0) {
+              console.warn('⚠️ [Dashboard] No data - using demo stats');
               setStats(demoStats);
               setLoading(false);
               return;
             }
-            
-            // Calculate real stats from enquiries
+
+            // Calculate real stats
             const realStats = {
-              leads: enquiries.filter((e: any) => e.status === 'lead').length,
+              leads: leads.length, // NEW: Count from LEADS tab
               enquiries: enquiries.filter((e: any) => 
                 e.status === 'new' || e.status === 'prospect' || e.status?.includes('pending')
               ).length,
@@ -106,12 +123,12 @@ export default function DashboardPage() {
                 sum + (parseFloat(e.estimatedCost) || 0), 0
               ),
             };
-            
+
             console.log('📈 [Dashboard] Calculated stats:', realStats);
             setStats(realStats);
           } else {
-            const errorText = await response.text();
-            console.error('❌ [Dashboard] API error:', response.status, errorText);
+            const errorText = await enquiriesResponse.text();
+            console.error('❌ [Dashboard] API error:', enquiriesResponse.status, errorText);
             console.log('🔄 [Dashboard] Falling back to demo data');
             setStats(demoStats);
           }
@@ -125,7 +142,6 @@ export default function DashboardPage() {
     };    
     fetchStats();
   }, [status]);
-  
 
   if (status === 'loading' || loading) {
     return <DashboardSkeleton />;
@@ -150,6 +166,14 @@ export default function DashboardPage() {
 
         {/* Key Metrics - Responsive Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          {/* NEW: Leads Metric Card */}
+          <MetricCard
+            title="New Leads"
+            value={stats.leads}
+            icon={PhoneCall}
+            color="blue"
+            href="/leads"
+          />
           <MetricCard
             title="Active Enquiries"
             value={stats.enquiries}
@@ -175,24 +199,26 @@ export default function DashboardPage() {
         {/* Workflow Pipeline */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">Installation Pipeline</h2>
-          
-          {/* First Row - Main Pipeline */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
-            <PipelineStage name="Enquiries" count={stats.enquiries} icon={FileText} color="blue" href="/enquiries" />
+
+          {/* First Row - Main Pipeline (with Leads) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 sm:gap-4">
+            {/* NEW: Leads stage */}
+            <PipelineStage name="Leads" count={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
+            <PipelineStage name="Enquiries" count={stats.enquiries} icon={FileText} color="indigo" href="/enquiries" />
             <PipelineStage name="Survey" count={stats.surveys} icon={ClipboardCheck} color="purple" href="/survey" />
-            <PipelineStage name="Quotation" count={stats.quotations} icon={FileCheck} color="indigo" href="/quotation" />
-            <PipelineStage name="Registration" count={stats.registrations} icon={Scale} color="pink" href="/registration" />
-            <PipelineStage name="Payment" count={stats.payments} icon={DollarSign} color="yellow" href="/payments" />
-            <PipelineStage name="Installation" count={stats.installations} icon={Wrench} color="orange" href="/installation" />
+            <PipelineStage name="Quotation" count={stats.quotations} icon={FileCheck} color="pink" href="/quotation" />
+            <PipelineStage name="Registration" count={stats.registrations} icon={Scale} color="yellow" href="/registration" />
+            <PipelineStage name="Payment" count={stats.payments} icon={DollarSign} color="orange" href="/payments" />
+            <PipelineStage name="Installation" count={stats.installations} icon={Wrench} color="teal" href="/installation" />
           </div>
 
           {/* Second Row - Post-Installation */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-3 sm:mt-4">
-            <PipelineStage name="BOM" count={stats.bom} icon={Package} color="teal" href="/bom" />
-            <PipelineStage name="Dispatch" count={stats.dispatch} icon={Truck} color="cyan" href="/dispatch" />
-            <PipelineStage name="Liaison" count={stats.liaison} icon={Scale} color="violet" href="/liaison" />
-            <PipelineStage name="WCR" count={stats.wcr} icon={CheckSquare} color="fuchsia" href="/wcr" />
-            <PipelineStage name="Subsidy" count={stats.subsidy} icon={IndianRupee} color="rose" href="/subsidy" />
+            <PipelineStage name="BOM" count={stats.bom} icon={Package} color="cyan" href="/bom" />
+            <PipelineStage name="Dispatch" count={stats.dispatch} icon={Truck} color="violet" href="/dispatch" />
+            <PipelineStage name="Liaison" count={stats.liaison} icon={Scale} color="fuchsia" href="/liaison" />
+            <PipelineStage name="WCR" count={stats.wcr} icon={CheckSquare} color="rose" href="/wcr" />
+            <PipelineStage name="Subsidy" count={stats.subsidy} icon={IndianRupee} color="pink" href="/subsidy" />
             <PipelineStage name="Active" count={stats.active} icon={Zap} color="green" href="/liaison" />
           </div>
         </div>
@@ -209,6 +235,14 @@ export default function DashboardPage() {
 
         {/* Quick Actions - Mobile Optimized */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* NEW: Add Lead quick action */}
+          <QuickActionCard
+            title="Add New Lead"
+            description="Capture new prospect"
+            icon={PhoneCall}
+            href="/leads"
+            color="blue"
+          />
           <QuickActionCard
             title="Create Enquiry"
             description="Convert lead to enquiry"
@@ -254,8 +288,8 @@ function DashboardSkeleton() {
         {/* Pipeline Skeleton */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 sm:mb-8">
           <div className="h-6 bg-gray-300 rounded w-1/3 mb-4"></div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="border-2 border-gray-200 rounded-lg p-4 h-24"></div>
             ))}
           </div>

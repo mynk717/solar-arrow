@@ -49,7 +49,7 @@ async function getSheets() {
   return google.sheets({ version: 'v4', auth });
 }
 /** Get Google Sheets API instance (alias for backward compatibility) */
-async function getGoogleSheetsClient() {
+export async function getGoogleSheetsClient() {
   return await getSheets();
 }
 
@@ -679,5 +679,436 @@ export async function notifyBOMMarkedAsDelivered(
   } catch (error) {
     console.error('Error sending BOM delivery notification:', error);
     // Don't throw - notifications are non-critical
+  }
+}
+
+export async function fetchLeads(): Promise<any[]> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    // Fetch from LEADS tab (adjust columns based on your LEADS tab structure)
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'LEADS!A2:Z10000',
+    });
+
+    const rows = response.data.values || [];
+
+    return rows
+      .map((row) => rowToLead(row))
+      .filter((lead) => lead !== null);
+  } catch (error: any) {
+    console.error('Error fetching leads:', error);
+    throw new Error(`Failed to fetch leads: ${error.message}`);
+  }
+}
+
+/**
+ * Convert row array to Lead object (matches your Lead interface)
+ */
+function rowToLead(row: any[]): any | null {
+  if (!row || row.length < 7) return null;
+
+  const [
+    id,
+    customerName,
+    phone,
+    email,
+    address,
+    area,
+    capacity,
+    status,
+    source,
+    providerId,
+    providerName,
+    assignedTo,
+    assignedToName,
+    assignedDate,
+    firstContactDate,
+    lastContactDate,
+    contactAttempts,
+    qualified,
+    qualifiedDate,
+    qualifiedBy,
+    converted,
+    convertedDate,
+    convertedBy,
+    enquiryId,
+    estimatedBudget,
+    urgency,
+    timeline,
+    lostReason,
+    lostDate,
+    nextFollowUpDate,
+    callbackScheduled,
+    priority,
+    tags,
+    notes,
+    createdAt,
+    updatedAt,
+    createdBy,
+    lastActivityBy,
+    lastActivityDate,
+  ] = row;
+
+  return {
+    id: id || '',
+    customerName: customerName || '',
+    phone: phone || '',
+    email: email || '',
+    address: address || '',
+    area: area || '',
+    capacity: capacity || '',
+    status: status || 'new',
+    source: source || '',
+    providerId: providerId || '',
+    providerName: providerName || '',
+    assignedTo: assignedTo || '',
+    assignedToName: assignedToName || '',
+    assignedDate: assignedDate ? new Date(assignedDate) : undefined,
+    firstContactDate: firstContactDate ? new Date(firstContactDate) : undefined,
+    lastContactDate: lastContactDate ? new Date(lastContactDate) : undefined,
+    contactAttempts: parseInt(contactAttempts) || 0,
+    qualified: qualified === 'TRUE',
+    qualifiedDate: qualifiedDate ? new Date(qualifiedDate) : undefined,
+    qualifiedBy: qualifiedBy || '',
+    converted: converted === 'TRUE',
+    convertedDate: convertedDate ? new Date(convertedDate) : undefined,
+    convertedBy: convertedBy || '',
+    enquiryId: enquiryId || '',
+    estimatedBudget: estimatedBudget ? parseFloat(estimatedBudget) : undefined,
+    urgency: urgency || 'medium',
+    timeline: timeline || '',
+    lostReason: lostReason || '',
+    lostDate: lostDate ? new Date(lostDate) : undefined,
+    nextFollowUpDate: nextFollowUpDate ? new Date(nextFollowUpDate) : undefined,
+    callbackScheduled: callbackScheduled === 'TRUE',
+    priority: priority || 'medium',
+    tags: tags ? tags.split(',') : [],
+    notes: notes || '',
+    createdAt: createdAt ? new Date(createdAt) : new Date(),
+    updatedAt: updatedAt ? new Date(updatedAt) : new Date(),
+    createdBy: createdBy || '',
+    lastActivityBy: lastActivityBy || '',
+    lastActivityDate: lastActivityDate ? new Date(lastActivityDate) : undefined,
+  };
+}
+
+/**
+ * Convert Lead object to row array
+ */
+function leadToRow(lead: any): any[] {
+  return [
+    lead.id || '',
+    lead.customerName || '',
+    lead.phone || '',
+    lead.email || '',
+    lead.address || '',
+    lead.area || '',
+    lead.capacity || '',
+    lead.status || 'new',
+    lead.source || '',
+    lead.providerId || '',
+    lead.providerName || '',
+    lead.assignedTo || '',
+    lead.assignedToName || '',
+    lead.assignedDate?.toISOString().split('T')[0] || '',
+    lead.firstContactDate?.toISOString().split('T')[0] || '',
+    lead.lastContactDate?.toISOString().split('T')[0] || '',
+    lead.contactAttempts || 0,
+    lead.qualified ? 'TRUE' : 'FALSE',
+    lead.qualifiedDate?.toISOString().split('T')[0] || '',
+    lead.qualifiedBy || '',
+    lead.converted ? 'TRUE' : 'FALSE',
+    lead.convertedDate?.toISOString().split('T')[0] || '',
+    lead.convertedBy || '',
+    lead.enquiryId || '',
+    lead.estimatedBudget || '',
+    lead.urgency || 'medium',
+    lead.timeline || '',
+    lead.lostReason || '',
+    lead.lostDate?.toISOString().split('T')[0] || '',
+    lead.nextFollowUpDate?.toISOString().split('T')[0] || '',
+    lead.callbackScheduled ? 'TRUE' : 'FALSE',
+    lead.priority || 'medium',
+    Array.isArray(lead.tags) ? lead.tags.join(',') : (lead.tags || ''),
+    lead.notes || '',
+    lead.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+    lead.updatedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+    lead.createdBy || '',
+    lead.lastActivityBy || '',
+    lead.lastActivityDate?.toISOString().split('T')[0] || '',
+  ];
+}
+
+/**
+ * Create a new lead in LEADS tab
+ */
+export async function createLead(leadData: any, createdBy: string): Promise<any> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    // Generate lead ID
+    const timestamp = Date.now();
+    const leadId = `LEAD-${timestamp.toString().slice(-6)}`;
+
+    const newLead = {
+      id: leadId,
+      ...leadData,
+      contactAttempts: 0,
+      qualified: false,
+      converted: false,
+      callbackScheduled: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: createdBy,
+    };
+
+    const row = leadToRow(newLead);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'LEADS!A:AN', // Adjust to your column count
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [row],
+      },
+    });
+
+    // Log activity
+    await logActivity({
+      entityType: 'lead',
+      entityId: leadId,
+      action: 'created',
+      performedBy: createdBy,
+      details: `Lead created: ${leadData.customerName}`,
+    });
+
+    return newLead;
+  } catch (error: any) {
+    console.error('Error creating lead:', error);
+    throw new Error(`Failed to create lead: ${error.message}`);
+  }
+}
+
+/**
+ * Update an existing lead in LEADS tab
+ */
+export async function updateLead(
+  leadId: string,
+  updates: any,
+  updatedBy: string
+): Promise<any> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    // Find lead row
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'LEADS!A2:AN10000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex((row) => row[0] === leadId);
+
+    if (rowIndex === -1) {
+      throw new Error('Lead not found');
+    }
+
+    // Get existing lead
+    const existingLead = rowToLead(rows[rowIndex]);
+
+    // Merge updates
+    const updatedLead = {
+      ...existingLead,
+      ...updates,
+      updatedAt: new Date(),
+      lastActivityBy: updatedBy,
+      lastActivityDate: new Date(),
+    };
+
+    const updatedRow = leadToRow(updatedLead);
+
+    // Update the row (rowIndex + 2 because: 1 for header, 1 for 0-based index)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `LEADS!A${rowIndex + 2}:AN${rowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [updatedRow],
+      },
+    });
+
+    // Log activity
+    await logActivity({
+      entityType: 'lead',
+      entityId: leadId,
+      action: 'updated',
+      performedBy: updatedBy,
+      details: `Lead updated: ${Object.keys(updates).join(', ')}`,
+    });
+
+    return updatedLead;
+  } catch (error: any) {
+    console.error('Error updating lead:', error);
+    throw new Error(`Failed to update lead: ${error.message}`);
+  }
+}
+
+/**
+ * Convert lead to enquiry (move from LEADS to ENQUIRIES tab)
+ */
+export async function convertLeadToEnquiry(
+  leadId: string,
+  enquiryData: any,
+  convertedBy: string
+): Promise<any> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    // 1. Get lead data
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'LEADS!A2:AN10000',
+    });
+
+    const rows = response.data.values || [];
+    const leadRow = rows.find((row) => row[0] === leadId);
+
+    if (!leadRow) {
+      throw new Error('Lead not found');
+    }
+
+    const lead = rowToLead(leadRow);
+
+    // 2. Create enquiry with lead data + additional enquiry data
+    const timestamp = Date.now();
+    const enquiryId = `ENQ-${timestamp.toString().slice(-6)}`;
+
+    const newEnquiry = {
+      id: enquiryId,
+      customerName: lead.customerName,
+      phone: lead.phone,
+      email: lead.email,
+      address: lead.address,
+      area: lead.area,
+      capacity: parseFloat(lead.capacity) || 3,
+      status: 'new',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      panelTag: enquiryData.panelTag || 'RTS',
+      leadSource: lead.source,
+      leadNotes: lead.notes,
+      leadAssignedTo: lead.assignedTo,
+      leadStatus: 'converted',
+      leadConvertedDate: new Date().toISOString().split('T')[0],
+      paymentType: enquiryData.paymentType || 'Direct',
+      lastEditedBy: convertedBy,
+      ...enquiryData,
+    };
+
+    // 3. Add to ENQUIRIES tab
+    const enquiryRow = enquiryToRow(newEnquiry);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'ENQUIRIES!A:DR',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [enquiryRow],
+      },
+    });
+
+    // 4. Update lead status to 'converted' in LEADS tab
+    await updateLead(
+      leadId,
+      {
+        status: 'converted',
+        converted: true,
+        convertedDate: new Date(),
+        convertedBy: convertedBy,
+        enquiryId: enquiryId,
+      },
+      convertedBy
+    );
+
+    // 5. Log activity
+    await logActivity({
+      entityType: 'lead',
+      entityId: leadId,
+      action: 'converted',
+      performedBy: convertedBy,
+      details: `Lead converted to enquiry ${enquiryId}`,
+    });
+
+    return newEnquiry;
+  } catch (error: any) {
+    console.error('Error converting lead:', error);
+    throw new Error(`Failed to convert lead: ${error.message}`);
+  }
+}
+
+/**
+ * Log lead activity to ACTIVITY_LOG tab
+ */
+export async function logLeadActivity(leadId: string, activity: any): Promise<void> {
+  try {
+    await logActivity({
+      entityType: 'lead',
+      entityId: leadId,
+      action: activity.activityType,
+      performedBy: activity.performedBy,
+      details: activity.notes || '',
+      metadata: JSON.stringify({
+        outcome: activity.outcome,
+        timestamp: activity.timestamp,
+      }),
+    });
+  } catch (error) {
+    console.error('Error logging lead activity:', error);
+    // Don't throw - activity logging should not block main operations
+  }
+}
+
+/**
+ * Generic activity logger for ACTIVITY_LOG tab
+ */
+async function logActivity(activity: {
+  entityType: string;
+  entityId: string;
+  action: string;
+  performedBy: string;
+  details: string;
+  metadata?: string;
+}): Promise<void> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    const row = [
+      new Date().toISOString(),
+      activity.entityType,
+      activity.entityId,
+      activity.action,
+      activity.performedBy,
+      activity.details,
+      activity.metadata || '',
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'ACTIVITY_LOG!A:G',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [row],
+      },
+    });
+  } catch (error) {
+    console.error('Error logging activity:', error);
+    // Silent fail - don't block main operation
   }
 }

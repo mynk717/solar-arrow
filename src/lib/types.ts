@@ -4,6 +4,154 @@
 // USER & AUTH TYPES
 // ============================================
 
+// ============================================
+// LEAD TYPES (extends existing Enquiry)
+// ============================================
+
+export type LeadStatus = 
+  | 'new'              // Just received
+  | 'assigned'         // Assigned to telecaller
+  | 'contacted'        // First contact made
+  | 'callback'         // Scheduled callback
+  | 'qualified'        // Hot lead - ready for sales
+  | 'converted'        // Converted to enquiry
+  | 'lost'            // Lost/rejected
+  | 'nurture';        // Long-term follow-up
+
+export type LeadSource = 
+  | 'website'
+  | 'referral'
+  | 'lead-provider'
+  | 'walk-in'
+  | 'social-media'
+  | 'advertisement'
+  | 'cold-call'
+  | 'other';
+
+export type CallOutcome = 
+  | 'interested'
+  | 'not-interested'
+  | 'callback'
+  | 'no-answer'
+  | 'wrong-number'
+  | 'not-reachable';
+
+export interface Lead {
+  // Core Fields (compatible with Enquiry)
+  id: string;
+  customerName: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  area?: string;
+  capacity?: string; // "3kW", "5kW", "10kW" - will convert to number in Enquiry
+
+  // Lead-specific fields
+  status: LeadStatus;
+  source: LeadSource;
+  providerId?: string;
+  providerName?: string;
+
+  // Assignment & Contact
+  assignedTo?: string;        // Email of telecaller/sales
+  assignedToName?: string;
+  assignedDate?: Date;
+  firstContactDate?: Date;
+  lastContactDate?: Date;
+  contactAttempts: number;
+
+  // Qualification
+  qualified: boolean;
+  qualifiedDate?: Date;
+  qualifiedBy?: string;
+
+  // Conversion
+  converted: boolean;
+  convertedDate?: Date;
+  convertedBy?: string;
+  enquiryId?: string;         // Link to Enquiry after conversion
+
+  // Budget & Interest
+  estimatedBudget?: number;
+  urgency?: 'low' | 'medium' | 'high';
+  timeline?: string;          // "1 month", "3 months", etc.
+
+  // Lost tracking
+  lostReason?: string;
+  lostDate?: Date;
+
+  // Follow-up
+  nextFollowUpDate?: Date;
+  callbackScheduled?: boolean;
+
+  // Metadata
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+  lastActivityBy?: string;
+  lastActivityDate?: Date;
+}
+
+export interface LeadActivity {
+  id: string;
+  leadId: string;
+  timestamp: Date;
+
+  // User info
+  userId: string;
+  userName: string;
+  userRole: string;
+  department: 'telecaller' | 'sales' | 'survey' | 'registration' | 'admin';
+
+  // Activity details
+  action: 'created' | 'assigned' | 'contacted' | 'qualified' | 'converted' | 'note-added' | 'status-changed' | 'lost';
+  fromStatus?: LeadStatus;
+  toStatus?: LeadStatus;
+
+  // Call details
+  callOutcome?: CallOutcome;
+  callDuration?: number;      // in seconds
+  callNotes?: string;
+
+  // Next action
+  nextAction?: string;
+  nextActionDate?: Date;
+
+  // Metadata
+  metadata?: {
+    enquiryId?: string;       // When converted
+    quotationId?: string;
+    registrationId?: string;
+    lostReason?: string;
+  };
+}
+
+// Lead funnel metrics
+export interface LeadFunnelMetrics {
+  totalLeads: number;
+  newLeads: number;
+  assigned: number;
+  contacted: number;
+  qualified: number;
+  converted: number;
+  lost: number;
+
+  // Conversion rates
+  contactRate: number;        // contacted / assigned
+  qualificationRate: number;  // qualified / contacted
+  conversionRate: number;     // converted / qualified
+  overallConversion: number;  // converted / total
+
+  // Time metrics
+  avgTimeToContact: number;   // hours
+  avgTimeToQualify: number;   // days
+  avgTimeToConvert: number;   // days
+}
+
+
 export type UserRole = 'admin' | 'sales' | 'survey' | 'registration' | 'payment' | 'quotation' | 'liaison' | 'bom' | 'dispatch' | 'installation' | 'wcr' | 'subsidy';
 
 // ============================================
