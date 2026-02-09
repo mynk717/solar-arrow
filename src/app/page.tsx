@@ -150,7 +150,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <DemoBanner />
-      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pt-20 sm:pt-6 lg:pt-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">

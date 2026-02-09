@@ -29,7 +29,8 @@ import { useState, useEffect } from 'react';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Kanban', href: '/kanban', icon: Kanban },
-  { name: 'Enquiries', href: '/enquiries', icon: FileText },
+  { name: 'Leads', href: '/leads', icon: Users },
+  { name: 'ConEnq', href: '/enquiries', icon: FileText },
   { name: 'Survey', href: '/survey', icon: ClipboardCheck },
   { name: 'Quotation', href: '/quotation', icon: FileCheck },
   { name: 'Registration', href: '/registration', icon: Scale },
@@ -48,10 +49,41 @@ export default function Sidebar() {
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const controlHeader = () => {
+      if (typeof window !== 'undefined') {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY < 10) {
+          // Always show at top
+          setShowHeader(true);
+        } else if (currentScrollY > lastScrollY) {
+          // Scrolling down - hide
+          setShowHeader(false);
+        } else {
+          // Scrolling up - show
+          setShowHeader(true);
+        }
+        
+        setLastScrollY(currentScrollY);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scroll', controlHeader);
+      return () => {
+        window.removeEventListener('scroll', controlHeader);
+      };
+    }
+  }, [lastScrollY]);
 
   // Prevent scroll when mobile menu is open
   useEffect(() => {
@@ -72,8 +104,13 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Header - Fixed Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50 shadow-sm">
+      {/* Mobile Header - Fixed Top Bar with scroll hide/show */}
+<div className={`
+  lg:hidden fixed left-0 right-0 bg-white border-b border-gray-200 
+  px-4 py-3 flex items-center justify-between z-50 shadow-sm
+  transition-transform duration-300 ease-in-out
+  ${showHeader ? 'top-0 translate-y-0' : '-top-20 -translate-y-full'}
+`}>
         {/* Logo/Title on Left */}
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -241,7 +278,8 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-blue-900/50 backdrop-blur border-t border-blue-500/30">
+        {/* Footer */}
+<div className="p-6 bg-blue-900/50 backdrop-blur border-t border-blue-500/30 mb-20 lg:mb-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-blue-200">© 2026 Solar Arrow</p>
