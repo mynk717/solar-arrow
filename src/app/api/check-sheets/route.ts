@@ -1,34 +1,31 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { redis } from '@/lib/redis';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ 
-        error: 'Not authenticated. Please login first.',
-        debug: 'No session found'
+        error: 'Not authenticated. Please login first.'
       }, { status: 401 });
     }
 
-    // Get access token from Redis
-    const accessToken = await redis.get(`token:${session.user.email}:access`);
-    const sheetId = session.googleSheetId || await redis.get(`user:${session.user.email}:sheetId`);
+    // Use access token directly from session
+    const accessToken = session.accessToken;
+    const sheetId = session.googleSheetId;
 
     if (!accessToken) {
       return NextResponse.json({ 
-        error: 'No access token found. Please re-login.',
-        debug: 'Token missing in Redis'
+        error: 'No access token in session. Please re-login.',
+        hint: 'Try logging out and logging in again'
       }, { status: 401 });
     }
 
     if (!sheetId) {
       return NextResponse.json({ 
-        error: 'No Google Sheet configured. Please complete onboarding.',
-        debug: 'Sheet ID missing'
+        error: 'No Google Sheet configured. Please complete onboarding.'
       }, { status: 400 });
     }
 
@@ -44,7 +41,8 @@ export async function GET(request: Request) {
       const errorText = await response.text();
       return NextResponse.json({ 
         error: 'Failed to fetch sheet data',
-        debug: errorText
+        details: errorText,
+        hint: 'Token might be expired. Try re-login.'
       }, { status: response.status });
     }
 
