@@ -18,13 +18,24 @@ export async function GET() {
     // Get access token from session
     const accessToken = session.accessToken;
     
-    // Get sheet ID from Redis (where it's actually stored)
-    const sheetId = await redis.get(`user:${email}:sheetId`) as string;
+    // Get user info to find userId
+    const userInfo = await redis.get(`user:${email}:info`) as any;
+    
+    if (!userInfo || !userInfo.id) {
+      return NextResponse.json({ 
+        error: 'User info not found in Redis',
+        debug: { email, checkedKey: `user:${email}:info` }
+      }, { status: 400 });
+    }
+
+    const userId = userInfo.id;
+    
+    // Get sheet ID from Redis using the correct key pattern
+    const sheetId = await redis.get(`user:${userId}:activeSheet`) as string;
 
     if (!accessToken) {
       return NextResponse.json({ 
-        error: 'No access token in session. Please re-login.',
-        hint: 'Try logging out and logging in again'
+        error: 'No access token in session. Please re-login.'
       }, { status: 401 });
     }
 
@@ -32,8 +43,9 @@ export async function GET() {
       return NextResponse.json({ 
         error: 'No Google Sheet configured. Please complete onboarding.',
         debug: {
-          email: email,
-          checkedKey: `user:${email}:sheetId`
+          email,
+          userId,
+          checkedKey: `user:${userId}:activeSheet`
         }
       }, { status: 400 });
     }
