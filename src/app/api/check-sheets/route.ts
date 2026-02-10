@@ -1,26 +1,38 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { getValidAccessToken } from '@/lib/tokenRefresh';
+import { redis } from '@/lib/redis';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.userId || !session?.googleSheetId) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ 
+        error: 'Not authenticated. Please login first.',
+        debug: 'No session found'
+      }, { status: 401 });
     }
 
-    const accessToken = await getValidAccessToken(
-      session.userId,
-      session.refreshToken || ''
-    );
-    const sheetId = session.googleSheetId;
+    // Get access token from Redis
+    const accessToken = await redis.get(`token:${session.user.email}:access`);
+    const sheetId = session.googleSheetId || await redis.get(`user:${session.user.email}:sheetId`);
 
     if (!accessToken) {
-      return NextResponse.json({ error: 'No access token' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'No access token found. Please re-login.',
+        debug: 'Token missing in Redis'
+      }, { status: 401 });
     }
 
+    if (!sheetId) {
+      return NextResponse.json({ 
+        error: 'No Google Sheet configured. Please complete onboarding.',
+        debug: 'Sheet ID missing'
+      }, { status: 400 });
+    }
+
+    // Fetch sheet metadata
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`,
       {
@@ -30,7 +42,10 @@ export async function GET() {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Failed to fetch sheet metadata: ${errorText}`);
+      return NextResponse.json({ 
+        error: 'Failed to fetch sheet data',
+        debug: errorText
+      }, { status: response.status });
     }
 
     const data = await response.json();
@@ -56,10 +71,9 @@ export async function GET() {
       missingTabs: requiredTabs.filter(tab => !tabNames.includes(tab)),
     });
   } catch (error: any) {
-    console.error('Error checking sheets:', error);
     return NextResponse.json({ 
       success: false,
-      error: error.message 
+      error: error.message
     }, { status: 500 });
   }
 }
