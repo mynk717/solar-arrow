@@ -1112,3 +1112,79 @@ async function logActivity(activity: {
     // Silent fail - don't block main operation
   }
 }
+
+export async function fetchUsers(accessToken: string, sheetId: string) {
+  try {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/USERS!A2:M1000`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    const data = await response.json();
+    const rows = data.values || [];
+
+    return rows.map((row: string[]) => ({
+      id: row[0] || '',
+      email: row[1] || '',
+      name: row[2] || '',
+      role: row[3] || 'sales',
+      accountType: row[4] || 'user',
+      organizationId: row[5] || '',
+      branchId: row[6] || null,
+      branchName: row[7] || null,
+      canView: row[8] ? row[8].split(',') : [],
+      canEdit: row[9] ? row[9].split(',') : [],
+      canDelete: row[10] === 'true',
+      isActive: row[11] !== 'false',
+      createdAt: row[12] || new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return [];
+  }
+}
+
+// Fetch all branches from BRANCHES tab
+export async function fetchBranches(accessToken: string, sheetId: string) {
+  try {
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/BRANCHES!A2:F1000`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch branches');
+    }
+
+    const data = await response.json();
+    const rows = data.values || [];
+
+    return rows.map((row: string[]) => ({
+      id: row[0] || '',
+      name: row[1] || '',
+      city: row[2] || '',
+      state: row[3] || '',
+      address: row[4] || '',
+      isActive: row[5] !== 'false',
+    }));
+  } catch (error) {
+    console.error('Error fetching branches:', error);
+    return [];
+  }
+}
+
+// Filter enquiries by branch (if branchId is provided)
+export function filterEnquiriesByBranch(enquiries: Enquiry[], branchId?: string) {
+  if (!branchId) {
+    return enquiries; // No branch filter
+  }
+  return enquiries.filter(e => e.branchId === branchId);
+}

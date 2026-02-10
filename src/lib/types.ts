@@ -226,6 +226,9 @@ export interface Enquiry {
   updatedAt: Date;
   panelTag?: PanelTag;
 
+  branchId?: string;
+  branchName?: string;
+
   // Lead Tracking (7 fields)
   leadSource?: string;
   leadNotes?: string;
@@ -585,4 +588,37 @@ export interface Followup {
   outcome?: 'Interested' | 'Not Interested' | 'Converted' | 'Callback Later';
   nextFollowupDate?: Date;
   status: 'pending' | 'completed';
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  address?: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+export interface UserPermissions {
+  canView: string[];    // Array of page paths: ['/leads', '/survey', etc.]
+  canEdit: string[];    // Array of page paths user can edit
+  canDelete: string[];  // Array of page paths user can delete
+  canExport: boolean;
+  canImport: boolean;
+}
+
+export interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  accountType: 'owner' | 'admin' | 'user';
+  organizationId: string;
+  branchId?: string;  // Optional branch assignment
+  branchName?: string;
+  permissions: UserPermissions;
+  isActive: boolean;
+  createdAt: Date;
+  createdBy: string;
 }

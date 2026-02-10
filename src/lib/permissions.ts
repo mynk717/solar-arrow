@@ -1,0 +1,118 @@
+// src/lib/permissions.ts - COMPLETE FILE WITH TYPE ASSERTIONS
+
+import { UserRole } from './types';
+
+export interface Permission {
+  canView: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canExport: boolean;
+}
+
+// ✅ Export AccountType
+export type AccountType = 'owner' | 'admin' | 'user';
+
+// Owner and Admin have full access to everything
+export const OWNER_ADMIN_PERMISSIONS: Permission = {
+  canView: true,
+  canEdit: true,
+  canDelete: true,
+  canExport: true,
+};
+
+// Define role-based page access
+export const ROLE_PAGE_ACCESS: Record<UserRole, string[]> = {
+  admin: ['*'], // All pages
+  sales: ['/leads', '/prospects', '/enquiries', '/kanban', '/dashboard'],
+  survey: ['/survey', '/enquiries', '/kanban', '/dashboard'],
+  registration: ['/registration', '/enquiries', '/kanban', '/dashboard'],
+  payment: ['/payments', '/subsidy', '/enquiries', '/kanban', '/dashboard'],
+  quotation: ['/quotation', '/enquiries', '/kanban', '/dashboard'],
+  liaison: ['/liaison', '/enquiries', '/kanban', '/dashboard'],
+  bom: ['/bom', '/enquiries', '/kanban', '/dashboard'],
+  dispatch: ['/dispatch', '/enquiries', '/kanban', '/dashboard'],
+  installation: ['/installation', '/enquiries', '/kanban', '/dashboard'],
+  wcr: ['/wcr', '/enquiries', '/kanban', '/dashboard'],
+  subsidy: ['/subsidy', '/payments', '/enquiries', '/kanban', '/dashboard'],
+};
+
+// Define role-based edit permissions
+export const ROLE_EDIT_PERMISSIONS: Record<UserRole, string[]> = {
+  admin: ['*'],
+  sales: ['/leads', '/prospects'],
+  survey: ['/survey'],
+  registration: ['/registration'],
+  payment: ['/payments'],
+  quotation: ['/quotation'],
+  liaison: ['/liaison'],
+  bom: ['/bom'],
+  dispatch: ['/dispatch'],
+  installation: ['/installation'],
+  wcr: ['/wcr'],
+  subsidy: ['/subsidy'],
+};
+
+export function getUserPermissions(
+  accountType: AccountType,
+  role: UserRole,
+  currentPath: string
+): Permission {
+  // ✅ Use type assertion to fix TypeScript error
+  const isOwner = (accountType as string) === 'owner';
+  const isAdmin = (accountType as string) === 'admin';
+  
+  // Owner and Admin have full permissions everywhere
+  if (isOwner || isAdmin) {
+    return OWNER_ADMIN_PERMISSIONS;
+  }
+
+  // Regular users have limited permissions
+  const allowedPages = ROLE_PAGE_ACCESS[role] || [];
+  const editablePages = ROLE_EDIT_PERMISSIONS[role] || [];
+
+  const canView = allowedPages.includes('*') || allowedPages.some(page => currentPath.startsWith(page));
+  const canEdit = editablePages.includes('*') || editablePages.some(page => currentPath.startsWith(page));
+
+  return {
+    canView,
+    canEdit,
+    canDelete: isOwner || isAdmin,
+    canExport: canView,
+  };
+}
+
+// Check if user can access a specific page
+export function canAccessPage(
+  accountType: AccountType,
+  role: UserRole,
+  pagePath: string
+): boolean {
+  // ✅ Use type assertion to fix TypeScript error
+  const isOwner = (accountType as string) === 'owner';
+  const isAdmin = (accountType as string) === 'admin';
+  
+  if (isOwner || isAdmin) {
+    return true;
+  }
+
+  const allowedPages = ROLE_PAGE_ACCESS[role] || [];
+  return allowedPages.includes('*') || allowedPages.some(page => pagePath.startsWith(page));
+}
+
+// Check if user can edit on a specific page
+export function canEditPage(
+  accountType: AccountType,
+  role: UserRole,
+  pagePath: string
+): boolean {
+  // ✅ Use type assertion to fix TypeScript error
+  const isOwner = (accountType as string) === 'owner';
+  const isAdmin = (accountType as string) === 'admin';
+  
+  if (isOwner || isAdmin) {
+    return true;
+  }
+
+  const editablePages = ROLE_EDIT_PERMISSIONS[role] || [];
+  return editablePages.includes('*') || editablePages.some(page => pagePath.startsWith(page));
+}

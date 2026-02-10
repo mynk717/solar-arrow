@@ -1,8 +1,9 @@
-// src/middleware.ts
+// src/middleware.ts - UPDATED with proper type casting
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import type { UserRole } from './lib/types';
+import { canAccessPage, type AccountType } from './lib/permissions';
 
 // Public routes that work in demo mode
 const publicRoutes = [
@@ -29,9 +30,22 @@ const publicRoutes = [
   '/terms'
 ];
 
+// Admin-only routes
+const adminOnlyRoutes = [
+  '/admin',
+  '/admin/users',
+  '/admin/roles',
+  '/admin/branches',
+];
+
 // Check if route is public
 function isPublicRoute(path: string): boolean {
   return publicRoutes.some(route => path === route || path.startsWith(route + '/'));
+}
+
+// Check if route is admin-only
+function isAdminOnlyRoute(path: string): boolean {
+  return adminOnlyRoutes.some(route => path.startsWith(route));
 }
 
 export default withAuth(
@@ -44,35 +58,25 @@ export default withAuth(
       return NextResponse.next();
     }
     
-    const userRole = token?.role as UserRole;
-    const accountType = token?.accountType as string;
+    const userRole = (token?.role as UserRole) || 'sales';
+    // ✅ FIXED: Proper type casting with fallback
+    const accountType = (token?.accountType as AccountType) || 'user';
     
-    // ✅ Admin/Owner has access to ALL pages by default
-    if (accountType === 'admin' || userRole === 'admin' || token?.role === 'owner') {
+    // ✅ Check admin-only routes first
+    if (isAdminOnlyRoute(path)) {
+      if (accountType === 'owner' || accountType === 'admin' || userRole === 'admin') {
+        return NextResponse.next();
+      }
+      return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
+    
+    // ✅ Owner/Admin has access to ALL pages
+    if (accountType === 'owner' || accountType === 'admin' || userRole === 'admin') {
       return NextResponse.next();
     }
     
-    // Role-based access control for regular users
-    const roleRoutes: Record<UserRole, string[]> = {
-      admin: ['*'],
-      sales: ['/prospects', '/leads', '/kanban'],
-      survey: ['/survey', '/enquiries', '/kanban'],
-      registration: ['/registration', '/kanban'],
-      payment: ['/payments', '/subsidy', '/kanban'],
-      quotation: ['/quotation', '/kanban'],
-      liaison: ['/liaison', '/kanban'],
-      bom: ['/bom', '/kanban'],
-      dispatch: ['/dispatch', '/kanban'],
-      installation: ['/installation', '/kanban'],
-      wcr: ['/wcr', '/kanban'],
-      subsidy: ['/subsidy', '/payments', '/kanban']
-    };
-    
-    // Check if user has access to the current route
-    const allowedRoutes = roleRoutes[userRole] || [];
-    const hasAccess = allowedRoutes.some(route => 
-      route === '*' || path.startsWith(route)
-    );
+    // ✅ Use centralized permission system for regular users
+    const hasAccess = canAccessPage(accountType, userRole, path);
     
     if (!hasAccess) {
       return NextResponse.redirect(new URL('/unauthorized', req.url));
@@ -93,7 +97,6 @@ export default withAuth(
     }
   }
 );
-
 
 export const config = {
   matcher: [

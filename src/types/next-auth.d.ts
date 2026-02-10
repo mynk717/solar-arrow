@@ -25,8 +25,12 @@ declare module 'next-auth' {
       organizationName?: string;  // ADD THIS
       sheetId?: string;
       googleEmail?: string;
-      accountType?: 'admin' | 'user';  // ADD THIS
-      permissions?: any;  // ADD THIS
+      accountType?: 'owner' |'admin' | 'user';  // ADD THIS
+      permissions?: any;  
+
+      branchId?: string;
+      branchName?: string;
+      branchCity?: string;
     };
   }
 
@@ -45,10 +49,14 @@ declare module 'next-auth' {
     organizationName?: string;
     sheetId?: string;
     googleEmail?: string;
-    accountType?: 'admin' | 'user';  // ADD THIS
+    accountType?: 'owner' |'admin' | 'user';  // ADD THIS
     permissions?: any;  // ADD THIS
     accessToken?: string;  // ADD THIS
     refreshToken?: string;  // ADD THIS
+
+    branchId?: string;
+    branchName?: string;
+    branchCity?: string;
   }
 }
 
@@ -71,7 +79,11 @@ declare module 'next-auth/jwt' {
     organizationName?: string;  // ADD THIS
     sheetId?: string;
     googleEmail?: string;
-    accountType?: 'admin' | 'user';  // ADD THIS
+    accountType?: 'owner' |'admin' | 'user';  // ADD THIS
     permissions?: any;  // ADD THIS
+
+    branchId?: string;
+    branchName?: string;
+    branchCity?: string;
   }
 }
