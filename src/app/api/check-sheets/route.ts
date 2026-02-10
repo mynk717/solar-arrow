@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { redis } from '@/lib/redis';
-import { getUserByEmail } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -10,7 +9,7 @@ export async function GET() {
     
     if (!session?.user?.email) {
       return NextResponse.json({ 
-        error: 'Not authenticated. Please login first.'
+        error: 'Not authenticated'
       }, { status: 401 });
     }
 
@@ -19,33 +18,30 @@ export async function GET() {
     
     if (!accessToken) {
       return NextResponse.json({ 
-        error: 'No access token in session. Please re-login.'
+        error: 'No access token in session'
       }, { status: 401 });
     }
 
-    // Get user info using the correct helper function
-    const userInfo = await getUserByEmail(email) as any;
+    // The session must have userId - let's check multiple places
+    const userId = session.userId || session.user?.id;
     
-    if (!userInfo || !userInfo.id) {
+    if (!userId) {
       return NextResponse.json({ 
-        error: 'User not found in database.',
+        error: 'No userId in session',
         debug: { 
-          email,
-          hint: 'User might not be registered. Check if user exists in Redis.'
+          sessionKeys: Object.keys(session),
+          userKeys: Object.keys(session.user || {})
         }
       }, { status: 400 });
     }
 
-    const userId = userInfo.id;
-    
-    // Get sheet ID using userId
+    // Get sheet ID
     const sheetId = await redis.get(`user:${userId}:activeSheet`) as string;
 
     if (!sheetId) {
       return NextResponse.json({ 
-        error: 'No Google Sheet configured. Please complete onboarding.',
+        error: 'No sheet configured',
         debug: {
-          email,
           userId,
           checkedKey: `user:${userId}:activeSheet`
         }
@@ -63,9 +59,8 @@ export async function GET() {
     if (!response.ok) {
       const errorText = await response.text();
       return NextResponse.json({ 
-        error: 'Failed to fetch sheet data',
-        details: errorText,
-        hint: 'Token might be expired. Try re-login.'
+        error: 'Failed to fetch sheet',
+        details: errorText
       }, { status: response.status });
     }
 
