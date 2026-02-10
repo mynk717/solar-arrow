@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { redis } from '@/lib/redis';
+import { getUserByEmail } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -14,30 +15,31 @@ export async function GET() {
     }
 
     const email = session.user.email;
-
-    // Get access token from session
     const accessToken = session.accessToken;
     
-    // Get user info to find userId
-    const userInfo = await redis.get(`user:${email}:info`) as any;
-    
-    if (!userInfo || !userInfo.id) {
-      return NextResponse.json({ 
-        error: 'User info not found in Redis',
-        debug: { email, checkedKey: `user:${email}:info` }
-      }, { status: 400 });
-    }
-
-    const userId = userInfo.id;
-    
-    // Get sheet ID from Redis using the correct key pattern
-    const sheetId = await redis.get(`user:${userId}:activeSheet`) as string;
-
     if (!accessToken) {
       return NextResponse.json({ 
         error: 'No access token in session. Please re-login.'
       }, { status: 401 });
     }
+
+    // Get user info using the correct helper function
+    const userInfo = await getUserByEmail(email) as any;
+    
+    if (!userInfo || !userInfo.id) {
+      return NextResponse.json({ 
+        error: 'User not found in database.',
+        debug: { 
+          email,
+          hint: 'User might not be registered. Check if user exists in Redis.'
+        }
+      }, { status: 400 });
+    }
+
+    const userId = userInfo.id;
+    
+    // Get sheet ID using userId
+    const sheetId = await redis.get(`user:${userId}:activeSheet`) as string;
 
     if (!sheetId) {
       return NextResponse.json({ 
