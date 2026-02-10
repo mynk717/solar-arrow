@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
+import { redis } from '@/lib/redis';
 
 export async function GET() {
   try {
@@ -12,9 +13,13 @@ export async function GET() {
       }, { status: 401 });
     }
 
-    // Use access token directly from session
+    const email = session.user.email;
+
+    // Get access token from session
     const accessToken = session.accessToken;
-    const sheetId = session.googleSheetId;
+    
+    // Get sheet ID from Redis (where it's actually stored)
+    const sheetId = await redis.get(`user:${email}:sheetId`) as string;
 
     if (!accessToken) {
       return NextResponse.json({ 
@@ -25,7 +30,11 @@ export async function GET() {
 
     if (!sheetId) {
       return NextResponse.json({ 
-        error: 'No Google Sheet configured. Please complete onboarding.'
+        error: 'No Google Sheet configured. Please complete onboarding.',
+        debug: {
+          email: email,
+          checkedKey: `user:${email}:sheetId`
+        }
       }, { status: 400 });
     }
 
