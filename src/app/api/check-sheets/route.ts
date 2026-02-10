@@ -11,50 +11,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const email = session.user.email;
     const accessToken = session.accessToken;
-    const userId = session.userId || session.user?.id;
+    const googleId = session.userId || session.user?.id;
     
     if (!accessToken) {
       return NextResponse.json({ error: 'No access token' }, { status: 401 });
     }
 
-    // Try multiple Redis key patterns to find sheet ID
-    let sheetId = null;
-    const keysToTry = [
-      `user:${userId}:activeSheet`,
-      `user:${email}:sheetId`,
-      `sheet:${userId}`,
-      `sheet:${email}`,
-      `${userId}:sheetId`,
-      `${email}:sheetId`,
-    ];
-
-    for (const key of keysToTry) {
-      const value = await redis.get(key);
-      if (value) {
-        sheetId = value as string;
-        break;
-      }
+    // Get internal userId from Google ID
+    const internalUserId = await redis.get(`googleId:${googleId}`) as string;
+    
+    if (!internalUserId) {
+      return NextResponse.json({ 
+        error: 'User mapping not found',
+        debug: { googleId, checkedKey: `googleId:${googleId}` }
+      }, { status: 400 });
     }
 
-    // If not in Redis, check all user keys to find which one belongs to this email
-    if (!sheetId) {
-      const allUserKeys = await redis.keys('user:user_*:info');
-      for (const key of allUserKeys) {
-        const userInfo = await redis.get(key) as any;
-        if (userInfo?.email === email) {
-          const extractedUserId = key.split(':')[1]; // Extract user_xxx from user:user_xxx:info
-          sheetId = await redis.get(`user:${extractedUserId}:activeSheet`) as string;
-          if (sheetId) break;
-        }
-      }
-    }
+    // Get sheet ID using internal user ID
+    const sheetId = await redis.get(`user:${internalUserId}:activeSheet`) as string;
 
     if (!sheetId) {
       return NextResponse.json({ 
         error: 'No sheet configured',
-        debug: { userId, email, keysChecked: keysToTry }
+        debug: { 
+          googleId,
+          internalUserId,
+          checkedKey: `user:${internalUserId}:activeSheet`
+        }
       }, { status: 400 });
     }
 
@@ -65,9 +49,10 @@ export async function GET() {
     );
 
     if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json({ 
-        error: 'Failed to fetch sheet',
-        details: await response.text()
+        error: 'Failed to fetch sheet data',
+        details: errorText
       }, { status: response.status });
     }
 
@@ -94,6 +79,9 @@ export async function GET() {
       missingTabs: requiredTabs.filter(tab => !tabNames.includes(tab)),
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false,
+      error: error.message
+    }, { status: 500 });
   }
 }
