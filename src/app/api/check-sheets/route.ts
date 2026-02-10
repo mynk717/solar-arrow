@@ -11,7 +11,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const accessToken = await getValidAccessToken(session.userId);
+    const accessToken = await getValidAccessToken(
+      session.userId,
+      session.refreshToken || ''
+    );
     const sheetId = session.googleSheetId;
 
     if (!accessToken) {
