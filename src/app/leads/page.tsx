@@ -18,8 +18,10 @@ import {
   Eye,
   ArrowRight,
   Upload,
-  WifiOff, // NEW: For offline indicator
+  WifiOff,
+  RefreshCw,
 } from 'lucide-react';
+import AssignLeadsModal from '@/components/AssignLeadsModal';
 import { PageWrapper } from '@/components/PageWrapper';
 import { Lead, LeadStatus, LeadSource, CallOutcome } from '@/lib/types';
 
@@ -41,7 +43,53 @@ export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
 const [selectedLeads, setSelectedLeads] = useState<string[]>([]); // For bulk actions
+const [users, setUsers] = useState<any[]>([]);
+const [autoAssigning, setAutoAssigning] = useState(false);
+const canAssign = ['admin', 'sales'].includes(userRole);
 
+const handleSelectLead = (leadId: string) => {
+  setSelectedLeads(prev => 
+    prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]
+  );
+};
+
+const handleAssign = async (assignToEmail: string, assignToName: string) => {
+  try {
+    const response = await fetch('/api/leads/assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leadIds: selectedLeads, assignToEmail, assignToName })
+    });
+    if (response.ok) {
+      alert('Leads assigned!');
+      setSelectedLeads([]);
+      window.location.reload();
+    }
+  } catch (error) {
+    alert('Failed to assign leads');
+  }
+};
+
+const handleAutoAssign = async () => {
+  if (!confirm('Auto-assign all unassigned leads?')) return;
+  setAutoAssigning(true);
+  try {
+    const response = await fetch('/api/leads/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignmentType: 'round-robin' })
+    });
+    if (response.ok) {
+      const result = await response.json();
+      alert(`${result.assigned} leads assigned!`);
+      window.location.reload();
+    }
+  } catch (error) {
+    alert('Auto-assignment failed');
+  } finally {
+    setAutoAssigning(false);
+  }
+};
 
   return (
     <PageWrapper
@@ -135,6 +183,26 @@ const [selectedLeads, setSelectedLeads] = useState<string[]>([]); // For bulk ac
                   Track leads from first contact to enquiry conversion
                 </p>
               </div>
+              {canAssign && (
+  <>
+    <button
+      onClick={handleAutoAssign}
+      disabled={autoAssigning}
+      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 touch-manipulation"
+    >
+      <RefreshCw size={20} className={autoAssigning ? 'animate-spin' : ''} />
+      Auto-Assign
+    </button>
+    <button
+      onClick={() => setShowAssignModal(true)}
+      disabled={selectedLeads.length === 0}
+      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 touch-manipulation"
+    >
+      <UserPlus size={20} />
+      Assign ({selectedLeads.length})
+    </button>
+  </>
+)}
 
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {(userRole === 'admin' || userRole === 'lead-provider') && (
@@ -313,6 +381,14 @@ const [selectedLeads, setSelectedLeads] = useState<string[]>([]); // For bulk ac
                 isDemoMode={isDemoMode}
               />
             )}
+            <AssignLeadsModal
+  isOpen={showAssignModal}
+  onClose={() => setShowAssignModal(false)}
+  selectedLeads={selectedLeads}
+  availableUsers={users}
+  onAssign={handleAssign}
+/>
+
           </div>
         );
       }}
