@@ -6,6 +6,17 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
 import { redis } from './redis';
+import { 
+  cacheSheetData,
+  getCachedSheetData,
+  invalidateSheetCache,
+  getCachedEnquiries,
+  getCachedLeads,
+  invalidateEnquiriesCache,
+  invalidateLeadsCache
+} from './redis';
+
+
 // ============================================
 // AUTHENTICATION
 // ============================================
@@ -62,6 +73,15 @@ async function getSheetId(): Promise<string> {
   }
 
   return session.user.sheetId;
+}
+
+/** Get organization ID from session (works for both admin and users) */
+async function getOrgId(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.organizationId) {
+    throw new Error('No organization found');
+  }
+  return session.user.organizationId;
 }
 
 // ============================================
@@ -393,23 +413,40 @@ function enquiryToRow(enquiry: Enquiry): any[] {
 /** Fetch all enquiries from ENQUIRIES tab */
 export async function fetchEnquiries(): Promise<Enquiry[]> {
   try {
-    const sheets = await getSheets();
-    const sheetId = await getSheetId();
+    const orgId = await getOrgId(); // ✅ Get orgId (works for admin & users)
 
+    // 1. Check cache first
+    const cached = await getCachedEnquiries(orgId);
+    if (cached && cached.data) {
+      console.log('✅ Using cached enquiries for org:', orgId, `(${cached.data.length} rows)`);
+      return cached.data;
+    }
+
+    // 2. Cache miss - fetch from Google Sheets
+    console.log('⚠️ Cache miss - fetching enquiries from Google Sheets for org:', orgId);
+    const sheets = await getSheets(); // This already handles token from ANY admin
+    const sheetId = await getSheetId();
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'ENQUIRIES!A2:DR', // 116 columns
     });
-
+    
     const rows = response.data.values || [];
-    return rows
+    const enquiries = rows
       .map(rowToEnquiry)
       .filter((enquiry): enquiry is Enquiry => enquiry !== null);
+
+    // 3. Store in cache
+    await cacheSheetData(orgId, 'enquiries', enquiries);
+
+    return enquiries;
   } catch (error: any) {
     console.error('Error fetching enquiries:', error);
     return [];
   }
 }
+
 
 /** Create new enquiry */
 export async function createEnquiry(enquiry: Enquiry): Promise<void> {
@@ -684,25 +721,40 @@ export async function notifyBOMMarkedAsDelivered(
 
 export async function fetchLeads(): Promise<any[]> {
   try {
+    const orgId = await getOrgId();
+
+    // 1. Check cache first
+    const cached = await getCachedLeads(orgId);
+    if (cached && cached.data) {
+      console.log('✅ Using cached leads for org:', orgId, `(${cached.data.length} rows)`);
+      return cached.data;
+    }
+
+    // 2. Cache miss - fetch from Google Sheets
+    console.log('⚠️ Cache miss - fetching leads from Google Sheets for org:', orgId);
     const sheets = await getSheets();
     const sheetId = await getSheetId();
-
-    // Fetch from LEADS tab (adjust columns based on your LEADS tab structure)
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'LEADS!A2:Z10000',
     });
-
+    
     const rows = response.data.values || [];
-
-    return rows
+    const leads = rows
       .map((row) => rowToLead(row))
       .filter((lead) => lead !== null);
+
+    // 3. Store in cache
+    await cacheSheetData(orgId, 'leads', leads);
+
+    return leads;
   } catch (error: any) {
     console.error('Error fetching leads:', error);
     throw new Error(`Failed to fetch leads: ${error.message}`);
   }
 }
+
 
 /**
  * Convert row array to Lead object (matches your Lead interface)
@@ -1187,4 +1239,181 @@ export function filterEnquiriesByBranch(enquiries: Enquiry[], branchId?: string)
     return enquiries; // No branch filter
   }
   return enquiries.filter(e => e.branchId === branchId);
+}
+
+// ============================================
+// CACHED FETCH FUNCTIONS FOR ALL TABS
+// ============================================
+
+/** Fetch users from USERS tab (cached) */
+export async function fetchUsersFromSheet(): Promise<any[]> {
+  try {
+    const orgId = await getOrgId();
+    const cached = await getCachedSheetData(orgId, 'users');
+    
+    if (cached && cached.data) {
+      console.log('✅ Using cached users');
+      return cached.data;
+    }
+
+    console.log('⚠️ Fetching users from sheet');
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'USERS!A2:M1000',
+    });
+
+    const rows = response.data.values || [];
+    const users = rows.map((row: any[]) => ({
+      id: row[0] || '',
+      email: row[1] || '',
+      name: row[2] || '',
+      role: row[3] || 'sales',
+      accountType: row[4] || 'user',
+      organizationId: row[5] || '',
+      branchId: row[6] || null,
+      branchName: row[7] || null,
+      canView: row[8] ? row[8].split(',') : [],
+      canEdit: row[9] ? row[9].split(',') : [],
+      canDelete: row[10] === 'true',
+      isActive: row[11] !== 'false',
+      createdAt: row[12] || new Date().toISOString(),
+    }));
+
+    await cacheSheetData(orgId, 'users', users);
+    return users;
+  } catch (error: any) {
+    console.error('Error fetching users:', error);
+    return [];
+  }
+}
+
+/** Fetch branches from BRANCHES tab (cached) */
+export async function fetchBranchesFromSheet(): Promise<any[]> {
+  try {
+    const orgId = await getOrgId();
+    const cached = await getCachedSheetData(orgId, 'branches');
+    
+    if (cached && cached.data) {
+      console.log('✅ Using cached branches');
+      return cached.data;
+    }
+
+    console.log('⚠️ Fetching branches from sheet');
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'BRANCHES!A2:F1000',
+    });
+
+    const rows = response.data.values || [];
+    const branches = rows.map((row: any[]) => ({
+      id: row[0] || '',
+      name: row[1] || '',
+      city: row[2] || '',
+      state: row[3] || '',
+      address: row[4] || '',
+      isActive: row[5] !== 'false',
+    }));
+
+    await cacheSheetData(orgId, 'branches', branches);
+    return branches;
+  } catch (error: any) {
+    console.error('Error fetching branches:', error);
+    return [];
+  }
+}
+
+/** Fetch followups from FOLLOWUPS tab (cached) */
+export async function fetchFollowupsFromSheet(enquiryId?: string): Promise<any[]> {
+  try {
+    const orgId = await getOrgId();
+    const cached = await getCachedSheetData(orgId, 'followups');
+    
+    let followups: any[] = [];
+    
+    if (cached && cached.data) {
+      console.log('✅ Using cached followups');
+      followups = cached.data;
+    } else {
+      console.log('⚠️ Fetching followups from sheet');
+      const sheets = await getSheets();
+      const sheetId = await getSheetId();
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: 'FOLLOWUPS!A2:K1000',
+      });
+
+      followups = response.data.values || [];
+      await cacheSheetData(orgId, 'followups', followups);
+    }
+
+    // Filter by enquiryId if provided
+    if (enquiryId) {
+      return followups.filter((row: any[]) => row[1] === enquiryId);
+    }
+
+    return followups;
+  } catch (error: any) {
+    console.error('Error fetching followups:', error);
+    return [];
+  }
+}
+
+/** Fetch activity log from ACTIVITY_LOG tab (cached) */
+export async function fetchActivityLog(): Promise<any[]> {
+  try {
+    const orgId = await getOrgId();
+    const cached = await getCachedSheetData(orgId, 'activity_log');
+    
+    if (cached && cached.data) {
+      console.log('✅ Using cached activity log');
+      return cached.data;
+    }
+
+    console.log('⚠️ Fetching activity log from sheet');
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'ACTIVITY_LOG!A2:G1000',
+    });
+
+    const rows = response.data.values || [];
+    await cacheSheetData(orgId, 'activity_log', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('Error fetching activity log:', error);
+    return [];
+  }
+}
+
+/** Fetch project stages from PROJECT_STAGES tab (cached) */
+export async function fetchProjectStagesFromSheet(): Promise<any[]> {
+  try {
+    const orgId = await getOrgId();
+    const cached = await getCachedSheetData(orgId, 'project_stages');
+    
+    if (cached && cached.data) {
+      console.log('✅ Using cached project stages');
+      return cached.data;
+    }
+
+    console.log('⚠️ Fetching project stages from sheet');
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'PROJECT_STAGES!A2:L1000',
+    });
+
+    const rows = response.data.values || [];
+    await cacheSheetData(orgId, 'project_stages', rows);
+    return rows;
+  } catch (error: any) {
+    console.error('Error fetching project stages:', error);
+    return [];
+  }
 }

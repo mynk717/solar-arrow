@@ -95,3 +95,113 @@ export async function removeTelegramChatId(userId: string) {
   }
   await redis.del(`user:${userId}:telegram`);
 }
+// ============================================
+// CACHE HELPERS FOR GOOGLE SHEETS DATA
+// ============================================
+
+/**
+ * Generic cache setter for any sheet tab
+ */
+export async function cacheSheetData(
+  orgId: string, 
+  tabName: string, 
+  data: any[], 
+  updatedBy?: string
+) {
+  const timestamp = Date.now();
+  const cacheKey = `org:${orgId}:cache:${tabName.toLowerCase()}`;
+  
+  await redis.set(cacheKey, JSON.stringify(data));
+  await redis.set(`${cacheKey}:timestamp`, timestamp);
+  
+  if (updatedBy) {
+    await redis.set(`${cacheKey}:updated_by`, updatedBy);
+  }
+  
+  // Set TTL to 5 minutes (300 seconds)
+  await redis.expire(cacheKey, 300);
+  await redis.expire(`${cacheKey}:timestamp`, 300);
+  
+  console.log(`✅ Cached ${tabName} for org:${orgId} (${data.length} rows)`);
+}
+
+/**
+ * Generic cache getter for any sheet tab
+ */
+export async function getCachedSheetData(orgId: string, tabName: string) {
+  const cacheKey = `org:${orgId}:cache:${tabName.toLowerCase()}`;
+  const cached = await redis.get(cacheKey);
+  
+  if (!cached) return null;
+  
+  const timestamp = await redis.get(`${cacheKey}:timestamp`);
+  const updatedBy = await redis.get(`${cacheKey}:updated_by`);
+  
+  return {
+    data: typeof cached === 'string' ? JSON.parse(cached) : cached,
+    timestamp: timestamp as number,
+    updatedBy: updatedBy as string | null,
+  };
+}
+
+/**
+ * Invalidate cache for a specific tab
+ */
+export async function invalidateSheetCache(orgId: string, tabName: string) {
+  const cacheKey = `org:${orgId}:cache:${tabName.toLowerCase()}`;
+  await redis.del(cacheKey);
+  await redis.del(`${cacheKey}:timestamp`);
+  await redis.del(`${cacheKey}:updated_by`);
+  console.log(`🗑️ Cache invalidated for ${tabName} in org:${orgId}`);
+}
+
+/**
+ * Invalidate ALL caches for an organization
+ */
+export async function invalidateAllOrgCaches(orgId: string) {
+  const tabs = [
+    'leads', 'enquiries', 'users', 'followups', 
+    'activity_log', 'project_stages', 'settings', 
+    'departments', 'survey_details'
+  ];
+  
+  for (const tab of tabs) {
+    await invalidateSheetCache(orgId, tab);
+  }
+  
+  console.log(`🗑️ All caches invalidated for org:${orgId}`);
+}
+
+/**
+ * Get cache timestamp for a specific tab
+ */
+export async function getCacheTimestamp(orgId: string, tabName: string = 'enquiries'): Promise<number | null> {
+  const cacheKey = `org:${orgId}:cache:${tabName.toLowerCase()}`;
+  const timestamp = await redis.get(`${cacheKey}:timestamp`);
+  return timestamp as number | null;
+}
+
+// Convenience helpers for backwards compatibility
+export async function cacheEnquiries(orgId: string, enquiries: any[], updatedBy?: string) {
+  return cacheSheetData(orgId, 'enquiries', enquiries, updatedBy);
+}
+
+export async function getCachedEnquiries(orgId: string) {
+  return getCachedSheetData(orgId, 'enquiries');
+}
+
+export async function invalidateEnquiriesCache(orgId: string) {
+  return invalidateSheetCache(orgId, 'enquiries');
+}
+
+export async function cacheLeads(orgId: string, leads: any[], updatedBy?: string) {
+  return cacheSheetData(orgId, 'leads', leads, updatedBy);
+}
+
+export async function getCachedLeads(orgId: string) {
+  return getCachedSheetData(orgId, 'leads');
+}
+
+export async function invalidateLeadsCache(orgId: string) {
+  return invalidateSheetCache(orgId, 'leads');
+}
