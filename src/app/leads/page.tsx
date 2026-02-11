@@ -183,6 +183,9 @@ const handleAutoAssign = async () => {
                   Track leads from first contact to enquiry conversion
                 </p>
               </div>
+            
+
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {canAssign && (
   <>
     <button
@@ -203,8 +206,6 @@ const handleAutoAssign = async () => {
     </button>
   </>
 )}
-
-              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {(userRole === 'admin' || userRole === 'lead-provider') && (
                   <button
                     onClick={() => {/* TODO: Bulk upload */}}
