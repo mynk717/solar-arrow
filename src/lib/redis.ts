@@ -71,30 +71,77 @@ export async function getOrganizationDepartments(orgId: string) {
   );
   return departments.filter(Boolean);
 }
-// Telegram helpers
-export async function saveTelegramChatId(userId: string, chatId: string) {
-  await redis.set(`user:${userId}:telegram`, chatId);
-  // Also save reverse lookup
-  await redis.set(`telegram:chatid:${chatId}`, userId);
+// ============================================
+// TELEGRAM HELPERS
+// ============================================
+
+/** Save organization Telegram bot token */
+export async function saveTelegramBotToken(orgId: string, token: string) {
+  await redis.set(`org:${orgId}:telegram:bot_token`, token);
 }
 
-export async function getTelegramChatId(userId: string) {
-  return await redis.get(`user:${userId}:telegram`);
+/** Get organization Telegram bot token */
+export async function getTelegramBotToken(orgId: string): Promise<string | null> {
+  return await redis.get(`org:${orgId}:telegram:bot_token`) as string | null;
 }
 
-export async function getUserByTelegramChatId(chatId: string) {
-  const userId = await redis.get(`telegram:chatid:${chatId}`);
-  if (!userId) return null;
-  return await getUserById(userId as string);
+/** Save organization Telegram GROUP chat ID */
+export async function saveTelegramGroupChatId(orgId: string, chatId: string) {
+  await redis.set(`org:${orgId}:telegram:group_chat_id`, chatId);
 }
 
-export async function removeTelegramChatId(userId: string) {
-  const chatId = await redis.get(`user:${userId}:telegram`);
+/** Get organization Telegram GROUP chat ID */
+export async function getTelegramGroupChatId(orgId: string): Promise<string | null> {
+  return await redis.get(`org:${orgId}:telegram:group_chat_id`) as string | null;
+}
+
+/** Save user's personal Telegram chat ID */
+export async function saveUserTelegramChatId(userEmail: string, chatId: string, name?: string) {
+  await redis.set(`user:${userEmail}:telegram:chat_id`, chatId);
+  // Reverse lookup
+  await redis.set(`telegram:chatid:${chatId}`, userEmail);
+  if (name) {
+    await redis.set(`user:${userEmail}:telegram:name`, name);
+  }
+}
+
+/** Get user's personal Telegram chat ID */
+export async function getUserTelegramChatId(userEmail: string): Promise<string | null> {
+  return await redis.get(`user:${userEmail}:telegram:chat_id`) as string | null;
+}
+
+/** Get user email by Telegram chat ID (reverse lookup) */
+export async function getUserEmailByTelegramChatId(chatId: string): Promise<string | null> {
+  return await redis.get(`telegram:chatid:${chatId}`) as string | null;
+}
+
+/** Remove user's Telegram connection */
+export async function removeUserTelegramChatId(userEmail: string) {
+  const chatId = await getUserTelegramChatId(userEmail);
   if (chatId) {
     await redis.del(`telegram:chatid:${chatId}`);
   }
-  await redis.del(`user:${userId}:telegram`);
+  await redis.del(`user:${userEmail}:telegram:chat_id`);
+  await redis.del(`user:${userEmail}:telegram:name`);
 }
+
+/** Get all users' Telegram chat IDs for an organization */
+export async function getOrgUsersTelegramChatIds(orgId: string): Promise<Map<string, string>> {
+  const users = await getOrganizationUsers(orgId);
+  const chatIds = new Map<string, string>();
+  
+  for (const user of users) {
+    // ✅ Type assertion to fix TypeScript error
+    const typedUser = user as { email: string; name: string; isActive: boolean };
+    const chatId = await getUserTelegramChatId(typedUser.email);
+    if (chatId) {
+      chatIds.set(typedUser.email, chatId);
+    }
+  }
+  
+  return chatIds;
+}
+
 // ============================================
 // CACHE HELPERS FOR GOOGLE SHEETS DATA
 // ============================================

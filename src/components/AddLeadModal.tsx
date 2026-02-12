@@ -31,28 +31,179 @@ export default function AddLeadModal({ isOpen, onClose, isDemoMode = false }: Ad
       alert('Demo mode - cannot create leads');
       return;
     }
-
+  
     setSaving(true);
     try {
+      // ✅ Prepare complete lead data with ALL required fields
+      const leadData = {
+        // Basic Info
+        customerName: formData.customerName,
+        phone: formData.phone,
+        email: formData.email || '',
+        address: formData.address || '',
+        area: formData.area || '',
+        capacity: formData.capacity || '',
+        
+        // Lead-specific fields
+        leadSource: formData.source,
+        leadStatus: 'new',
+        leadNotes: formData.notes || '',
+        leadQualified: false,
+        leadQualifiedDate: '',
+        leadConvertedDate: '',
+        leadAssignedTo: '',
+        
+        // Status & Metadata
+        status: 'new',
+        priority: formData.priority,
+        tags: '',
+        notes: formData.notes || '',
+        
+        // Survey fields (empty for new leads)
+        surveyDate: '',
+        surveyedBy: '',
+        surveyNotes: '',
+        surveyApproved: false,
+        surveyScheduledDate: '',
+        surveyCompletedDate: '',
+        surveyRejectedReason: '',
+        surveyPhotos: '',
+        
+        // Loan fields (empty)
+        loanRequired: false,
+        loanBank: '',
+        loanBranch: '',
+        loanAmount: '',
+        loanApplicationDate: '',
+        loanSanctionDate: '',
+        loanRejectionDate: '',
+        loanRejectionReason: '',
+        loanFirstTrancheAmount: '',
+        loanFirstTrancheDate: '',
+        loanSecondTrancheAmount: '',
+        loanSecondTrancheDate: '',
+        loanStatus: '',
+        loanAccountNumber: '',
+        
+        // DISCOM fields (empty)
+        consumerRegistrationNumber: '',
+        applicationNumber: '',
+        discomCircle: '',
+        discomDivision: '',
+        discomSubDivision: '',
+        feasibilityApprovalDate: '',
+        feasibilityApprovalNumber: '',
+        
+        // Vendor fields (empty)
+        vendorAgreementDate: '',
+        vendorAgreementNumber: '',
+        vendorName: '',
+        vendorCompanyName: '',
+        vendorAgreementAmount: '',
+        vendorAgreementSignedDate: '',
+        vendorAgreementDocumentPath: '',
+        
+        // Payment fields (empty)
+        estimatedCost: '',
+        initialPayment: '',
+        paymentDate: '',
+        paymentMethod: '',
+        paymentType: '',
+        paymentStatus: '',
+        paymentAccountVerified: false,
+        paymentVerifiedBy: '',
+        paymentVerificationDate: '',
+        paymentUTR: '',
+        
+        // Quotation fields (empty)
+        quotationId: '',
+        quotationDate: '',
+        quotationAmount: '',
+        quotationApprovedDate: '',
+        quotationApprovedBy: '',
+        quotationRejectedReason: '',
+        quotationDocumentPath: '',
+        
+        // System specs (empty)
+        systemCapacity: formData.capacity || '',
+        panelTag: '',
+        panelMake: '',
+        panelWattage: '',
+        panelQuantity: '',
+        inverterMake: '',
+        inverterCapacity: '',
+        batteryRequired: false,
+        batteryCapacity: '',
+        batteryQuantity: '',
+        structureType: '',
+        
+        // Installation fields (empty)
+        installationScheduledDate: '',
+        installationStartDate: '',
+        installationCompletedDate: '',
+        installationTeam: '',
+        installationSupervisor: '',
+        installationNotes: '',
+        pvModuleSerialNumbers: '',
+        inverterSerialNumber: '',
+        meterNumber: '',
+        meterInstalledDate: '',
+        meterReadingInitial: '',
+        earthingDone: false,
+        earthingResistance: '',
+        installationPhotos: '',
+        
+        // Inspection fields (empty)
+        inspectionScheduledDate: '',
+        inspectionDate: '',
+        inspectionOfficer: '',
+        inspectionStatus: '',
+        inspectionApproved: false,
+        inspectionRejectedReason: '',
+        inspectionReportPath: '',
+        
+        // Subsidy fields (empty)
+        subsidyAmount: '',
+        subsidyStatus: '',
+        subsidyAppliedDate: '',
+        subsidyApprovedDate: '',
+        subsidyDisbursedDate: '',
+        subsidyRejectedDate: '',
+        subsidyRejectionReason: '',
+        subsidyBankAccount: '',
+        subsidyUTR: '',
+        subsidyDocumentPath: '',
+        
+        // Assignment & tracking
+        allottedUser: '',
+        isBlocked: false,
+        blockedReason: '',
+        lastFollowupDate: '',
+        nextActionDate: '',
+      };
+  
       const response = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(leadData),
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to create lead');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create lead');
       }
-
+  
       alert('Lead created successfully!');
       onClose();
       window.location.reload();
     } catch (error: any) {
+      console.error('Error creating lead:', error);
       alert(`Error: ${error.message}`);
     } finally {
       setSaving(false);
     }
   };
+  
 
   if (!isOpen) return null;
 

@@ -15,6 +15,8 @@ import {
   invalidateEnquiriesCache,
   invalidateLeadsCache
 } from './redis';
+import { notifyLeadCreated } from './telegram';
+
 
 
 // ============================================
@@ -908,6 +910,8 @@ export async function createLead(leadData: any, createdBy: string): Promise<any>
   try {
     const sheets = await getSheets();
     const sheetId = await getSheetId();
+    const session = await getServerSession(authOptions);
+    const orgId = session?.user?.organizationId;
 
     // Generate lead ID
     const timestamp = Date.now();
@@ -945,12 +949,38 @@ export async function createLead(leadData: any, createdBy: string): Promise<any>
       details: `Lead created: ${leadData.customerName}`,
     });
 
+    // ✅ Send Telegram notification to ORG GROUP
+    if (orgId) {
+      try {
+        await notifyLeadCreated(orgId, {
+          id: leadId,
+          customerName: leadData.customerName || 'Unknown',
+          phone: leadData.phone || 'N/A',
+          area: leadData.area,
+          capacity: leadData.capacity,
+          source: leadData.leadSource || leadData.source || 'website',
+          priority: leadData.priority || 'medium',
+          createdBy: createdBy,
+        });
+        console.log('✅ Lead creation notification sent to Telegram group');
+      } catch (telegramError) {
+        console.error('⚠️ Telegram notification failed (non-blocking):', telegramError);
+        // Don't fail the lead creation if Telegram fails
+      }
+    }
+
+    // ✅ Invalidate leads cache
+    if (orgId) {
+      await invalidateLeadsCache(orgId);
+    }
+
     return newLead;
   } catch (error: any) {
     console.error('Error creating lead:', error);
     throw new Error(`Failed to create lead: ${error.message}`);
   }
 }
+
 
 /**
  * Update an existing lead in LEADS tab

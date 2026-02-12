@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { fetchLeads, updateLead } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
+import { notifyLeadAssigned } from '@/lib/telegram';
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     // Get unassigned leads
     const allLeads = await fetchLeads();
     const unassignedLeads = allLeads.filter((lead: any) => 
-      lead.status === 'new' && !lead.assignedTo
+      lead.status === 'new' && !lead.assignedTo && !lead.leadAssignedTo
     );
 
     if (unassignedLeads.length === 0) {
@@ -63,32 +64,59 @@ export async function POST(request: Request) {
       const assignedUser = availableUsers[userIndex];
       
       try {
+        // Update lead in Google Sheets
         await updateLead(
           lead.id,
           {
-            assignedTo: assignedUser.email,
+            leadAssignedTo: assignedUser.email,
             assignedToName: assignedUser.name,
-            assignedDate: new Date().toISOString(),
+            leadAssignedDate: new Date().toISOString(),
+            leadStatus: 'assigned',
             status: 'assigned',
+            assignedTo: assignedUser.email,
+            assignedDate: new Date().toISOString(),
             lastActivityBy: session.user.email,
             lastActivityDate: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
           session.user.email || 'system'
         );
 
+        // ✅ Send Telegram notification (Group + Personal DM)
+        try {
+          await notifyLeadAssigned(orgId, {
+            id: lead.id,
+            customerName: lead.customerName || 'Unknown Customer',
+            phone: lead.phone || 'N/A',
+            area: lead.area,
+            capacity: lead.capacity,
+            priority: lead.priority || 'medium',
+            assignedToName: assignedUser.name,
+            assignedToEmail: assignedUser.email,
+          });
+          console.log(`✅ Telegram notification sent for lead ${lead.id} → ${assignedUser.name}`);
+        } catch (telegramError) {
+          console.error('⚠️ Telegram notification failed (non-blocking):', telegramError);
+          // Don't fail assignment if notification fails
+        }
+
         assignments.push({
           leadId: lead.id,
+          customerName: lead.customerName,
           assignedTo: assignedUser.email,
-          success: true
+          assignedToName: assignedUser.name,
+          success: true,
+          notificationSent: true,
         });
 
         // Move to next user (round-robin)
         userIndex = (userIndex + 1) % availableUsers.length;
       } catch (error: any) {
+        console.error(`❌ Failed to assign lead ${lead.id}:`, error);
         assignments.push({
           leadId: lead.id,
           error: error.message,
-          success: false
+          success: false,
         });
       }
     }
@@ -97,15 +125,19 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Auto-assigned ${successCount} leads`,
+      message: `Auto-assigned ${successCount} of ${unassignedLeads.length} leads`,
       assigned: successCount,
       total: unassignedLeads.length,
-      assignments
+      assignments,
+      method: assignmentType,
+      targetRole,
+      availableUsers: availableUsers.length,
     });
 
   } catch (error: any) {
+    console.error('❌ Auto-assign error:', error);
     return NextResponse.json({ 
-      error: error.message 
+      error: error.message || 'Failed to auto-assign leads'
     }, { status: 500 });
   }
 }
