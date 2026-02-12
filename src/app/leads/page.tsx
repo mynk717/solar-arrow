@@ -24,6 +24,8 @@ import {
 import AssignLeadsModal from '@/components/AssignLeadsModal';
 import { PageWrapper } from '@/components/PageWrapper';
 import { Lead, LeadStatus, LeadSource, CallOutcome } from '@/lib/types';
+import AddLeadModal from '@/components/AddLeadModal';
+
 
 export default function LeadsPage() {
   const { data: session } = useSession();
@@ -45,7 +47,7 @@ export default function LeadsPage() {
 const [selectedLeads, setSelectedLeads] = useState<string[]>([]); // For bulk actions
 const [users, setUsers] = useState<any[]>([]);
 const [autoAssigning, setAutoAssigning] = useState(false);
-const canAssign = ['admin', 'sales'].includes(userRole);
+const canAssign = ['owner', 'admin', 'sales'].includes(userRole);
 
 const handleSelectLead = (leadId: string) => {
   setSelectedLeads(prev => 
@@ -389,7 +391,13 @@ const handleAutoAssign = async () => {
   availableUsers={users}
   onAssign={handleAssign}
 />
-
+{showAddModal && (
+  <AddLeadModal
+    isOpen={showAddModal}
+    onClose={() => setShowAddModal(false)}
+    isDemoMode={isDemoMode}
+  />
+)}
           </div>
         );
       }}

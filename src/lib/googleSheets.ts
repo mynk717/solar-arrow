@@ -64,16 +64,23 @@ export async function getGoogleSheetsClient() {
   return await getSheets();
 }
 
-/** Get Sheet ID from session */
+/** Get Sheet ID from Redis (not from session) */
 async function getSheetId(): Promise<string> {
   const session = await getServerSession(authOptions);
-
-  if (!session?.user?.sheetId) {
-    throw new Error('No sheet ID configured');
+  if (!session?.user?.organizationId) {
+    throw new Error('Not authenticated');
   }
 
-  return session.user.sheetId;
+  // ✅ ALWAYS fetch fresh from Redis, not from session token
+  const org = await redis.get(`org:${session.user.organizationId}:info`) as any;
+  
+  if (!org?.sheetId) {
+    throw new Error('No sheet ID configured. Please connect your Google Sheet in Settings.');
+  }
+
+  return org.sheetId;
 }
+
 
 /** Get organization ID from session (works for both admin and users) */
 async function getOrgId(): Promise<string> {
