@@ -1,26 +1,80 @@
 // src/app/api/telegram/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { redis } from '@/lib/redis'; 
+import { saveUserTelegramChatId } from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   try {
     const update = await request.json();
 
-    // User sent /start to bot
-    if (update.message?.text === '/start') {
-      const chatId = update.message.chat.id;
-      const userId = update.message.from.id;
+    // Handle /start command with deep link: /start connect_{email}
+    if (update.message?.text?.startsWith('/start connect_')) {
+      const chatId = update.message.chat.id.toString();
+      const userEmail = update.message.text.split('connect_')[1];
+      const firstName = update.message.from.first_name;
+      const lastName = update.message.from.last_name || '';
+      const fullName = `${firstName} ${lastName}`.trim();
 
-      // Store chat ID for user (you'll need to map this to your users)
-      await redis.set(`telegram:chatid:${userId}`, chatId);
+      // Save user's chat ID
+      await saveUserTelegramChatId(userEmail, chatId, fullName);
+
+      // Send confirmation message
+      const botToken = process.env.TELEGRAM_BOT_TOKEN!;
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `✅ *Connected Successfully!*\n\nYou will now receive notifications for:\n• New lead assignments\n• Status updates\n• Important alerts\n\nAccount: ${userEmail}`,
+          parse_mode: 'Markdown',
+        }),
+      });
+
+      console.log(`✅ Telegram connected for ${userEmail} (chatId: ${chatId})`);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle regular /start command
+    if (update.message?.text === '/start') {
+      const chatId = update.message.chat.id.toString();
+      const firstName = update.message.from.first_name;
 
       // Send welcome message
-      // Implementation here
+      const botToken = process.env.TELEGRAM_BOT_TOKEN!;
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `👋 *Welcome to Solar Arrow Bot!*\n\nHello ${firstName}!\n\nTo connect your account, please use the connection link from your Solar Arrow dashboard settings.\n\nSettings → Telegram → Connect Telegram`,
+          parse_mode: 'Markdown',
+        }),
+      });
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle group chat detection
+    if (update.message?.chat?.type === 'group' || update.message?.chat?.type === 'supergroup') {
+      const groupChatId = update.message.chat.id.toString();
+      const groupTitle = update.message.chat.title;
+      console.log(`📱 Group detected: ${groupTitle} (ID: ${groupChatId})`);
+      
+      // Send info message to group
+      const botToken = process.env.TELEGRAM_BOT_TOKEN!;
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: groupChatId,
+          text: `✅ Bot added to group!\n\nGroup Chat ID: \`${groupChatId}\`\n\nCopy this ID and paste it in your Solar Arrow dashboard:\nSettings → Telegram → Group Chat ID`,
+          parse_mode: 'Markdown',
+        }),
+      });
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('Telegram webhook error:', error);
+    console.error('❌ Telegram webhook error:', error);
     return NextResponse.json({ error: 'Webhook failed' }, { status: 500 });
   }
 }

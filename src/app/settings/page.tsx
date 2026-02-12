@@ -445,6 +445,64 @@ const saveConfig = async (id?: string, name?: string) => {
     </div>
   )}
 </div>
+
+{/* Telegram Notifications Section */}
+<div className="bg-white rounded-lg shadow-md p-6 mb-6">
+  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+    <svg 
+      className="w-6 h-6 text-blue-500" 
+      fill="currentColor" 
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+    </svg>
+    Telegram Notifications
+  </h2>
+  
+  <div className="space-y-4">
+    <p className="text-gray-700">
+      Configure Telegram bot to receive real-time notifications for lead assignments, status updates, and more.
+    </p>
+    
+    <div className="flex gap-3">
+      <a
+        href="/settings/telegram"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors font-medium"
+      >
+        <svg 
+          className="w-5 h-5" 
+          fill="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+        </svg>
+        Configure Telegram
+      </a>
+      
+      <a
+        href="https://t.me/SolarArrowBot"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors font-medium"
+      >
+        <ExternalLink size={20} />
+        Open Bot
+      </a>
+    </div>
+    
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+      <p className="text-sm text-blue-900">
+        <strong>💡 What you can do:</strong>
+      </p>
+      <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4 list-disc">
+        <li>Connect organization group for team notifications</li>
+        <li>Connect your personal Telegram for direct messages</li>
+        <li>Get instant alerts for lead assignments</li>
+        <li>Receive status update notifications</li>
+      </ul>
+    </div>
+  </div>
+</div>
       {/* Current Connection Status */}
       {config && config.configured && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
