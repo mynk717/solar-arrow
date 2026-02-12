@@ -22,9 +22,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import AssignLeadsModal from '@/components/AssignLeadsModal';
-import { PageWrapper } from '@/components/PageWrapper';
 import { Lead, LeadStatus, LeadSource, CallOutcome } from '@/lib/types';
 import AddLeadModal from '@/components/AddLeadModal';
+import { useLeads } from '@/lib/useLeads';
+import { useDemoMode } from '@/contexts/DemoContext';
+
 
 
 export default function LeadsPage() {
@@ -93,89 +95,65 @@ const handleAutoAssign = async () => {
   }
 };
 
+  // ✅ Use useLeads hook directly instead of PageWrapper
+const { leads: rawLeads, loading, error } = useLeads();
+const { isDemoMode } = useDemoMode();
+
+// Apply filters
+const filteredLeads = rawLeads.filter((lead: Lead) => {
+  const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+  const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
+  const matchesAssignee = assigneeFilter === 'all' || lead.assignedTo === assigneeFilter;
+  const matchesSearch =
+    lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.phone.includes(searchTerm) ||
+    lead.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+  return matchesStatus && matchesSource && matchesAssignee && matchesSearch;
+});
+
+// Calculate metrics
+const metrics = calculateMetrics(rawLeads);
+
+// Role-based filtering
+const myLeads = userRole === 'telecaller' || userRole === 'sales'
+  ? filteredLeads.filter((l: Lead) => l.assignedTo === session?.user?.email)
+  : filteredLeads;
+
+// Loading state
+if (loading) {
   return (
-    <PageWrapper
-      title="Lead Management"
-      filterFn={(enquiries) => {
-        return enquiries
-          .filter((e: any) => {
-            return e.leadStatus || e.status === 'lead' || e.status === 'prospect' || e.status === 'new';
-          })
-          .map((e: any) => ({
-            id: e.id,
-            customerName: e.customerName,
-            phone: e.phone,
-            email: e.email,
-            address: e.address,
-            area: e.area,
-            capacity: e.capacity ? `${e.capacity}kW` : undefined,
-            status: (e.leadStatus || 'new') as LeadStatus,
-            source: (e.leadSource || 'website') as LeadSource,
-            assignedTo: e.leadAssignedTo,
-            assignedToName: e.assignedToName,
-            qualified: e.leadQualified || false,
-            qualifiedDate: e.leadQualifiedDate,
-            converted: !!e.enquiryId,
-            convertedDate: e.leadConvertedDate,
-            enquiryId: e.id,
-            estimatedBudget: e.estimatedCost,
-            priority: e.priority || 'medium',
-            notes: e.leadNotes || e.notes,
-            tags: e.tags,
-            contactAttempts: 0,
-            createdAt: e.createdAt,
-            updatedAt: e.updatedAt,
-            createdBy: e.createdBy || 'system',
-          } as Lead));
-      }}
-    >
-      {({ enquiries: leads, loading, error, isDemoMode }) => {
-        if (loading) {
-          return (
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="text-center">
-                <Clock className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <p className="text-gray-900 font-medium">Loading leads...</p>
-              </div>
-            </div>
-          );
-        }
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <Clock className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
+        <p className="text-gray-900 font-medium">Loading leads...</p>
+      </div>
+    </div>
+  );
+}
 
-        if (error) {
-          return (
-            <div className="p-8">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
-                <p className="text-red-900 font-semibold text-center">{error}</p>
-              </div>
-            </div>
-          );
-        }
+// Error state
+if (error) {
+  return (
+    <div className="p-8">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+        <p className="text-red-900 font-semibold text-center">{error}</p>
+      </div>
+    </div>
+  );
+}
 
-        // Filter leads
-        const filteredLeads = leads.filter((lead: Lead) => {
-          const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-          const matchesSource = sourceFilter === 'all' || lead.source === sourceFilter;
-          const matchesAssignee = assigneeFilter === 'all' || lead.assignedTo === assigneeFilter;
-          const matchesSearch =
-            lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            lead.phone.includes(searchTerm) ||
-            lead.id.toLowerCase().includes(searchTerm.toLowerCase());
+return (
+  <div className="p-4 sm:p-6 lg:p-8">
+    {/* Demo mode banner */}
+    {isDemoMode && (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <p className="font-semibold text-yellow-900">📊 Demo Mode - Sample Data</p>
+      </div>
+    )}
 
-          return matchesStatus && matchesSource && matchesAssignee && matchesSearch;
-        });
-
-        // Calculate metrics
-        const metrics = calculateMetrics(leads);
-
-        // Role-based filtering
-        const myLeads = userRole === 'telecaller' || userRole === 'sales'
-          ? filteredLeads.filter((l: Lead) => l.assignedTo === session?.user?.email)
-          : filteredLeads;
-
-        return (
-          <div className="p-4 sm:p-6 lg:p-8">
-            {/* Header */}
+    {/* Header */}
             <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -230,7 +208,7 @@ const handleAutoAssign = async () => {
             </div>
 
             {/* Funnel Metrics */}
-            <LeadFunnelView metrics={metrics} leads={leads} />
+            <LeadFunnelView metrics={metrics} leads={rawLeads} />
 
             {/* View Switcher */}
             <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
@@ -399,11 +377,7 @@ const handleAutoAssign = async () => {
   />
 )}
           </div>
-        );
-      }}
-    </PageWrapper>
-  );
-}
+        );}
 
 // Helper function to calculate metrics
 function calculateMetrics(leads: Lead[]) {
