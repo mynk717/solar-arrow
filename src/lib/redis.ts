@@ -80,10 +80,15 @@ export async function saveTelegramBotToken(orgId: string, token: string) {
   await redis.set(`org:${orgId}:telegram:bot_token`, token);
 }
 
-/** Get organization Telegram bot token */
+/** Get Telegram bot token (from environment variable for single global bot) */
 export async function getTelegramBotToken(orgId: string): Promise<string | null> {
-  return await redis.get(`org:${orgId}:telegram:bot_token`) as string | null;
+  // ✅ For single global bot, return from environment variable
+  return process.env.TELEGRAM_BOT_TOKEN || null;
+  
+  // 🔮 Future: If you want multi-org with different bots, use this:
+  // return await redis.get(`org:${orgId}:telegram:bot_token`) as string | null;
 }
+
 
 /** Save organization Telegram GROUP chat ID */
 export async function saveTelegramGroupChatId(orgId: string, chatId: string) {
