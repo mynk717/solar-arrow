@@ -1,4 +1,6 @@
 // src/app/layout.tsx
+'use client';
+
 import { useEffect } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
