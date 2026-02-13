@@ -20,10 +20,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!session?.user?.sheetId) {
-      console.error('❌ [API] No sheetId configured');
-      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
-    }
+    // if (!session?.user?.sheetId) {
+    //   console.error('❌ [API] No sheetId configured');
+    //   return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
+    // }
 
     console.log('📊 [API] Fetching from Google Sheets...');
     const enquiries = await fetchEnquiries();
