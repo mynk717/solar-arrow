@@ -1,5 +1,4 @@
 // src/app/layout.tsx
-'use client';
 
 import { useEffect } from 'react';
 import type { Metadata, Viewport } from 'next';
@@ -10,6 +9,7 @@ import { Providers } from './providers';
 import { DemoProvider } from '@/contexts/DemoContext';
 import Footer from '@/components/Footer';
 import PWAInstaller from '@/components/PWAInstaller';
+import PWARegistration from '@/components/PWARegistration';
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -170,6 +170,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className={inter.className}>
+      <PWARegistration />
   <Providers>
     <DemoProvider>
       <div className="flex flex-col min-h-screen bg-gray-50">
