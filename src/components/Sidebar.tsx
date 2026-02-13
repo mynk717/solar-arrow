@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Kanban,
   Shield,
+  Download
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -51,7 +52,8 @@ export default function Sidebar() {
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -97,6 +99,32 @@ export default function Sidebar() {
     };
   }, [mobileMenuOpen]);
 
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallPrompt(true);
+    };
+    
+    window.addEventListener('beforeinstallprompt', handler);
+    
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallPrompt(false);
+    }
+    
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+  
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setShowInstallPrompt(false);
+    }
+  };
   // Don't show sidebar on login/onboard/setup pages
   if (['/login', '/onboard', '/setup'].includes(pathname)) {
     return null;
@@ -252,7 +280,15 @@ export default function Sidebar() {
         Admin
       </span>
     </Link>
-
+    {showInstallPrompt && (
+  <button
+    onClick={handleInstall}
+    className="flex items-center gap-3 px-6 py-3.5 transition-all duration-200 hover:bg-blue-700/50 active:bg-blue-700/70 bg-green-600 mx-4 rounded-lg mt-2"
+  >
+    <Download size={20} className="flex-shrink-0" />
+    <span className="text-sm font-semibold">Install App</span>
+  </button>
+)}
     <Link
       href="/admin/tracker"
       className={`
