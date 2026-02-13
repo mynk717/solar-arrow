@@ -234,6 +234,15 @@ export default function Sidebar() {
             );
           })}
 
+{showInstallPrompt && (
+  <button
+    onClick={handleInstall}
+    className="flex items-center gap-3 px-6 py-3.5 transition-all duration-200 hover:bg-blue-700/50 active:bg-blue-700/70 bg-green-600 mx-4 rounded-lg mt-2"
+  >
+    <Download size={20} className="flex-shrink-0" />
+    <span className="text-sm font-semibold">Install App</span>
+  </button>
+)}
           {/* Admin-only Project Tracker Link */}
           {/* Admin-only Links */}
 {(session?.user?.accountType === 'admin' && 
@@ -280,15 +289,7 @@ export default function Sidebar() {
         Admin
       </span>
     </Link>
-    {showInstallPrompt && (
-  <button
-    onClick={handleInstall}
-    className="flex items-center gap-3 px-6 py-3.5 transition-all duration-200 hover:bg-blue-700/50 active:bg-blue-700/70 bg-green-600 mx-4 rounded-lg mt-2"
-  >
-    <Download size={20} className="flex-shrink-0" />
-    <span className="text-sm font-semibold">Install App</span>
-  </button>
-)}
+
     <Link
       href="/admin/tracker"
       className={`
