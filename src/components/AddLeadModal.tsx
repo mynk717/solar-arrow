@@ -195,7 +195,7 @@ export default function AddLeadModal({ isOpen, onClose, isDemoMode = false }: Ad
   
       alert('Lead created successfully!');
       onClose();
-      window.location.reload();
+      window.dispatchEvent(new CustomEvent('leadCreated'));
     } catch (error: any) {
       console.error('Error creating lead:', error);
       alert(`Error: ${error.message}`);

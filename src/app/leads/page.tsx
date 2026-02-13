@@ -1,7 +1,7 @@
 // src/app/leads/page.tsx - PWA OPTIMIZED + DARK TEXT
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Phone,
@@ -50,6 +50,21 @@ const [selectedLeads, setSelectedLeads] = useState<string[]>([]); // For bulk ac
 const [users, setUsers] = useState<any[]>([]);
 const [autoAssigning, setAutoAssigning] = useState(false);
 const canAssign = ['owner', 'admin', 'sales'].includes(userRole);
+const { refreshSilent } = useLeads();
+
+useEffect(() => {
+  // ✅ Listen for lead creation events
+  const handleLeadCreated = () => {
+    console.log('🔔 Lead created - refreshing...');
+    refreshSilent();
+  };
+
+  window.addEventListener('leadCreated', handleLeadCreated);
+  
+  return () => {
+    window.removeEventListener('leadCreated', handleLeadCreated);
+  };
+}, [refreshSilent]);
 
 const handleSelectLead = (leadId: string) => {
   setSelectedLeads(prev => 
