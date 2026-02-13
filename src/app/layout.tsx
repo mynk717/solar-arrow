@@ -1,4 +1,5 @@
 // src/app/layout.tsx
+import { useEffect } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -10,6 +11,19 @@ import PWAInstaller from '@/components/PWAInstaller';
 
 
 const inter = Inter({ subsets: ['latin'] });
+
+useEffect(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        console.log('✅ Service Worker registered:', registration);
+      })
+      .catch((error) => {
+        console.error('❌ Service Worker registration failed:', error);
+      });
+  }
+}, []);
 
 // Viewport config
 export const viewport: Viewport = {
