@@ -53,6 +53,26 @@ const canAssign = ['owner', 'admin', 'sales'].includes(userRole);
 const { refreshSilent } = useLeads();
 
 useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/settings/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users.filter((u: any) => 
+          u.isActive && ['sales', 'admin', 'telecaller'].includes(u.role)
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+  
+  if (canAssign) {
+    fetchUsers();
+  }
+}, [canAssign]);
+
+useEffect(() => {
   // ✅ Listen for lead creation events
   const handleLeadCreated = () => {
     console.log('🔔 Lead created - refreshing...');
@@ -331,20 +351,21 @@ return (
             {/* Content based on view */}
             {view === 'funnel' && <FunnelView leads={filteredLeads} />}
             {view === 'list' && (
-              <LeadListView
-                leads={myLeads}
-                onViewLead={setSelectedLead}
-                onCallLog={(lead) => {
-                  setSelectedLead(lead);
-                  setShowCallLogModal(true);
-                }}
-                onConvert={(lead) => {
-                  setSelectedLead(lead);
-                  setShowConvertModal(true);
-                }}
-                isDemoMode={isDemoMode}
-              />
-            )}
+  <LeadListView
+    leads={myLeads}
+    onViewLead={setSelectedLead}
+    onCallLog={(lead) => { setSelectedLead(lead); setShowCallLogModal(true); }}
+    onConvert={(lead) => { setSelectedLead(lead); setShowConvertModal(true); }}
+    isDemoMode={isDemoMode}
+    // ADD THESE PROPS ↓
+    selectedLeads={selectedLeads}
+    onSelectLead={handleSelectLead}
+    onSelectAll={(leads) => setSelectedLeads(leads.map(l => l.id))}
+    onDeselectAll={() => setSelectedLeads([])}
+    // END OF NEW PROPS ↑
+  />
+)}
+
             {view === 'board' && <KanbanBoardView leads={filteredLeads} />}
 
             {/* Modals - Lazy render */}
@@ -537,18 +558,30 @@ function FunnelView({ leads }: { leads: Lead[] }) {
 }
 
 // Lead List View Component  
-function LeadListView({
-  leads,
-  onViewLead,
-  onCallLog,
-  onConvert,
+function LeadListView({ 
+  leads, 
+  onViewLead, 
+  onCallLog, 
+  onConvert, 
   isDemoMode,
+  // ADD THESE PARAMETERS ↓
+  selectedLeads,
+  onSelectLead,
+  onSelectAll,
+  onDeselectAll
+  // END OF NEW PARAMETERS ↑
 }: {
   leads: Lead[];
   onViewLead: (lead: Lead) => void;
   onCallLog: (lead: Lead) => void;
   onConvert: (lead: Lead) => void;
   isDemoMode: boolean;
+  // ADD THESE TYPES ↓
+  selectedLeads: string[];
+  onSelectLead: (leadId: string) => void;
+  onSelectAll: (leads: Lead[]) => void;
+  onDeselectAll: () => void;
+  // END OF NEW TYPES ↑
 }) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -557,6 +590,22 @@ function LeadListView({
         <table className="w-full">
           <thead className="bg-gray-100 border-b-2 border-gray-300">
             <tr>
+              {/* ADD THIS CHECKBOX COLUMN ↓ */}
+    <th className="text-left py-4 px-6 font-bold text-gray-900">
+      <input
+        type="checkbox"
+        checked={selectedLeads.length === leads.length && leads.length > 0}
+        onChange={(e) => {
+          if (e.target.checked) {
+            onSelectAll(leads); 
+          } else {
+            onDeselectAll();
+          }
+        }}
+        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+        title="Select All"
+      />
+    </th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Lead ID</th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Customer</th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Contact</th>
@@ -567,8 +616,22 @@ function LeadListView({
             </tr>
           </thead>
           <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id} className="border-t border-gray-200 hover:bg-gray-50">
+  {leads.map(lead => (
+    <tr 
+      key={lead.id} 
+      className={`border-t border-gray-200 hover:bg-gray-50 ${
+        selectedLeads.includes(lead.id) ? 'bg-blue-50' : ''
+      }`}
+    >
+      {/* ADD THIS CHECKBOX CELL ↓ */}
+      <td className="py-4 px-6">
+        <input
+          type="checkbox"
+          checked={selectedLeads.includes(lead.id)}
+          onChange={() => onSelectLead(lead.id)}
+          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+        />
+      </td>
                 <td className="py-4 px-6 font-mono text-sm font-semibold text-gray-900">{lead.id}</td>
                 <td className="py-4 px-6">
                   <div className="font-bold text-gray-900">{lead.customerName}</div>
@@ -631,10 +694,24 @@ function LeadListView({
 
       {/* Mobile Card View */}
       <div className="lg:hidden divide-y divide-gray-200">
-        {leads.map((lead) => (
-          <div key={lead.id} className="p-4 hover:bg-gray-50">
-            <div className="flex justify-between items-start mb-2">
-              <div>
+  {leads.map(lead => (
+    <div 
+      key={lead.id} 
+      className={`p-4 hover:bg-gray-50 ${
+        selectedLeads.includes(lead.id) ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+      }`}
+    >
+      <div className="flex justify-between items-start mb-2">
+        {/* ADD THIS CHECKBOX ↓ */}
+        <input
+          type="checkbox"
+          checked={selectedLeads.includes(lead.id)}
+          onChange={() => onSelectLead(lead.id)}
+          className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 mt-1"
+        />
+        {/* END OF NEW CHECKBOX ↑ */}
+        <div className="flex-1 ml-3">
+
                 <div className="font-bold text-gray-900">{lead.customerName}</div>
                 <div className="text-xs font-mono text-gray-700">{lead.id}</div>
               </div>

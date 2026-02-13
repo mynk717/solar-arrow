@@ -4,6 +4,8 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 import { fetchLeads, updateLead } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { notifyLeadAssigned } from '@/lib/telegram';
+import { getGoogleSheetsClient } from '@/lib/googleSheets';
+
 
 export async function POST(request: Request) {
   try {
@@ -36,25 +38,70 @@ export async function POST(request: Request) {
       });
     }
 
-    // Get available users (sales role)
-    const orgId = session.user.organizationId || 'hope-energy';
-    const allUsers = await redis.smembers(`org:${orgId}:users`);
+   // Get available users (sales role)
+const orgId = session.user.organizationId || 'hope-energy';
+const allUsers = await redis.smembers(`org:${orgId}:users`);
+const availableUsers = [];
+
+for (const userId of allUsers) {
+  const userInfo = await redis.get(`user:${userId}:info`) as any;
+  if (userInfo && userInfo.role === targetRole && userInfo.isActive) {
+    if (!branchId || userInfo.branchId === branchId) {
+      availableUsers.push(userInfo);
+    }
+  }
+}
+
+// ✅ ADD FALLBACK: If Redis is empty, try fetching from Google Sheets
+if (availableUsers.length === 0) {
+  console.log('No users found in Redis, attempting Google Sheets fallback...');
+  
+  try {
+    const sheetId = session.user.sheetId;
     
-    const availableUsers = [];
-    for (const userId of allUsers) {
-      const userInfo = await redis.get(`user:${userId}:info`) as any;
-      if (userInfo && userInfo.role === targetRole && userInfo.isActive) {
-        if (!branchId || userInfo.branchId === branchId) {
-          availableUsers.push(userInfo);
+    if (sheetId) {
+      const sheets = await getGoogleSheetsClient();
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: 'USERS!A2:G1000', // Adjust based on your sheet structure
+      });
+      
+      const rows = response.data.values || [];
+      
+      // Parse users from sheet: [email, name, role, isActive, branchId, ...]
+      for (const row of rows) {
+        if (row[2] === targetRole && row[3] === 'true') { // role and isActive
+          if (!branchId || row[4] === branchId) {
+            availableUsers.push({
+              email: row[0],
+              name: row[1],
+              role: row[2],
+              isActive: true,
+              branchId: row[4],
+            });
+          }
         }
       }
     }
+  } catch (sheetError) {
+    console.error('Fallback to Google Sheets failed:', sheetError);
+  }
+}
 
-    if (availableUsers.length === 0) {
-      return NextResponse.json({ 
-        error: 'No available users for assignment' 
-      }, { status: 400 });
-    }
+if (availableUsers.length === 0) {
+  return NextResponse.json(
+    { 
+      error: `No available ${targetRole} users found for assignment. Please ensure you have active ${targetRole} users in your system.`,
+      details: {
+        searched_role: targetRole,
+        searched_branch: branchId || 'all',
+        organization: orgId
+      }
+    },
+    { status: 400 }
+  );
+}
+
 
     // Round-robin assignment
     const assignments = [];
