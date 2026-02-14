@@ -49,24 +49,30 @@ if (!['admin', 'owner', 'sales'].includes(userRole)) {
         );
         
         // 🔔 Telegram notification
-        try {
-          const orgId = session.user.organizationId || 'default-org';
-          const allLeads = await fetchLeads();
-          const lead = allLeads.find((l: any) => l.id === leadId);
-        
-          await notifyLeadAssigned(orgId, {
-            id: leadId,
-            customerName: lead?.customerName || 'Unknown',
-            phone: lead?.phone || 'N/A',
-            area: lead?.area,
-            capacity: lead?.capacity,
-            priority: (lead?.priority as any) || 'medium',
-            assignedToName: assignToName || assignToEmail,
-            assignedToEmail: assignToEmail,
-          });
-        } catch (err) {
-          console.error('notifyLeadAssigned failed (non-blocking):', err);
-        }
+        // Telegram notification - FIXED
+try {
+  const orgId = session.user.organizationId || 'default-org';
+  const allLeads = await fetchLeads();
+  const lead = allLeads.find((l: any) => l.id === leadId);
+
+  // Send to GROUP and USER DM
+  await notifyLeadAssigned(orgId, {
+    id: leadId,
+    customerName: lead?.customerName || 'Unknown',
+    phone: lead?.phone || 'N/A',
+    area: lead?.area,
+    capacity: lead?.capacity,
+    priority: (lead?.priority as any) || 'medium',
+    assignedToName: assignToName || assignToEmail,
+    assignedToEmail: assignToEmail,
+  });
+
+  console.log('✅ Lead assignment notification sent to group + user DM');
+} catch (err) {
+  console.error('⚠️ notifyLeadAssigned failed (non-blocking):', err);
+  // Don't fail the assignment if notification fails
+}
+
         
         results.push({ leadId, success: true });
         

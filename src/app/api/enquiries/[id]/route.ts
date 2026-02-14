@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiry, deleteEnquiry, fetchEnquiries } from '@/lib/googleSheets';
+import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
 
 // GET single enquiry
 export async function GET(
@@ -66,7 +67,51 @@ export async function PATCH(
 
     await updateEnquiry(updatedEnquiry);
 
-    console.log(`Updated enquiry ${enquiryId}:`, updates);
+    // 🚀 NEW: Send Telegram notification for the update
+    try {
+      const orgId = session.user.organizationId || 'default-org';
+      
+      // Determine activity type based on what was updated
+      let activityType: 'status' | 'payment' | 'survey' | 'installation' | 'registration' | 'general' = 'general';
+      
+      if (updates.status) {
+        activityType = 'status';
+      } else if (updates.paymentDate || updates.paymentStatus || updates.paymentMethod) {
+        activityType = 'payment';
+      } else if (updates.surveyDate || updates.surveyApproved || updates.surveyedBy) {
+        activityType = 'survey';
+      } else if (updates.installationDate || updates.installedBy) {
+        activityType = 'installation';
+      } else if (updates.registrationId || updates.registrationDate) {
+        activityType = 'registration';
+      }
+      
+      // Format updates for display (exclude meta fields)
+      const displayUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (key !== 'id' && key !== 'updatedAt' && value !== undefined) {
+          displayUpdates[key] = value;
+        }
+      }
+      
+      // Only send notification if there are actual updates to display
+      if (Object.keys(displayUpdates).length > 0) {
+        await notifyEnquiryActivity(
+          orgId,
+          enquiryId,
+          currentEnquiry.customerName || 'Unknown Customer',
+          activityType,
+          displayUpdates,
+          session.user.name || session.user.email || 'System',
+          updates.notes
+        );
+      }
+    } catch (notificationError) {
+      console.error('⚠️ Notification error (non-blocking):', notificationError);
+      // Don't fail the update if notification fails
+    }
+
+    console.log(`✅ Updated enquiry ${enquiryId}:`, updates);
 
     return NextResponse.json({ 
       success: true, 

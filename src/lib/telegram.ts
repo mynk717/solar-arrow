@@ -330,6 +330,103 @@ export async function notifyLeadStatusUpdate(
   return await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
 }
 
+/**
+ * NEW: Send generic activity/update notification to group
+ * Use this for ANY workflow activity (enquiry updates, status changes, etc.)
+ */
+export async function notifyActivity(
+  orgId: string,
+  activity: {
+    title: string;           // e.g., "Enquiry Updated", "Survey Completed"
+    emoji?: string;          // e.g., "📝", "✅", "🔄"
+    entityType: string;      // "enquiry" | "lead" | "survey" | "payment"
+    entityId: string;        // ENQ-001, LEAD-123, etc.
+    customerName?: string;
+    fields: Record<string, string | number | undefined>; // Key-value pairs to display
+    performedBy?: string;    // Who made the change
+    notes?: string;          // Additional notes
+  }
+) {
+  const emoji = activity.emoji || '📋';
+  
+  let message = `${emoji} *${activity.title}*\n\n`;
+  
+  if (activity.customerName) {
+    message += `*Customer:* ${activity.customerName}\n`;
+  }
+  
+  message += `*${activity.entityType.charAt(0).toUpperCase() + activity.entityType.slice(1)} ID:* ${activity.entityId}\n`;
+  
+  // Add all fields
+  for (const [key, value] of Object.entries(activity.fields)) {
+    if (value !== undefined && value !== null && value !== '') {
+      const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+      message += `*${formattedKey}:* ${value}\n`;
+    }
+  }
+  
+  if (activity.performedBy) {
+    message += `\n_Updated by: ${activity.performedBy}_`;
+  }
+  
+  if (activity.notes) {
+    message += `\n*Notes:* ${activity.notes}`;
+  }
+
+  return await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
+}
+
+
+/**
+ * NEW: Send enquiry update notification
+ */
+export async function notifyEnquiryUpdate(
+  orgId: string,
+  enquiryData: {
+    id: string;
+    customerName: string;
+    updateType: string;      // "status_change" | "payment" | "survey" | "installation" | "general"
+    changes: Record<string, { old?: any; new: any }>;
+    updatedBy: string;
+    notes?: string;
+  }
+) {
+  const emojiMap: Record<string, string> = {
+    status_change: '🔄',
+    payment: '💰',
+    survey: '📋',
+    installation: '🔧',
+    inspection: '✅',
+    general: '📝',
+  };
+
+  const emoji = emojiMap[enquiryData.updateType] || '📝';
+  
+  let message = `${emoji} *Enquiry Updated*\n\n`;
+  message += `*Customer:* ${enquiryData.customerName}\n`;
+  message += `*Enquiry ID:* ${enquiryData.id}\n\n`;
+  
+  // Show changes
+  message += `*Changes:*\n`;
+  for (const [field, change] of Object.entries(enquiryData.changes)) {
+    const formattedField = field.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+    
+    if (change.old !== undefined) {
+      message += `• ${formattedField}: ${change.old} → ${change.new}\n`;
+    } else {
+      message += `• ${formattedField}: ${change.new}\n`;
+    }
+  }
+  
+  message += `\n_Updated by: ${enquiryData.updatedBy}_`;
+  
+  if (enquiryData.notes) {
+    message += `\n*Notes:* ${enquiryData.notes}`;
+  }
+
+  return await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
+}
+
 // ============================================
 // SINGLETON INSTANCE (Keep for backward compatibility)
 // ============================================
