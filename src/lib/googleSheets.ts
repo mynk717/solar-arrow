@@ -772,45 +772,45 @@ function rowToLead(row: any[]): any | null {
   if (!row || row.length < 7) return null;
 
   const [
-    id,
-    customerName,
-    phone,
-    email,
-    address,
-    area,
-    capacity,
-    status,
-    source,
-    providerId,
-    providerName,
-    assignedTo,
-    assignedToName,
-    assignedDate,
-    firstContactDate,
-    lastContactDate,
-    contactAttempts,
-    qualified,
-    qualifiedDate,
-    qualifiedBy,
-    converted,
-    convertedDate,
-    convertedBy,
-    enquiryId,
-    estimatedBudget,
-    urgency,
-    timeline,
-    lostReason,
-    lostDate,
-    nextFollowUpDate,
-    callbackScheduled,
-    priority,
-    tags,
-    notes,
-    createdAt,
-    updatedAt,
-    createdBy,
-    lastActivityBy,
-    lastActivityDate,
+    id,                    // A
+    customerName,          // B
+    phone,                 // C
+    email,                 // D
+    address,               // E
+    area,                  // F
+    capacity,              // G
+    status,                // H
+    source,                // I
+    providerId,            // J
+    providerName,          // K
+    assignedTo,            // L
+    assignedToName,        // M
+    assignedDate,          // N
+    firstContactDate,      // O
+    lastContactDate,       // P
+    contactAttempts,       // Q
+    qualified,             // R
+    qualifiedDate,         // S
+    qualifiedBy,           // T
+    converted,             // U
+    convertedDate,         // V
+    convertedBy,           // W
+    enquiryId,             // X
+    estimatedBudget,       // Y
+    urgency,               // Z
+    timeline,              // AA
+    lostReason,            // AB
+    lostDate,              // AC
+    nextFollowUpDate,      // AD
+    callbackScheduled,     // AE
+    priority,              // AF
+    tags,                  // AG
+    notes,                 // AH
+    createdAt,             // AI
+    updatedAt,             // AJ
+    createdBy,             // AK
+    lastActivityBy,        // AL
+    lastActivityDate,      // AM
   ] = row;
 
   return {
@@ -856,52 +856,55 @@ function rowToLead(row: any[]): any | null {
   };
 }
 
+
 /**
  * Convert Lead object to row array
  */
+// Convert Lead object to row array (39 columns)
 function leadToRow(lead: any): any[] {
   return [
-    lead.id || '',
-    lead.customerName || '',
-    lead.phone || '',
-    lead.email || '',
-    lead.address || '',
-    lead.area || '',
-    lead.capacity || '',
-    lead.status || 'new',
-    lead.source || '',
-    lead.providerId || '',
-    lead.providerName || '',
-    lead.assignedTo || '',
-    lead.assignedToName || '',
-    lead.assignedDate?.toISOString().split('T')[0] || '',
-    lead.firstContactDate?.toISOString().split('T')[0] || '',
-    lead.lastContactDate?.toISOString().split('T')[0] || '',
-    lead.contactAttempts || 0,
-    lead.qualified ? 'TRUE' : 'FALSE',
-    lead.qualifiedDate?.toISOString().split('T')[0] || '',
-    lead.qualifiedBy || '',
-    lead.converted ? 'TRUE' : 'FALSE',
-    lead.convertedDate?.toISOString().split('T')[0] || '',
-    lead.convertedBy || '',
-    lead.enquiryId || '',
-    lead.estimatedBudget || '',
-    lead.urgency || 'medium',
-    lead.timeline || '',
-    lead.lostReason || '',
-    lead.lostDate?.toISOString().split('T')[0] || '',
-    lead.nextFollowUpDate?.toISOString().split('T')[0] || '',
-    lead.callbackScheduled ? 'TRUE' : 'FALSE',
-    lead.priority || 'medium',
-    Array.isArray(lead.tags) ? lead.tags.join(',') : (lead.tags || ''),
-    lead.notes || '',
-    lead.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-    lead.updatedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-    lead.createdBy || '',
-    lead.lastActivityBy || '',
-    lead.lastActivityDate?.toISOString().split('T')[0] || '',
+    lead.id || '', // A
+    lead.customerName || '', // B
+    lead.phone || '', // C
+    lead.email || '', // D
+    lead.address || '', // E
+    lead.area || '', // F
+    lead.capacity || '', // G
+    lead.status || 'new', // H
+    lead.source || '', // I
+    lead.providerId || '', // J
+    lead.providerName || '', // K
+    lead.assignedTo || '', // L
+    lead.assignedToName || '', // M
+    lead.assignedDate?.toISOString?.()?.split('T')[0] || '', // N
+    lead.firstContactDate?.toISOString?.()?.split('T')[0] || '', // O
+    lead.lastContactDate?.toISOString?.()?.split('T')[0] || '', // P
+    lead.contactAttempts || 0, // Q
+    lead.qualified ? 'TRUE' : 'FALSE', // R
+    lead.qualifiedDate?.toISOString?.()?.split('T')[0] || '', // S
+    lead.qualifiedBy || '', // T
+    lead.converted ? 'TRUE' : 'FALSE', // U
+    lead.convertedDate?.toISOString?.()?.split('T')[0] || '', // V
+    lead.convertedBy || '', // W
+    lead.enquiryId || '', // X
+    lead.estimatedBudget || '', // Y
+    lead.urgency || 'medium', // Z
+    lead.timeline || '', // AA
+    lead.lostReason || '', // AB
+    lead.lostDate?.toISOString?.()?.split('T')[0] || '', // AC
+    lead.nextFollowUpDate?.toISOString?.()?.split('T')[0] || '', // AD
+    lead.callbackScheduled ? 'TRUE' : 'FALSE', // AE
+    lead.priority || 'medium', // AF
+    Array.isArray(lead.tags) ? lead.tags.join(',') : (lead.tags || ''), // AG
+    lead.notes || '', // AH
+    lead.createdAt?.toISOString?.()?.split('T')[0] || new Date().toISOString().split('T')[0], // AI
+    lead.updatedAt?.toISOString?.()?.split('T')[0] || new Date().toISOString().split('T')[0], // AJ
+    lead.createdBy || '', // AK
+    lead.lastActivityBy || '', // AL
+    lead.lastActivityDate?.toISOString?.()?.split('T')[0] || '', // AM
   ];
 }
+
 
 /**
  * Create a new lead in LEADS tab
@@ -919,21 +922,51 @@ export async function createLead(leadData: any, createdBy: string): Promise<any>
 
     const newLead = {
       id: leadId,
-      ...leadData,
+      customerName: leadData.customerName || '',
+      phone: leadData.phone || '',
+      email: leadData.email || '',
+      address: leadData.address || '',
+      area: leadData.area || '',
+      capacity: leadData.capacity || '',
+      status: leadData.status || 'new',
+      source: leadData.source || leadData.leadSource || 'website',
+      providerId: leadData.providerId || '',
+      providerName: leadData.providerName || '',
+      assignedTo: leadData.assignedTo || '',
+      assignedToName: leadData.assignedToName || '',
+      assignedDate: leadData.assignedDate || null,
+      firstContactDate: null,
+      lastContactDate: null,
       contactAttempts: 0,
       qualified: false,
+      qualifiedDate: null,
+      qualifiedBy: '',
       converted: false,
+      convertedDate: null,
+      convertedBy: '',
+      enquiryId: '',
+      estimatedBudget: leadData.estimatedBudget || null,
+      urgency: leadData.urgency || 'medium',
+      timeline: leadData.timeline || '',
+      lostReason: '',
+      lostDate: null,
+      nextFollowUpDate: leadData.nextFollowUpDate || null,
       callbackScheduled: false,
+      priority: leadData.priority || 'medium',
+      tags: Array.isArray(leadData.tags) ? leadData.tags : [],
+      notes: leadData.notes || '',
       createdAt: new Date(),
       updatedAt: new Date(),
       createdBy: createdBy,
+      lastActivityBy: createdBy,
+      lastActivityDate: new Date(),
     };
 
     const row = leadToRow(newLead);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'LEADS!A:AN', // Adjust to your column count
+      range: 'LEADS!A:AM', // 39 columns (A to AM)
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [row],
@@ -958,7 +991,7 @@ export async function createLead(leadData: any, createdBy: string): Promise<any>
           phone: leadData.phone || 'N/A',
           area: leadData.area,
           capacity: leadData.capacity,
-          source: leadData.leadSource || leadData.source || 'website',
+          source: leadData.source || leadData.leadSource || 'website',
           priority: leadData.priority || 'medium',
           createdBy: createdBy,
         });
@@ -982,6 +1015,7 @@ export async function createLead(leadData: any, createdBy: string): Promise<any>
 }
 
 
+
 /**
  * Update an existing lead in LEADS tab
  */
@@ -997,7 +1031,7 @@ export async function updateLead(
     // Find lead row
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'LEADS!A2:AN10000',
+      range: 'LEADS!A2:AM10000', // ✅ Changed to AM (39 columns)
     });
 
     const rows = response.data.values || [];
@@ -1024,7 +1058,7 @@ export async function updateLead(
     // Update the row (rowIndex + 2 because: 1 for header, 1 for 0-based index)
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
-      range: `LEADS!A${rowIndex + 2}:AN${rowIndex + 2}`,
+      range: `LEADS!A${rowIndex + 2}:AM${rowIndex + 2}`, // ✅ Changed to AM
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [updatedRow],
@@ -1047,6 +1081,7 @@ export async function updateLead(
   }
 }
 
+
 /**
  * Convert lead to enquiry (move from LEADS to ENQUIRIES tab)
  */
@@ -1062,7 +1097,7 @@ export async function convertLeadToEnquiry(
     // 1. Get lead data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'LEADS!A2:AN10000',
+      range: 'LEADS!A2:AM10000', // ✅ Changed to AM (39 columns)
     });
 
     const rows = response.data.values || [];
@@ -1100,12 +1135,12 @@ export async function convertLeadToEnquiry(
       ...enquiryData,
     };
 
-    // 3. Add to ENQUIRIES tab
+    // 3. Add to ENQUIRIES tab (keep this as ENQUIRIES has 117 columns)
     const enquiryRow = enquiryToRow(newEnquiry);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A:DR',
+      range: 'ENQUIRIES!A:DR', // ✅ Keep as is (117 columns for ENQUIRIES)
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [enquiryRow],
@@ -1140,6 +1175,7 @@ export async function convertLeadToEnquiry(
     throw new Error(`Failed to convert lead: ${error.message}`);
   }
 }
+
 
 /**
  * Log lead activity to ACTIVITY_LOG tab
