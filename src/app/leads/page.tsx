@@ -833,7 +833,7 @@ function LeadCard({ lead, compact = false }: { lead: Lead; compact?: boolean }) 
 
           <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-200">
             <span className="text-gray-700 font-medium">
-              {lead.createdAt.toLocaleDateString()}
+            {lead.createdAt ? new Date(lead.createdAt as any).toLocaleDateString() : ''}
             </span>
             {lead.assignedToName && (
               <span className="text-blue-700 font-semibold truncate max-w-[100px]">

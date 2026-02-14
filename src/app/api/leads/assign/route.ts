@@ -1,3 +1,4 @@
+import { notifyLeadAssigned } from '@/lib/telegram';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
@@ -45,8 +46,29 @@ export async function POST(request: Request) {
           },
           session.user.email || 'system'
         );
-
+        
+        // 🔔 Telegram notification
+        try {
+          const orgId = session.user.organizationId || 'default-org';
+          const allLeads = await fetchLeads();
+          const lead = allLeads.find((l: any) => l.id === leadId);
+        
+          await notifyLeadAssigned(orgId, {
+            id: leadId,
+            customerName: lead?.customerName || 'Unknown',
+            phone: lead?.phone || 'N/A',
+            area: lead?.area,
+            capacity: lead?.capacity,
+            priority: (lead?.priority as any) || 'medium',
+            assignedToName: assignToName || assignToEmail,
+            assignedToEmail: assignToEmail,
+          });
+        } catch (err) {
+          console.error('notifyLeadAssigned failed (non-blocking):', err);
+        }
+        
         results.push({ leadId, success: true });
+        
       } catch (error: any) {
         errors.push({ leadId, error: error.message });
       }

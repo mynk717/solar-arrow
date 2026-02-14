@@ -24,7 +24,7 @@ export default function AssignLeadsModal({
   onClose,
   selectedLeads,
   availableUsers,
-  onAssign
+  onAssign,
 }: AssignLeadsModalProps) {
   const [selectedUser, setSelectedUser] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,51 +52,64 @@ export default function AssignLeadsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Assign Leads</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+          <h2 className="text-lg font-semibold text-gray-900">
+            Assign Leads
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-800 rounded-full p-1 hover:bg-gray-100"
+          >
+            <X size={20} />
           </button>
         </div>
 
         <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">
-            Selected leads: <strong>{selectedLeads.length}</strong>
+          <p className="text-sm text-gray-700">
+            Selected leads:{' '}
+            <span className="font-semibold text-gray-900">
+              {selectedLeads.length}
+            </span>
           </p>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Assign to:</label>
+        <div className="mb-5">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
+            Assign to
+          </label>
           <select
             value={selectedUser}
             onChange={(e) => setSelectedUser(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full border-2 border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 bg-white"
           >
-            <option value="">Select a user...</option>
-            {availableUsers.map(user => (
+            <option value="" className="text-gray-500">
+              Select a user…
+            </option>
+            {availableUsers.map((user) => (
               <option key={user.id} value={user.email}>
-                {user.name} ({user.email}) {user.branchName && `- ${user.branchName}`}
+                {user.name} ({user.email})
+                {user.branchName ? ` – ${user.branchName}` : ''}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={loading}
-            className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
           >
             Cancel
           </button>
           <button
             onClick={handleAssign}
             disabled={loading || !selectedUser}
-            className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
           >
-            {loading ? 'Assigning...' : 'Assign Leads'}
+            {loading ? 'Assigning…' : 'Assign Leads'}
           </button>
         </div>
       </div>
