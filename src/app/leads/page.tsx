@@ -87,10 +87,15 @@ useEffect(() => {
 }, [refreshSilent]);
 
 const handleSelectLead = (leadId: string) => {
-  setSelectedLeads(prev => 
-    prev.includes(leadId) ? prev.filter(id => id !== leadId) : [...prev, leadId]
+  console.log('Checkbox clicked:', leadId);
+  console.log('Before:', selectedLeads);
+  setSelectedLeads((prev) =>
+    prev.includes(leadId)
+      ? prev.filter((id) => id !== leadId)
+      : [...prev, leadId]
   );
 };
+
 
 const handleAssign = async (assignToEmail: string, assignToName: string) => {
   try {
@@ -362,7 +367,6 @@ return (
     onSelectLead={handleSelectLead}
     onSelectAll={(leads) => setSelectedLeads(leads.map(l => l.id))}
     onDeselectAll={() => setSelectedLeads([])}
-    // END OF NEW PROPS ↑
   />
 )}
 
