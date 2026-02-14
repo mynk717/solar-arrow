@@ -848,19 +848,31 @@ function LeadCard({ lead, compact = false }: { lead: Lead; compact?: boolean }) 
 }
 
 // Lead Status Badge
-function LeadStatusBadge({ status }: { status: LeadStatus }) {
-  const config: Record<LeadStatus, { label: string; color: string }> = {
-    new: { label: 'New', color: 'bg-gray-100 text-gray-900 border-gray-300' },
-    assigned: { label: 'Assigned', color: 'bg-blue-100 text-blue-900 border-blue-300' },
+function LeadStatusBadge({ status }: { status: LeadStatus | string }) {
+  const config: Record<string, { label: string; color: string }> = {
+    new:       { label: 'New',       color: 'bg-gray-100 text-gray-900 border-gray-300' },
+    assigned:  { label: 'Assigned',  color: 'bg-blue-100 text-blue-900 border-blue-300' },
     contacted: { label: 'Contacted', color: 'bg-yellow-100 text-yellow-900 border-yellow-400' },
-    callback: { label: 'Callback', color: 'bg-orange-100 text-orange-900 border-orange-300' },
+    callback:  { label: 'Callback',  color: 'bg-orange-100 text-orange-900 border-orange-300' },
     qualified: { label: 'Qualified', color: 'bg-green-100 text-green-900 border-green-400' },
     converted: { label: 'Converted', color: 'bg-purple-100 text-purple-900 border-purple-400' },
-    lost: { label: 'Lost', color: 'bg-red-100 text-red-900 border-red-300' },
-    nurture: { label: 'Nurture', color: 'bg-indigo-100 text-indigo-900 border-indigo-300' },
+    lost:      { label: 'Lost',      color: 'bg-red-100 text-red-900 border-red-300' },
+    nurture:   { label: 'Nurture',   color: 'bg-indigo-100 text-indigo-900 border-indigo-300' },
   };
 
-  const { label, color } = config[status];
+  const fallbackLabel =
+    status && typeof status === 'string'
+      ? status.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : 'Unknown';
+
+  const fallbackColor = 'bg-gray-100 text-gray-900 border-gray-300';
+
+  const configEntry = config[status as string] ?? {
+    label: fallbackLabel,
+    color: fallbackColor,
+  };
+
+  const { label, color } = configEntry;
 
   return (
     <span className={`px-2.5 py-1 rounded-full text-xs font-bold border-2 ${color}`}>
@@ -868,6 +880,7 @@ function LeadStatusBadge({ status }: { status: LeadStatus }) {
     </span>
   );
 }
+
 
 // Lead Details Modal
 function LeadDetailsModal({
