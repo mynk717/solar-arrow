@@ -102,17 +102,35 @@ const handleAssign = async (assignToEmail: string, assignToName: string) => {
     const response = await fetch('/api/leads/assign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadIds: selectedLeads, assignToEmail, assignToName })
+      body: JSON.stringify({
+        leadIds: selectedLeads,
+        assignToEmail,
+        assignToName: assignToName || assignToEmail,
+      }),
     });
+
+    const result = await response.json();
+
     if (response.ok) {
-      alert('Leads assigned!');
+      // Close modal first for better UX
+      setShowAssignModal(false);
+      
+      // Show success
+      alert(`✅ ${result.assigned} lead(s) assigned to ${assignToName}!`);
+      
+      // Clear selections
       setSelectedLeads([]);
-      window.location.reload();
+      
+      // Silent refresh in background - NO PAGE RELOAD
+      await refreshSilent();
+    } else {
+      alert(`❌ Failed: ${result.error || 'Unknown error'}`);
     }
-  } catch (error) {
-    alert('Failed to assign leads');
+  } catch (error: any) {
+    alert('❌ Network error. Please try again.');
   }
 };
+
 
 const handleAutoAssign = async () => {
   if (!confirm('Auto-assign all unassigned leads?')) return;

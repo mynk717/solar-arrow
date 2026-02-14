@@ -7,17 +7,16 @@ import { fetchLeads, updateLead } from '@/lib/googleSheets';
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only admin and sales managers can assign
     const userRole = session.user.role || 'user';
-if (!['admin', 'owner', 'sales'].includes(userRole)) {
-  return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
-}
-
+    if (!['admin', 'owner', 'sales'].includes(userRole)) {
+      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+    }
 
     const { leadIds, assignToEmail, assignToName, assignmentType } = await request.json();
 
@@ -29,11 +28,15 @@ if (!['admin', 'owner', 'sales'].includes(userRole)) {
       return NextResponse.json({ error: 'Assignee email required' }, { status: 400 });
     }
 
-    const results = [];
-    const errors = [];
+    const results: any[] = [];
+    const errors: any[] = [];
+
+    console.log('🔍 Starting lead assignment for', leadIds.length, 'leads');
 
     for (const leadId of leadIds) {
       try {
+        console.log(`📝 Assigning lead ${leadId} to ${assignToEmail}`);
+
         // Update lead with assignment
         await updateLead(
           leadId,
@@ -47,51 +50,65 @@ if (!['admin', 'owner', 'sales'].includes(userRole)) {
           },
           session.user.email || 'system'
         );
-        
-        // 🔔 Telegram notification
-        // Telegram notification - FIXED
-try {
-  const orgId = session.user.organizationId || 'default-org';
-  const allLeads = await fetchLeads();
-  const lead = allLeads.find((l: any) => l.id === leadId);
 
-  // Send to GROUP and USER DM
-  await notifyLeadAssigned(orgId, {
-    id: leadId,
-    customerName: lead?.customerName || 'Unknown',
-    phone: lead?.phone || 'N/A',
-    area: lead?.area,
-    capacity: lead?.capacity,
-    priority: (lead?.priority as any) || 'medium',
-    assignedToName: assignToName || assignToEmail,
-    assignedToEmail: assignToEmail,
-  });
+        console.log(`✅ Lead ${leadId} updated in Google Sheets`);
 
-  console.log('✅ Lead assignment notification sent to group + user DM');
-} catch (err) {
-  console.error('⚠️ notifyLeadAssigned failed (non-blocking):', err);
-  // Don't fail the assignment if notification fails
-}
+        // Telegram notification - WITH BETTER ERROR HANDLING
+        try {
+          console.log('📱 Sending Telegram notification...');
+          
+          const orgId = session.user.organizationId || 'default-org';
+          console.log('🔍 OrgId:', orgId);
+          
+          const allLeads = await fetchLeads();
+          const lead = allLeads.find((l: any) => l.id === leadId);
 
-        
+          if (!lead) {
+            console.error('❌ Lead not found in fetchLeads for notification');
+          } else {
+            console.log('🔍 Found lead:', lead.customerName);
+            
+            const notificationData = {
+              id: leadId,
+              customerName: lead?.customerName || 'Unknown',
+              phone: lead?.phone || 'N/A',
+              area: lead?.area,
+              capacity: lead?.capacity,
+              priority: (lead?.priority as any) || 'medium',
+              assignedToName: assignToName || assignToEmail,
+              assignedToEmail: assignToEmail,
+            };
+            
+            console.log('📤 Notification data:', notificationData);
+            
+            const notifyResult = await notifyLeadAssigned(orgId, notificationData);
+            
+            console.log('✅ Notification result:', notifyResult);
+          }
+        } catch (notificationError: any) {
+          console.error('⚠️ Telegram notification failed (non-blocking):', notificationError);
+          console.error('⚠️ Error details:', notificationError.message);
+          // Don't fail the assignment if notification fails
+        }
+
         results.push({ leadId, success: true });
-        
       } catch (error: any) {
+        console.error(`❌ Failed to assign lead ${leadId}:`, error);
         errors.push({ leadId, error: error.message });
       }
     }
+
+    console.log(`✅ Assignment complete: ${results.length} succeeded, ${errors.length} failed`);
 
     return NextResponse.json({
       success: true,
       assigned: results.length,
       failed: errors.length,
       results,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
-
   } catch (error: any) {
-    return NextResponse.json({ 
-      error: error.message 
-    }, { status: 500 });
+    console.error('❌ Assignment error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
