@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { fetchLeads, updateLead } from '@/lib/googleSheets';
+import { invalidateLeadsCache } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
 
     const results: any[] = [];
     const errors: any[] = [];
+    const orgId = (session.user as any).organizationId || 'default-org'; // ✅ Moved up for cache invalidation
 
     console.log('🔍 Starting lead assignment for', leadIds.length, 'leads');
 
@@ -38,27 +40,24 @@ export async function POST(request: Request) {
         console.log(`📝 Assigning lead ${leadId} to ${assignToEmail}`);
 
         // Update lead with assignment
-        // Update lead with assignment
-await updateLead(
-  leadId,
-  {
-    assignedTo: assignToEmail,
-    assignedToName: assignToName || assignToEmail,
-    assignedDate: new Date(),  // ✅ Pass Date object, not string
-    status: 'assigned',
-    lastActivityBy: session.user.email,
-    lastActivityDate: new Date(),  // ✅ Pass Date object, not string
-  },
-  session.user.email || 'system'
-);
+        await updateLead(
+          leadId,
+          {
+            assignedTo: assignToEmail,
+            assignedToName: assignToName || assignToEmail,
+            assignedDate: new Date(),
+            status: 'assigned',
+            lastActivityBy: session.user.email,
+            lastActivityDate: new Date(),
+          },
+          session.user.email || 'system'
+        );
 
         console.log(`✅ Lead ${leadId} updated in Google Sheets`);
 
         // Telegram notification - WITH BETTER ERROR HANDLING
         try {
           console.log('📱 Sending Telegram notification...');
-          
-          const orgId = session.user.organizationId || 'default-org';
           console.log('🔍 OrgId:', orgId);
           
           const allLeads = await fetchLeads();
@@ -97,6 +96,16 @@ await updateLead(
         console.error(`❌ Failed to assign lead ${leadId}:`, error);
         errors.push({ leadId, error: error.message });
       }
+    }
+
+    // ✅ CRITICAL: Invalidate cache after ALL assignments complete
+    console.log('🔄 Invalidating leads cache for orgId:', orgId);
+    try {
+      await invalidateLeadsCache(orgId);
+      console.log('✅ Cache invalidated successfully');
+    } catch (cacheError: any) {
+      console.error('⚠️ Cache invalidation failed (non-blocking):', cacheError);
+      // Don't fail the assignment if cache invalidation fails
     }
 
     console.log(`✅ Assignment complete: ${results.length} succeeded, ${errors.length} failed`);
