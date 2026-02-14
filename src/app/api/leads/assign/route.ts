@@ -14,9 +14,10 @@ export async function POST(request: Request) {
 
     // Only admin and sales managers can assign
     const userRole = session.user.role || 'user';
-    if (!['admin', 'sales'].includes(userRole)) {
-      return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
-    }
+if (!['admin', 'owner', 'sales'].includes(userRole)) {
+  return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+}
+
 
     const { leadIds, assignToEmail, assignToName, assignmentType } = await request.json();
 
