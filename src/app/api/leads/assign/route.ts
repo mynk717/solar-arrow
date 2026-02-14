@@ -38,18 +38,19 @@ export async function POST(request: Request) {
         console.log(`📝 Assigning lead ${leadId} to ${assignToEmail}`);
 
         // Update lead with assignment
-        await updateLead(
-          leadId,
-          {
-            assignedTo: assignToEmail,
-            assignedToName: assignToName || assignToEmail,
-            assignedDate: new Date().toISOString(),
-            status: 'assigned',
-            lastActivityBy: session.user.email,
-            lastActivityDate: new Date().toISOString(),
-          },
-          session.user.email || 'system'
-        );
+        // Update lead with assignment
+await updateLead(
+  leadId,
+  {
+    assignedTo: assignToEmail,
+    assignedToName: assignToName || assignToEmail,
+    assignedDate: new Date(),  // ✅ Pass Date object, not string
+    status: 'assigned',
+    lastActivityBy: session.user.email,
+    lastActivityDate: new Date(),  // ✅ Pass Date object, not string
+  },
+  session.user.email || 'system'
+);
 
         console.log(`✅ Lead ${leadId} updated in Google Sheets`);
 
