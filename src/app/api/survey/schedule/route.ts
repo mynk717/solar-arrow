@@ -52,15 +52,18 @@ async function sendTelegramNotification(enquiry: any, surveyDate: string, assign
   }
 }
 
+
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('📝 Session:', session?.user?.email); // ✅ ADD
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { enquiryId, surveyDate, assignedTo, assignedToName } = await request.json();
+    console.log('📝 Request data:', { enquiryId, surveyDate, assignedTo }); // ✅ ADD
 
     if (!enquiryId || !surveyDate || !assignedTo) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -68,30 +71,36 @@ export async function POST(request: Request) {
 
     // Get enquiry
     const enquiry = await fetchEnquiryById(enquiryId);
+    console.log('📝 Enquiry found:', enquiry ? 'Yes' : 'No'); // ✅ ADD
     
     if (!enquiry) {
       return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
     }
 
     // Update enquiry with survey schedule
+    console.log('📝 Updating enquiry...'); // ✅ ADD
     await updateEnquiryInSheet(enquiryId, {
       surveyScheduledDate: surveyDate,
       surveyedBy: assignedTo,
       status: 'survey-scheduled',
     });
+    console.log('✅ Enquiry updated'); // ✅ ADD
 
     // Send notification
+    console.log('📝 Sending telegram notification...'); // ✅ ADD
     await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo);
+    console.log('✅ Telegram sent (or skipped if not configured)'); // ✅ ADD
 
     return NextResponse.json({ 
       success: true,
       message: 'Survey scheduled successfully'
     });
   } catch (error: any) {
-    console.error('Error scheduling survey:', error);
+    console.error('❌ Error scheduling survey:', error); // ✅ ADD
     return NextResponse.json(
       { error: error.message || 'Failed to schedule survey' },
       { status: 500 }
     );
   }
 }
+

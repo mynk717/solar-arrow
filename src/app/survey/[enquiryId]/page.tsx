@@ -50,6 +50,13 @@ export default function SurveyDetailPage() {
         const foundSurvey = surveyData.surveys.find(
           (s: any) => s.enquiryId === params.enquiryId
         );
+        if (foundSurvey && typeof foundSurvey.shadowSources === 'string') {
+            try {
+              foundSurvey.shadowSources = JSON.parse(foundSurvey.shadowSources);
+            } catch (e) {
+              foundSurvey.shadowSources = [];
+            }
+          }
         setSurvey(foundSurvey);
       }
 
@@ -315,16 +322,19 @@ export default function SurveyDetailPage() {
             <InfoField label="Lightning Arrestor" value={survey.lightningArrestorRequired} />
           </div>
           <div className="space-y-2">
-            <div>
-              <p className="text-xs text-gray-600 mb-1">Shadow Sources</p>
-              <div className="flex flex-wrap gap-2">
-                {survey.shadowSources.map((source: string) => (
-                  <span key={source} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-bold">
-                    {source}
-                  </span>
-                ))}
-              </div>
-            </div>
+          <div>
+  <p className="text-xs text-gray-600 mb-1">Shadow Sources</p>
+  <div className="flex flex-wrap gap-2">
+    {(typeof survey.shadowSources === 'string' 
+      ? JSON.parse(survey.shadowSources) 
+      : survey.shadowSources
+    ).map((source: string) => (
+      <span key={source} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-bold">
+        {source}
+      </span>
+    ))}
+  </div>
+</div>
             <div>
               <p className="text-xs text-gray-600">Shadow Removable</p>
               <p className="text-sm font-bold text-gray-900">
