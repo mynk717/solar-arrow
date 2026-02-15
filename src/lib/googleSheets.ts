@@ -6,7 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
 import { redis } from './redis';
-import { Quotation } from './quotations';
+import { Quotation, QuotationStatus } from './quotations';
 import { 
   cacheSheetData,
   getCachedSheetData,
@@ -1917,7 +1917,11 @@ function rowToQuotation(row: any[]): Quotation | null {
     paymentTerms: paymentTerms || '',
 
     // Tracking
-    status: (status || 'Draft') as 'Draft' | 'Sent' | 'Viewed' | 'Approved' | 'Rejected',
+    status: (() => {
+      const rawStatus = status || 'Draft';
+      if (rawStatus === 'Sent') return 'Ready';
+      return rawStatus as QuotationStatus;
+    })(),    
     createdBy: createdBy || '',
     createdDate: createdDate || new Date().toISOString(),
     sentBy: sentBy || undefined,

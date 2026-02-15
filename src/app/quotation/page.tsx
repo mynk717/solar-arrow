@@ -16,7 +16,8 @@ import {
   ClipboardList,
   PackageCheck,
   ThumbsUp,
-  FileEdit
+  FileEdit,
+  Share2
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
@@ -28,8 +29,8 @@ export default function QuotationsPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
-  const handleSend = async (quotationId: string) => {
-    if (!confirm('Send this quotation to the customer?')) return;
+  const handleMarkReady = async (quotationId: string) => {
+    if (!confirm('Mark this quotation as ready to share with customer?')) return;
     
     setSendingId(quotationId);
     
@@ -43,10 +44,10 @@ export default function QuotationsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send');
+        throw new Error(data.error || 'Failed to mark as ready');
       }
 
-      alert(`✅ Quotation sent successfully!\n\n📱 Public Link:\n${data.publicUrl}`);
+      alert(`✅ Quotation is ready to share!\n\n📱 Public Link:\n${data.publicUrl}\n\nClick "Share" to send to customer.`);
       window.location.reload();
     } catch (error: any) {
       alert('❌ ' + error.message);
@@ -69,7 +70,8 @@ export default function QuotationsPage() {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       'Draft': 'bg-gray-100 text-gray-800',
-      'Sent': 'bg-blue-100 text-blue-800',
+      'Ready': 'bg-blue-100 text-blue-800',
+      'Shared': 'bg-purple-100 text-purple-800',
       'Viewed': 'bg-yellow-100 text-yellow-800',
       'Approved': 'bg-green-100 text-green-800',
       'Rejected': 'bg-red-100 text-red-800',
@@ -128,8 +130,8 @@ export default function QuotationsPage() {
           color="blue"
         />
         <StatCard
-          title="Sent"
-          value={quotations.filter(q => q.status === 'Sent' || q.status === 'Viewed').length}
+          title="Ready to Share"
+          value={quotations.filter(q => q.status === 'Ready' || q.status === 'Shared').length}
           Icon={PackageCheck}
           color="green"
         />
@@ -232,25 +234,25 @@ export default function QuotationsPage() {
                       
                       {quot.status === 'Draft' && (
                         <button
-                          onClick={() => handleSend(quot.quotationId)}
+                          onClick={() => handleMarkReady(quot.quotationId)}
                           disabled={sendingId === quot.quotationId}
                           className="text-green-600 hover:text-green-900 inline-flex items-center gap-1 disabled:opacity-50"
                         >
                           {sendingId === quot.quotationId ? (
                             <Loader2 size={16} className="animate-spin" />
                           ) : (
-                            <Send size={16} />
+                            <CheckCircle size={16} />
                           )}
-                          {sendingId === quot.quotationId ? 'Sending...' : 'Send'}
+                          {sendingId === quot.quotationId ? 'Preparing...' : 'Mark Ready'}
                         </button>
                       )}
                       
-                      {(quot.status === 'Sent' || quot.status === 'Viewed') && quot.publicUrl && (
+                      {(quot.status === 'Ready' || quot.status === 'Shared' || quot.status === 'Viewed') && quot.publicUrl && (
                         <button
                           onClick={() => handleShare(quot)}
                           className="text-purple-600 hover:text-purple-900 inline-flex items-center gap-1"
                         >
-                          <Copy size={16} />
+                          <Share2 size={16} />
                           Share
                         </button>
                       )}

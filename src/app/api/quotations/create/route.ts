@@ -3,15 +3,85 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { createQuotation, fetchAllQuotations } from '@/lib/googleSheets';
-import QRCode from 'qrcode';
-import { 
-  generatePublicToken, 
-  generatePublicUrl, 
-  calculateValidityDate, 
-  calculateGST 
+import {
+  generatePublicToken,
+  generatePublicUrl,
+  calculateValidityDate,
+  calculateGST,
 } from '@/lib/quotations';
-// ✅ FIX: Import type separately to avoid circular dependency
 import type { Quotation } from '@/lib/quotations';
+import { redis } from '@/lib/redis';
+
+// ✅ Send Telegram notification for new quotation
+async function sendTelegramNotification(quotation: Quotation) {
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  
+  if (!telegramBotToken) {
+    console.warn('⚠️ Telegram bot token not configured');
+    return;
+  }
+
+  try {
+    // Get quotation team chat ID from Redis
+    const chatId = await redis.get(`org:${quotation.organizationId}:telegram:quotationteam`);
+    
+    if (!chatId) {
+      console.warn('⚠️ No quotation team chat ID configured');
+      return;
+    }
+
+    const message = `
+🆕 *NEW QUOTATION CREATED*
+
+*Quotation ID:* ${quotation.quotationId}
+*Reference:* ${quotation.referenceNumber}
+
+*Customer Details:*
+👤 Name: ${quotation.customerName}
+📱 Phone: ${quotation.customerPhone}
+📧 Email: ${quotation.customerEmail || 'N/A'}
+📍 Location: ${quotation.location}
+
+*System Details:*
+⚡ Capacity: ${quotation.systemCapacity} kW
+🔌 Type: ${quotation.systemType}
+☀️ Panel: ${quotation.panelMake} (${quotation.panelWattage}Wp × ${quotation.panelQuantity})
+
+*Pricing:*
+💰 Base Cost: ₹${quotation.baseCost.toLocaleString('en-IN')}
+📊 GST (${quotation.gstPercentage}%): ₹${quotation.gstAmount.toLocaleString('en-IN')}
+💵 Final Amount: *₹${quotation.finalAmount.toLocaleString('en-IN')}*
+
+*Status:* Draft
+*Created By:* ${quotation.createdBy}
+*Valid Until:* ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}
+
+📋 *Action Required:* Review and mark as ready to share with customer.
+`.trim();
+
+    const response = await fetch(
+      `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown',
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Telegram API error');
+    }
+
+    console.log('✅ Telegram notification sent for quotation', quotation.quotationId);
+  } catch (error) {
+    console.error('❌ Failed to send Telegram notification:', error);
+    // Don't throw - notification failure shouldn't block quotation creation
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -28,19 +98,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    
-    // ✅ FIX: Validate required fields BEFORE any other operations
-    const requiredFields = ['customerName', 'customerPhone', 'systemCapacity', 'baseCost'];
-    const missingFields = requiredFields.filter(field => !body[field]);
 
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    const orgId = (session.user as any).organizationId || 'hope-energy';
+    const orgId = (session.user as any).organizationId || 'default-org';
     const orgName = (session.user as any).organizationName || 'Solar Arrow';
     const sheetId = (session.user as any).sheetId;
 
@@ -48,15 +107,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // ✅ FIX: Get current quotation count safely
-    let counter = 1;
-    try {
-      const existingQuotations = await fetchAllQuotations(orgId);
-      counter = existingQuotations.length + 1;
-    } catch (error) {
-      console.warn('⚠️ Could not fetch existing quotations, using counter 1');
-    }
-
+    // Get current quotation count for this org
+    const existingQuotations = await fetchAllQuotations(orgId);
+    const counter = existingQuotations.length + 1;
     const quotationId = `QT-${String(counter).padStart(3, '0')}`;
 
     // Generate security token
@@ -64,13 +117,13 @@ export async function POST(request: Request) {
 
     // Calculate GST
     const baseCost = parseFloat(body.baseCost);
-    const gstPercentage = parseFloat(body.gstPercentage || '8.9');
+    const gstPercentage = parseFloat(body.gstPercentage || 18);
     const gstAmount = calculateGST(baseCost, gstPercentage);
     const totalCost = baseCost + gstAmount;
-    const subsidyAmount = parseFloat(body.subsidyAmount || '0');
+    const subsidyAmount = parseFloat(body.subsidyAmount || 0);
     const finalAmount = totalCost - subsidyAmount;
 
-    // ✅ FIX: Create quotation object WITHOUT circular references
+    // Create quotation object
     const quotation: Quotation = {
       // Multi-tenant
       organizationId: orgId,
@@ -87,9 +140,9 @@ export async function POST(request: Request) {
       // Customer
       customerName: body.customerName,
       customerPhone: body.customerPhone,
-      customerEmail: body.customerEmail || '',
-      customerAddress: body.customerAddress || '',
-      location: body.location || '',
+      customerEmail: body.customerEmail,
+      customerAddress: body.customerAddress,
+      location: body.location,
       premisesType: body.premisesType || 'Residence',
 
       // System
@@ -98,32 +151,38 @@ export async function POST(request: Request) {
       panelType: body.panelType || 'RTS DCR',
 
       // Components
-      panelMake: body.panelMake || '',
+      panelMake: body.panelMake,
       panelModel: body.panelModel || '',
-      panelWattage: parseFloat(body.panelWattage || '0'),
-      panelQuantity: parseInt(body.panelQuantity || '0'),
-      panelWarranty: body.panelWarranty || '',
-      inverterMake: body.inverterMake || '',
-      inverterModel: body.inverterModel || '',
-      inverterCapacity: parseFloat(body.inverterCapacity || '0'),
-      inverterQuantity: parseInt(body.inverterQuantity || '1'),
-      inverterWarranty: body.inverterWarranty || '',
-      structureType: body.structureType || '',
-      structureMake: body.structureMake || '',
-      structureWarranty: body.structureWarranty || '',
-      bosItems: body.bosItems || '',
-      bosWarranty: body.bosWarranty || '',
-      cableMake: body.cableMake || '',
-      cableWarranty: body.cableWarranty || '',
-      earthingType: body.earthingType || '',
-      earthingQuantity: parseInt(body.earthingQuantity || '0'),
-      earthingWarranty: body.earthingWarranty || '',
-      lightningArrestorType: body.lightningArrestorType || '',
-      lightningArrestorQuantity: parseInt(body.lightningArrestorQuantity || '0'),
-      lightningArrestorWarranty: body.lightningArrestorWarranty || '',
+      panelWattage: parseFloat(body.panelWattage),
+      panelQuantity: parseInt(body.panelQuantity),
+      panelWarranty: body.panelWarranty,
+
+      inverterMake: body.inverterMake,
+      inverterModel: body.inverterModel,
+      inverterCapacity: parseFloat(body.inverterCapacity),
+      inverterQuantity: parseInt(body.inverterQuantity),
+      inverterWarranty: body.inverterWarranty,
+
+      structureType: body.structureType,
+      structureMake: body.structureMake,
+      structureWarranty: body.structureWarranty,
+
+      bosItems: body.bosItems,
+      bosWarranty: body.bosWarranty,
+
+      cableMake: body.cableMake,
+      cableWarranty: body.cableWarranty,
+
+      earthingType: body.earthingType,
+      earthingQuantity: parseInt(body.earthingQuantity),
+      earthingWarranty: body.earthingWarranty,
+
+      lightningArrestorType: body.lightningArrestorType,
+      lightningArrestorQuantity: parseInt(body.lightningArrestorQuantity),
+      lightningArrestorWarranty: body.lightningArrestorWarranty,
 
       // Services
-      maintenanceYears: parseInt(body.maintenanceYears || '5'),
+      maintenanceYears: parseInt(body.maintenanceYears || 5),
       gridConnectivityIncluded: body.gridConnectivityIncluded !== false,
       netMeteringIncluded: body.netMeteringIncluded !== false,
 
@@ -136,9 +195,9 @@ export async function POST(request: Request) {
       finalAmount: finalAmount,
 
       // Payment Terms
-      advancePercentage: parseFloat(body.advancePercentage || '70'),
-      preDispatchPercentage: parseFloat(body.preDispatchPercentage || '20'),
-      preGridPercentage: parseFloat(body.preGridPercentage || '10'),
+      advancePercentage: parseFloat(body.advancePercentage || 70),
+      preDispatchPercentage: parseFloat(body.preDispatchPercentage || 20),
+      preGridPercentage: parseFloat(body.preGridPercentage || 10),
       paymentTerms: body.paymentTerms || '70% Advance with PO, 20% before Despatch, 10% before Grid synchronization',
 
       // Tracking
@@ -154,11 +213,11 @@ export async function POST(request: Request) {
 
       // Additional
       notes: body.notes || '',
-      termsAndConditions: body.termsAndConditions || 'Standard TC as per company policy',
+      termsAndConditions: body.termsAndConditions || 'Standard T&C as per company policy',
       loanAvailable: body.loanAvailable !== false,
       loanInterestRate: body.loanInterestRate ? parseFloat(body.loanInterestRate) : 6.0,
 
-      // Company Details
+      // Company Details (from session or body)
       companyName: body.companyName || orgName,
       companyGst: body.companyGst || '',
       companyUdyam: body.companyUdyam || '',
@@ -174,9 +233,13 @@ export async function POST(request: Request) {
     // Save to Google Sheets
     await createQuotation(quotation);
 
+    // ✅ Send Telegram notification (non-blocking)
+    sendTelegramNotification(quotation).catch(err => 
+      console.error('Telegram notification failed:', err)
+    );
+
     console.log(`✅ Created quotation ${quotationId} for ${orgName}`);
 
-    
     return NextResponse.json({
       success: true,
       quotation: {

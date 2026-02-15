@@ -1,6 +1,8 @@
 // src/lib/quotations.ts
 import crypto from 'crypto';
 
+export type QuotationStatus = 'Draft' | 'Ready' | 'Shared' | 'Viewed' | 'Approved' | 'Rejected';
+
 export interface Quotation {
   // Multi-tenant
   organizationId: string;
@@ -12,42 +14,48 @@ export interface Quotation {
   referenceNumber: string;
   leadId?: string;
   enquiryId?: string;
-  quotationType: 'Initial' | 'Revised' | 'Final';
+  quotationType: string; // "Initial" | "Revised"
 
   // Customer
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
-  customerAddress: string;
+  customerEmail?: string;
+  customerAddress?: string;
   location: string;
-  premisesType: 'Residence' | 'Commercial' | 'Industrial';
+  premisesType: string; // "Residence" | "Commercial" | "Industrial"
 
   // System
-  systemCapacity: number;
-  systemType: 'On-Grid' | 'Hybrid' | 'Off-Grid';
-  panelType: string;
+  systemCapacity: number; // in kW
+  systemType: string; // "On-Grid" | "Hybrid" | "Off-Grid"
+  panelType: string; // "RTS DCR" | "ALMM" | "Standard"
 
   // Components
   panelMake: string;
-  panelModel: string;
+  panelModel?: string;
   panelWattage: number;
   panelQuantity: number;
   panelWarranty: string;
+
   inverterMake: string;
   inverterModel: string;
   inverterCapacity: number;
   inverterQuantity: number;
   inverterWarranty: string;
+
   structureType: string;
   structureMake: string;
   structureWarranty: string;
-  bosItems: string;
+
+  bosItems: string; // Balance of System
   bosWarranty: string;
+
   cableMake: string;
   cableWarranty: string;
+
   earthingType: string;
   earthingQuantity: number;
   earthingWarranty: string;
+
   lightningArrestorType: string;
   lightningArrestorQuantity: number;
   lightningArrestorWarranty: string;
@@ -72,18 +80,18 @@ export interface Quotation {
   paymentTerms: string;
 
   // Tracking
-  status: 'Draft' | 'Sent' | 'Viewed' | 'Approved' | 'Rejected';
+  status: QuotationStatus;
   createdBy: string;
-  createdDate: Date | string;
+  createdDate: string;
   sentBy?: string;
-  sentDate?: Date | string;
+  sentDate?: string;
   viewCount: number;
-  firstViewedDate?: Date | string;
-  lastViewedDate?: Date | string;
+  firstViewedDate?: string;
+  lastViewedDate?: string;
   approvedBy?: string;
-  approvedDate?: Date | string;
+  approvedDate?: string;
   rejectedReason?: string;
-  validUntilDate: Date | string;
+  validUntilDate: string;
 
   // Security & URLs
   publicToken: string;
@@ -97,18 +105,19 @@ export interface Quotation {
   loanAvailable: boolean;
   loanInterestRate?: number;
 
-  // Company
+  // Company Details (for PDF generation)
   companyName: string;
-  companyGst: string;
-  companyUdyam: string;
-  companyCspdclReg: string;
-  companyBankName: string;
-  companyAccountNumber: string;
-  companyIfsc: string;
-  companyAddress: string;
-  companyPhone: string;
-  companyEmail: string;
+  companyGst?: string;
+  companyUdyam?: string;
+  companyCspdclReg?: string;
+  companyBankName?: string;
+  companyAccountNumber?: string;
+  companyIfsc?: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
 }
+
 
 /**
  * Generate secure public token
