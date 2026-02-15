@@ -6,6 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
 import { redis } from './redis';
+import type { Survey } from './types';
 import { Quotation, QuotationStatus } from './quotations';
 import { 
   cacheSheetData,
@@ -1958,4 +1959,252 @@ function rowToQuotation(row: any[]): Quotation | null {
     companyPhone: companyPhone || '',
     companyEmail: companyEmail || '',
   };
+}
+
+// Add to src/lib/googleSheets.ts
+
+// Convert row to Survey object
+function rowToSurvey(row: any[]): Survey | null {
+  if (!row || row.length < 10) return null;
+
+  const [
+    enquiryId,
+    surveyDate,
+    surveyorEmail,
+    surveyorName,
+    projectType,
+    consumerCategory,
+    installationSurface,
+    buildingFloor,
+    soilType,
+    structureStyle,
+    slopeDirection,
+    inclinationDegrees,
+    frontLegHeight,
+    rearLegHeight,
+    rafterCount,
+    purlineCount,
+    sectionSpecifications,
+    sanctionedLoad,
+    bpNumber,
+    transformerCapacity,
+    substationDistance,
+    panelToDcdbLength,
+    panelToDcdbSize,
+    dcdbToInverterLength,
+    dcdbToInverterSize,
+    inverterToAcdbLength,
+    inverterToAcdbSize,
+    acdbToMeterLength,
+    acdbToMeterSize,
+    meterToLtPanelLength,
+    meterToLtPanelSize,
+    existingEarthingCount,
+    newEarthingRequired,
+    lightningArrestorRequired,
+    shadowSources,
+    shadowRemovable,
+    internetAvailability,
+    monitoringSystem,
+    surveyApproved,
+    surveyNotes,
+    surveyPhotos,
+  ] = row;
+
+  return {
+    enquiryId: enquiryId || '',
+    surveyDate: surveyDate || '',
+    surveyorEmail: surveyorEmail || '',
+    surveyorName: surveyorName || '',
+    projectType: (projectType || 'ONGRID') as 'ONGRID' | 'OFFGRID' | 'HYBRID',
+    consumerCategory: (consumerCategory || 'DOMESTIC') as 'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL',
+    installationSurface: (installationSurface || 'ROOFTOP') as 'ROOFTOP' | 'GROUND' | 'TERRACE',
+    buildingFloor: parseInt(buildingFloor) || 0,
+    soilType: (soilType || 'CLAY') as 'CLAY' | 'SANDY' | 'ROCKY' | 'MIXED',
+    structureStyle: (structureStyle || 'STANDARD') as 'STANDARD' | 'ELEVATED' | 'BALLAST' | 'FLAT_ROOF',
+    slopeDirection: (slopeDirection || 'SOUTH') as 'SOUTH' | 'SOUTH_EAST' | 'SOUTH_WEST' | 'EAST' | 'WEST' | 'NORTH',
+    inclinationDegrees: parseFloat(inclinationDegrees) || 15,
+    frontLegHeight: parseFloat(frontLegHeight) || 1.5,
+    rearLegHeight: parseFloat(rearLegHeight) || 2.5,
+    rafterCount: parseInt(rafterCount) || 4,
+    purlineCount: parseInt(purlineCount) || 8,
+    sectionSpecifications: sectionSpecifications || '',
+    sanctionedLoad: parseFloat(sanctionedLoad) || 0,
+    bpNumber: bpNumber || '',
+    transformerCapacity: parseFloat(transformerCapacity) || 0,
+    substationDistance: parseFloat(substationDistance) || 0,
+    panelToDcdbLength: parseFloat(panelToDcdbLength) || 0,
+    panelToDcdbSize: parseFloat(panelToDcdbSize) || 0,
+    dcdbToInverterLength: parseFloat(dcdbToInverterLength) || 0,
+    dcdbToInverterSize: parseFloat(dcdbToInverterSize) || 0,
+    inverterToAcdbLength: parseFloat(inverterToAcdbLength) || 0,
+    inverterToAcdbSize: parseFloat(inverterToAcdbSize) || 0,
+    acdbToMeterLength: parseFloat(acdbToMeterLength) || 0,
+    acdbToMeterSize: parseFloat(acdbToMeterSize) || 0,
+    meterToLtPanelLength: parseFloat(meterToLtPanelLength) || 0,
+    meterToLtPanelSize: parseFloat(meterToLtPanelSize) || 0,
+    existingEarthingCount: parseInt(existingEarthingCount) || 0,
+    newEarthingRequired: parseInt(newEarthingRequired) || 0,
+    lightningArrestorRequired: parseInt(lightningArrestorRequired) || 0,
+    shadowSources: shadowSources ? JSON.parse(shadowSources) : [],
+    shadowRemovable: shadowRemovable === 'TRUE',
+    internetAvailability: (internetAvailability || 'WIFI') as 'WIFI' | 'GSM' | 'LAN' | 'NONE',
+    monitoringSystem: (monitoringSystem || 'RMS') as 'RMS' | 'SCADA' | 'NONE',
+    surveyApproved: surveyApproved === 'TRUE',
+    surveyNotes: surveyNotes || '',
+    surveyPhotos: surveyPhotos || '',
+  };
+}
+
+// Convert Survey to row
+function surveyToRow(survey: Survey): any[] {
+  return [
+    survey.enquiryId,
+    survey.surveyDate,
+    survey.surveyorEmail,
+    survey.surveyorName,
+    survey.projectType,
+    survey.consumerCategory,
+    survey.installationSurface,
+    survey.buildingFloor,
+    survey.soilType,
+    survey.structureStyle,
+    survey.slopeDirection,
+    survey.inclinationDegrees,
+    survey.frontLegHeight,
+    survey.rearLegHeight,
+    survey.rafterCount,
+    survey.purlineCount,
+    survey.sectionSpecifications,
+    survey.sanctionedLoad,
+    survey.bpNumber,
+    survey.transformerCapacity,
+    survey.substationDistance,
+    survey.panelToDcdbLength,
+    survey.panelToDcdbSize,
+    survey.dcdbToInverterLength,
+    survey.dcdbToInverterSize,
+    survey.inverterToAcdbLength,
+    survey.inverterToAcdbSize,
+    survey.acdbToMeterLength,
+    survey.acdbToMeterSize,
+    survey.meterToLtPanelLength,
+    survey.meterToLtPanelSize,
+    survey.existingEarthingCount,
+    survey.newEarthingRequired,
+    survey.lightningArrestorRequired,
+    JSON.stringify(survey.shadowSources),
+    survey.shadowRemovable ? 'TRUE' : 'FALSE',
+    survey.internetAvailability,
+    survey.monitoringSystem,
+    survey.surveyApproved ? 'TRUE' : 'FALSE',
+    survey.surveyNotes,
+    survey.surveyPhotos,
+  ];
+}
+
+// Fetch all surveys
+export async function fetchSurveys(): Promise<Survey[]> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'SURVEY!A2:AO10000',
+    });
+
+    const rows = response.data.values || [];
+    return rows.map(rowToSurvey).filter((s): s is Survey => s !== null);
+  } catch (error: any) {
+    console.error('Error fetching surveys:', error);
+    return [];
+  }
+}
+
+// Fetch survey by enquiry ID
+export async function fetchSurveyByEnquiryId(enquiryId: string): Promise<Survey | null> {
+  const surveys = await fetchSurveys();
+  return surveys.find(s => s.enquiryId === enquiryId) || null;
+}
+
+// Create survey
+export async function createSurvey(survey: Survey): Promise<void> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    const row = surveyToRow(survey);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'SURVEY!A:AO',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [row],
+      },
+    });
+
+    console.log('✅ Survey created for enquiry:', survey.enquiryId);
+  } catch (error: any) {
+    console.error('Error creating survey:', error);
+    throw new Error('Failed to create survey');
+  }
+}
+
+// Update survey
+export async function updateSurvey(enquiryId: string, updates: Partial<Survey>): Promise<void> {
+  try {
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'SURVEY!A2:AO10000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex(row => row[0] === enquiryId);
+
+    if (rowIndex === -1) {
+      throw new Error('Survey not found');
+    }
+
+    const existingSurvey = rowToSurvey(rows[rowIndex]);
+    if (!existingSurvey) throw new Error('Invalid survey data');
+
+    const updatedSurvey = { ...existingSurvey, ...updates };
+    const updatedRow = surveyToRow(updatedSurvey);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `SURVEY!A${rowIndex + 2}:AO${rowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [updatedRow],
+      },
+    });
+/*
+await updateEnquiryInSheet(enquiryId, {
+  surveyScheduledDate: surveyDate,
+  surveyedBy: assignedTo,
+  status: 'survey-scheduled', // ✅ Status updated
+});
+
+
+await updateEnquiryInSheet(surveyData.enquiryId, {
+  surveyCompletedDate: new Date().toISOString(),
+  status: 'survey-completed', // ✅ Status updated
+});
+*/
+// When approved:
+await updateEnquiryInSheet(enquiryId, {
+  surveyApproved: true,
+  status: 'survey-approved', // ✅ Status updated
+});
+    console.log('✅ Survey updated for enquiry:', enquiryId);
+  } catch (error: any) {
+    console.error('Error updating survey:', error);
+    throw new Error('Failed to update survey');
+  }
 }

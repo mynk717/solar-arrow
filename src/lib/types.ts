@@ -622,3 +622,63 @@ export interface AppUser {
   createdAt: Date;
   createdBy: string;
 }
+
+
+export interface Survey {
+  // Basic
+  enquiryId: string;
+  surveyDate: string;
+  surveyorEmail: string;
+  surveyorName: string;
+
+  // Project Details
+  projectType: 'ONGRID' | 'OFFGRID' | 'HYBRID';
+  consumerCategory: 'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL';
+  installationSurface: 'ROOFTOP' | 'GROUND' | 'TERRACE';
+  buildingFloor: number;
+  soilType: 'CLAY' | 'SANDY' | 'ROCKY' | 'MIXED';
+  
+  // Structure Details
+  structureStyle: 'STANDARD' | 'ELEVATED' | 'BALLAST' | 'FLAT_ROOF';
+  slopeDirection: 'SOUTH' | 'SOUTH_EAST' | 'SOUTH_WEST' | 'EAST' | 'WEST' | 'NORTH';
+  inclinationDegrees: number;
+  frontLegHeight: number; // in meters
+  rearLegHeight: number; // in meters
+  rafterCount: number;
+  purlineCount: number;
+  sectionSpecifications: string; // e.g., "C_CHANNEL", "HOLLOW_SQUARE"
+
+  // Electrical Details
+  sanctionedLoad: number; // in kW
+  bpNumber: string;
+  transformerCapacity: number; // in kVA
+  substationDistance: number; // in meters
+
+  // Cable Sizing
+  panelToDcdbLength: number;
+  panelToDcdbSize: number; // sq mm
+  dcdbToInverterLength: number;
+  dcdbToInverterSize: number;
+  inverterToAcdbLength: number;
+  inverterToAcdbSize: number;
+  acdbToMeterLength: number;
+  acdbToMeterSize: number;
+  meterToLtPanelLength: number;
+  meterToLtPanelSize: number;
+
+  // Safety & Infrastructure
+  existingEarthingCount: number;
+  newEarthingRequired: number;
+  lightningArrestorRequired: number;
+  shadowSources: string[]; // ["TREE", "BUILDING", "POLE"]
+  shadowRemovable: boolean;
+  
+  // Monitoring
+  internetAvailability: 'WIFI' | 'GSM' | 'LAN' | 'NONE';
+  monitoringSystem: 'RMS' | 'SCADA' | 'NONE';
+
+  // Status & Notes
+  surveyApproved: boolean;
+  surveyNotes: string;
+  surveyPhotos: string; // URL or path
+}
