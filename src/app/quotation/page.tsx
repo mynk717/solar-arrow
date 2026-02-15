@@ -12,7 +12,11 @@ import {
   CheckCircle, 
   FileText,
   Loader2,
-  X
+  X,
+  ClipboardList,
+  PackageCheck,
+  ThumbsUp,
+  FileEdit
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
@@ -120,25 +124,25 @@ export default function QuotationsPage() {
         <StatCard
           title="Total Quotations"
           value={quotations.length}
-          icon="📋"
+          Icon={ClipboardList}
           color="blue"
         />
         <StatCard
           title="Sent"
           value={quotations.filter(q => q.status === 'Sent' || q.status === 'Viewed').length}
-          icon="📤"
+          Icon={PackageCheck}
           color="green"
         />
         <StatCard
           title="Approved"
           value={quotations.filter(q => q.status === 'Approved').length}
-          icon="✅"
+          Icon={ThumbsUp}
           color="green"
         />
         <StatCard
           title="Draft"
           value={quotations.filter(q => q.status === 'Draft').length}
-          icon="📝"
+          Icon={FileEdit}
           color="gray"
         />
       </div>
@@ -275,27 +279,26 @@ export default function QuotationsPage() {
   );
 }
 
-function StatCard({ title, value, icon, color }: any) {
+function StatCard({ title, value, Icon, color }: any) {
   const colors: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200',
-    green: 'bg-green-50 border-green-200',
-    gray: 'bg-gray-50 border-gray-200',
+    blue: 'bg-blue-50 border-blue-200 text-blue-600',
+    green: 'bg-green-50 border-green-200 text-green-600',
+    gray: 'bg-gray-50 border-gray-200 text-gray-600',
   };
 
   return (
-    <div className={`${colors[color]} border rounded-lg p-4`}>
+    <div className={`${colors[color].split(' ').slice(0, 2).join(' ')} border rounded-lg p-4`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-600 mb-1">{title}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
         </div>
-        <span className="text-3xl">{icon}</span>
+        <Icon className={`h-8 w-8 ${colors[color].split(' ')[2]}`} />
       </div>
     </div>
   );
 }
 
-// ✅ ADD THIS ShareModal component
 function ShareModal({ quotation, onClose, onCopy, copied }: any) {
   const openWhatsApp = () => {
     const phone = quotation.customerPhone.replace(/\D/g, '');
@@ -307,7 +310,6 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
-        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -320,10 +322,9 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
         </h3>
 
         <div className="space-y-4">
-          {/* Public Link */}
           <div>
-            <label className="text-sm text-gray-600 mb-2 block">
-              📱 Public Link (for customer):
+            <label className="text-sm text-gray-600 mb-2 block flex items-center gap-1">
+              <Copy size={14} /> Public Link (for customer):
             </label>
             <div className="flex gap-2">
               <input
@@ -345,7 +346,6 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
             </p>
           </div>
 
-          {/* WhatsApp Quick Share */}
           <button
             onClick={openWhatsApp}
             className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium transition"
@@ -356,10 +356,11 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
             Share via WhatsApp
           </button>
 
-          {/* QR Code */}
           {quotation.qrCodeUrl && (
             <div className="text-center border-t pt-4">
-              <p className="text-sm text-gray-600 mb-3">📱 Or scan QR code:</p>
+              <p className="text-sm text-gray-600 mb-3 flex items-center justify-center gap-1">
+                <Eye size={14} /> Or scan QR code:
+              </p>
               <img
                 src={quotation.qrCodeUrl}
                 alt="QR Code"
