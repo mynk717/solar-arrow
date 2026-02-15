@@ -312,37 +312,68 @@ export default function SurveyDetailPage() {
 
         {/* Safety */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
-          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <Shield size={20} />
-            Safety & Infrastructure
-          </h2>
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <InfoField label="Existing Earthing" value={survey.existingEarthingCount} />
-            <InfoField label="New Earthing" value={survey.newEarthingRequired} />
-            <InfoField label="Lightning Arrestor" value={survey.lightningArrestorRequired} />
-          </div>
-          <div className="space-y-2">
-          <div>
-  <p className="text-xs text-gray-600 mb-1">Shadow Sources</p>
-  <div className="flex flex-wrap gap-2">
-    {(typeof survey.shadowSources === 'string' 
-      ? JSON.parse(survey.shadowSources) 
-      : survey.shadowSources
-    ).map((source: string) => (
-      <span key={source} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-bold">
-        {source}
-      </span>
-    ))}
+  <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+    <Shield size={20} />
+    Safety & Infrastructure
+  </h2>
+  <div className="grid grid-cols-3 gap-4 mb-4">
+    <InfoField label="Existing Earthing" value={survey.existingEarthingCount} />
+    <InfoField label="New Earthing" value={survey.newEarthingRequired} />
+    <InfoField label="Lightning Arrestor" value={survey.lightningArrestorRequired} />
+  </div>
+  <div className="space-y-2">
+    {/* ✅ FIXED Shadow Sources */}
+    <div>
+      <p className="text-xs text-gray-600 mb-1">Shadow Sources</p>
+      <div className="flex flex-wrap gap-2">
+        {(() => {
+          try {
+            let sources = survey.shadowSources;
+            
+            // Parse if string
+            if (typeof sources === 'string') {
+              sources = JSON.parse(sources);
+            }
+            
+            // Ensure it's an array
+            if (!Array.isArray(sources)) {
+              sources = [];
+            }
+            
+            // If empty, show "None"
+            if (sources.length === 0) {
+              return (
+                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-bold">
+                  None
+                </span>
+              );
+            }
+            
+            // Map and display
+            return sources.map((source: string) => (
+              <span key={source} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-bold">
+                {source}
+              </span>
+            ));
+          } catch (error) {
+            console.error('Error parsing shadowSources:', error);
+            return (
+              <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-bold">
+                Error loading
+              </span>
+            );
+          }
+        })()}
+      </div>
+    </div>
+    <div>
+      <p className="text-xs text-gray-600">Shadow Removable</p>
+      <p className="text-sm font-bold text-gray-900">
+        {survey.shadowRemovable ? '✅ Yes' : '❌ No'}
+      </p>
+    </div>
   </div>
 </div>
-            <div>
-              <p className="text-xs text-gray-600">Shadow Removable</p>
-              <p className="text-sm font-bold text-gray-900">
-                {survey.shadowRemovable ? '✅ Yes' : '❌ No'}
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Monitoring */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
