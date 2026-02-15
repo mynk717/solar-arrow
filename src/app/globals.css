@@ -500,3 +500,17 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Active touch feedback for PWA */
+.active\:scale-95:active {
+  transform: scale(0.95);
+}
