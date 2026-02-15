@@ -427,6 +427,7 @@ export async function notifyEnquiryUpdate(
   return await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
 }
 
+
 // ============================================
 // SINGLETON INSTANCE (Keep for backward compatibility)
 // ============================================

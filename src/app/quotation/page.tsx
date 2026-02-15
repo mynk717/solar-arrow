@@ -10,16 +10,15 @@ import {
   Eye, 
   Copy, 
   CheckCircle, 
-  Clock, 
   FileText,
   Loader2,
-  QrCode 
+  X
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
 export default function QuotationsPage() {
   const router = useRouter();
-  const { quotations, loading, error, sendQuotation } = useQuotations();
+  const { quotations, loading, error } = useQuotations();
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -29,13 +28,27 @@ export default function QuotationsPage() {
     if (!confirm('Send this quotation to the customer?')) return;
     
     setSendingId(quotationId);
-    const success = await sendQuotation(quotationId);
-    if (success) {
-      alert('✅ Quotation sent successfully!');
-    } else {
-      alert('❌ Failed to send quotation');
+    
+    try {
+      const response = await fetch('/api/quotations/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quotationId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send');
+      }
+
+      alert(`✅ Quotation sent successfully!\n\n📱 Public Link:\n${data.publicUrl}`);
+      window.location.reload();
+    } catch (error: any) {
+      alert('❌ ' + error.message);
+    } finally {
+      setSendingId(null);
     }
-    setSendingId(null);
   };
 
   const handleShare = (quotation: any) => {
@@ -136,7 +149,7 @@ export default function QuotationsPage() {
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
             <p className="text-gray-600 mb-2">No quotations found</p>
-            <p className="text-gray-500 text-sm">Try adjusting your search or filters</p>
+            <p className="text-gray-500 text-sm">Create your first quotation to get started</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -154,6 +167,9 @@ export default function QuotationsPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Final Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Valid Until
@@ -184,6 +200,11 @@ export default function QuotationsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-bold text-gray-900">
                         {formatCurrency(quot.finalAmount)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600">
+                        {quot.createdBy?.split('@')[0] || 'Unknown'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -220,16 +241,14 @@ export default function QuotationsPage() {
                         </button>
                       )}
                       
-                      {(quot.status === 'Sent' || quot.status === 'Viewed') && (
-                        <>
-                          <button
-                            onClick={() => handleShare(quot)}
-                            className="text-purple-600 hover:text-purple-900 inline-flex items-center gap-1"
-                          >
-                            <Copy size={16} />
-                            Share
-                          </button>
-                        </>
+                      {(quot.status === 'Sent' || quot.status === 'Viewed') && quot.publicUrl && (
+                        <button
+                          onClick={() => handleShare(quot)}
+                          className="text-purple-600 hover:text-purple-900 inline-flex items-center gap-1"
+                        >
+                          <Copy size={16} />
+                          Share
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -244,7 +263,10 @@ export default function QuotationsPage() {
       {showShareModal && selectedQuotation && (
         <ShareModal
           quotation={selectedQuotation}
-          onClose={() => setShowShareModal(false)}
+          onClose={() => {
+            setShowShareModal(false);
+            setCopiedUrl(false);
+          }}
           onCopy={copyToClipboard}
           copied={copiedUrl}
         />
@@ -273,49 +295,86 @@ function StatCard({ title, value, icon, color }: any) {
   );
 }
 
+// ✅ ADD THIS ShareModal component
 function ShareModal({ quotation, onClose, onCopy, copied }: any) {
+  const openWhatsApp = () => {
+    const phone = quotation.customerPhone.replace(/\D/g, '');
+    const message = `Hi ${quotation.customerName}, here's your solar quotation: ${quotation.publicUrl}`;
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <X size={24} />
+        </button>
+
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           Share Quotation {quotation.quotationId}
         </h3>
 
         <div className="space-y-4">
+          {/* Public Link */}
           <div>
-            <label className="text-sm text-gray-600 mb-2 block">Public Link:</label>
+            <label className="text-sm text-gray-600 mb-2 block">
+              📱 Public Link (for customer):
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={quotation.publicUrl}
                 readOnly
-                className="flex-1 px-3 py-2 border rounded-lg text-sm bg-gray-50"
+                className="flex-1 px-3 py-2 border rounded-lg text-sm bg-gray-50 font-mono"
               />
               <button
                 onClick={() => onCopy(quotation.publicUrl)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
               >
                 {copied ? <CheckCircle size={16} /> : <Copy size={16} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Share this link with customer via WhatsApp, Email or SMS
+            </p>
           </div>
 
+          {/* WhatsApp Quick Share */}
+          <button
+            onClick={openWhatsApp}
+            className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-medium transition"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+            </svg>
+            Share via WhatsApp
+          </button>
+
+          {/* QR Code */}
           {quotation.qrCodeUrl && (
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">Scan to view:</p>
+            <div className="text-center border-t pt-4">
+              <p className="text-sm text-gray-600 mb-3">📱 Or scan QR code:</p>
               <img
                 src={quotation.qrCodeUrl}
                 alt="QR Code"
-                className="mx-auto w-48 h-48"
+                className="mx-auto w-48 h-48 border-2 border-gray-200 rounded-lg p-2"
               />
+              <p className="text-xs text-gray-500 mt-2">
+                Customer can scan this to view quotation
+              </p>
             </div>
           )}
         </div>
 
         <button
           onClick={onClose}
-          className="w-full mt-6 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-bold"
+          className="w-full mt-6 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg font-bold transition"
         >
           Close
         </button>

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { createQuotation, fetchAllQuotations } from '@/lib/googleSheets';
+import QRCode from 'qrcode';
 import { 
   generatePublicToken, 
   generatePublicUrl, 
@@ -175,6 +176,7 @@ export async function POST(request: Request) {
 
     console.log(`✅ Created quotation ${quotationId} for ${orgName}`);
 
+    
     return NextResponse.json({
       success: true,
       quotation: {
