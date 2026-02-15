@@ -1,4 +1,4 @@
-// src/app/survey/page.tsx - ONLY UI UPDATED, DATA FETCH UNTOUCHED
+// src/app/survey/page.tsx - WORKING VERSION + UI ENHANCEMENTS
 
 'use client';
 import { useState } from 'react';
@@ -22,11 +22,12 @@ import {
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
+// ✅ KEEP LOCAL SIMPLIFIED INTERFACE (WORKS!)
 interface Survey {
   enquiryId: string;
   surveyDate: string;
   surveyorName: string;
-  surveyorEmail: string;
+  surveyorEmail?: string; // ✅ Added for filtering
   projectType: string;
   consumerCategory: string;
   installationSurface: string;
@@ -44,7 +45,7 @@ export default function SurveyPage() {
 
   const isAdmin = session?.user?.email?.includes('admin');
 
-  // ✅ ENHANCED FILTERING - Added scheduled status and search
+  // ✅ ENHANCED FILTERING
   const filteredSurveys = surveys.filter(survey => {
     // Search filter
     const matchesSearch = 
@@ -120,7 +121,7 @@ export default function SurveyPage() {
             )}
           </div>
 
-          {/* ✅ SEARCH BAR - NEW */}
+          {/* ✅ SEARCH BAR */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
             <input
@@ -132,7 +133,7 @@ export default function SurveyPage() {
             />
           </div>
 
-          {/* Stats - ENHANCED with Scheduled */}
+          {/* Stats */}
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
             <StatCard
               title="All"
@@ -350,7 +351,7 @@ function SurveyCard({ survey, onView, onSubmit }: any) {
         )}
       </div>
 
-      {/* Actions - ENHANCED */}
+      {/* Actions */}
       <div className="p-3 bg-white border-t border-gray-100">
         <div className="flex gap-2">
           <button
