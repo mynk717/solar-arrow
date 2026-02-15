@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Save, Send, Loader2, Calculator, ArrowLeft, Plus, Minus } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
+import { useQuotations } from '@/lib/useQuotations'; 
 
 interface ComponentOption {
   make: string;
@@ -42,6 +43,8 @@ export default function QuotationBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
+  const { createQuotation, sendQuotation } = useQuotations();
+
 
   // Form State
   const [formData, setFormData] = useState({
@@ -244,54 +247,45 @@ export default function QuotationBuilderPage() {
     setFormData(prev => ({ ...prev, panelQuantity: quantity }));
   };
 
-  const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
+  // Add this type cast to fix the type mismatch
+const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
     e.preventDefault();
-
+  
     if (isDemoMode) {
       alert('Demo mode - Cannot create quotation');
       return;
     }
-
+  
     if (!formData.customerName || !formData.customerPhone) {
       alert('❌ Please fill in customer name and phone');
       return;
     }
-
+  
     try {
       setLoading(true);
-
-      // Create quotation
-      const response = await fetch('/api/quotations/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          referenceNumber: '',
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create quotation');
-      }
-
-      alert(`✅ Quotation ${data.quotation.quotationId} created successfully!`);
-
+  
+      // ✅ FIX: Cast formData to match Quotation type
+      const quotationData = {
+        ...formData,
+        referenceNumber: '',
+        premisesType: formData.premisesType as 'Residence' | 'Commercial' | 'Industrial',
+        systemType: formData.systemType as 'On-Grid' | 'Hybrid' | 'Off-Grid',
+        quotationType: 'Initial' as const,
+      };
+  
+      // Use the hook instead of direct fetch
+      const result = await createQuotation(quotationData);
+  
+      alert(`✅ Quotation ${result.quotationId} created successfully!`);
+  
       // If sendImmediately, send the quotation
       if (sendImmediately) {
-        const sendResponse = await fetch('/api/quotations/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ quotationId: data.quotation.quotationId }),
-        });
-
-        if (sendResponse.ok) {
-          const sendData = await sendResponse.json();
-          alert(`✅ Quotation sent!\n\n📱 Share this link:\n${sendData.publicUrl}`);
+        const sendSuccess = await sendQuotation(result.quotationId);
+        if (sendSuccess) {
+          alert(`✅ Quotation sent!\n\n📱 Share this link:\n${result.publicUrl}`);
         }
       }
-
+  
       // Redirect to quotation page
       router.push('/quotation');
     } catch (error: any) {
@@ -300,6 +294,7 @@ export default function QuotationBuilderPage() {
       setLoading(false);
     }
   };
+  
 
   const gstAmount = Math.round(formData.baseCost * (formData.gstPercentage / 100));
   const totalCost = formData.baseCost + gstAmount;

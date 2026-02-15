@@ -1,4 +1,5 @@
-import { redis } from './redis';
+// src/lib/quotations.ts
+import crypto from 'crypto';
 
 export interface Quotation {
   // Multi-tenant
@@ -112,20 +113,15 @@ export interface Quotation {
 /**
  * Generate secure public token
  */
-export function generatePublicToken(length: number = 32): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = '';
-  for (let i = 0; i < length; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+export function generatePublicToken(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**
  * Generate public URL for quotation
  */
 export function generatePublicUrl(orgId: string, quotationId: string, token: string): string {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://sa.mktgdime.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sa.mktgdime.com';
   return `${baseUrl}/q/${orgId}/${quotationId}?token=${token}`;
 }
 
@@ -141,6 +137,15 @@ export function generateReferenceNumber(orgPrefix: string, location: string, cou
  */
 export function calculateGST(baseCost: number, gstPercentage: number): number {
   return Math.round(baseCost * (gstPercentage / 100));
+}
+
+/**
+ * Calculate quotation validity (default 30 days)
+ */
+export function calculateValidityDate(days: number = 30): Date {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
 }
 
 /**
@@ -172,13 +177,4 @@ export function formatCurrency(amount: number): string {
     currency: 'INR',
     minimumFractionDigits: 0,
   }).format(amount);
-}
-
-/**
- * Calculate quotation validity (default 30 days)
- */
-export function calculateValidityDate(days: number = 30): Date {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
 }
