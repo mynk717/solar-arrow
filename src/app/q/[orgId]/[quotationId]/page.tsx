@@ -1,19 +1,47 @@
 // src/app/q/[orgId]/[quotationId]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle, Download, Share2, Loader2, AlertCircle, Calendar, Phone, Mail, MapPin } from 'lucide-react';
-import type { Quotation } from '@/lib/quotations';
-import { formatCurrency } from '@/lib/quotations';
-import QRCode from 'qrcode';
+import { useState, useEffect, use } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Loader2, CheckCircle, Phone, Mail, MapPin, Calendar } from 'lucide-react';
+import Image from 'next/image';
 
-export default function PublicQuotationPage() {
-  const params = useParams();
+interface Quotation {
+  quotationId: string;
+  referenceNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  location: string;
+  systemCapacity: number;
+  systemType: string;
+  panelType: string;
+  panelMake: string;
+  panelModel: string;
+  panelWattage: number;
+  panelQuantity: number;
+  inverterMake: string;
+  inverterModel: string;
+  baseCost: number;
+  gstAmount: number;
+  gstPercentage: number;
+  totalCost: number;
+  subsidyAmount: number;
+  finalAmount: number;
+  validUntilDate: string;
+  status: string;
+  organizationName: string;
+  createdAt: string;
+}
+
+export default function PublicQuotationPage({
+  params: paramsPromise,
+}: {
+  params: Promise<{ orgId: string; quotationId: string }>;
+}) {
+  // Unwrap params promise
+  const params = use(paramsPromise);
   const searchParams = useSearchParams();
-
-  const orgId = params.orgId as string;
-  const quotationId = params.quotationId as string;
   const token = searchParams.get('token');
 
   const [quotation, setQuotation] = useState<Quotation | null>(null);
@@ -21,33 +49,35 @@ export default function PublicQuotationPage() {
   const [error, setError] = useState('');
   const [approving, setApproving] = useState(false);
   const [approved, setApproved] = useState(false);
-  const [qrCode, setQrCode] = useState('');
 
   useEffect(() => {
     fetchQuotation();
-  }, [orgId, quotationId, token]);
+  }, [params.orgId, params.quotationId, token]);
 
   const fetchQuotation = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/quotations/view', {
+
+      const viewResponse = await fetch('/api/quotations/view', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orgId, quotationId, token }),
+        body: JSON.stringify({
+          orgId: params.orgId,
+          quotationId: params.quotationId,
+          token,
+        }),
       });
 
-      const data = await response.json();
+      const data = await viewResponse.json();
 
-      if (!response.ok) {
+      if (!viewResponse.ok) {
         throw new Error(data.error || 'Failed to load quotation');
       }
 
       setQuotation(data.quotation);
-
-      // Generate QR code
-      const url = window.location.href;
-      const qr = await QRCode.toDataURL(url);
-      setQrCode(qr);
+      if (data.quotation.status === 'Approved') {
+        setApproved(true);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -56,31 +86,31 @@ export default function PublicQuotationPage() {
   };
 
   const handleApprove = async () => {
-    if (!confirm('Are you sure you want to approve this quotation?')) {
-      return;
-    }
+    if (!quotation || !token) return;
 
-    setApproving(true);
     try {
+      setApproving(true);
+
       const response = await fetch('/api/quotations/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orgId,
-          quotationId,
+          orgId: params.orgId,
+          quotationId: params.quotationId,
           token,
-          customerName: quotation?.customerName,
+          customerName: quotation.customerName,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to approve');
+        throw new Error(data.error || 'Failed to approve quotation');
       }
 
       setApproved(true);
       alert('✅ ' + data.message);
+      await fetchQuotation();
     } catch (err: any) {
       alert('❌ ' + err.message);
     } finally {
@@ -88,26 +118,12 @@ export default function PublicQuotationPage() {
     }
   };
 
-  const handleShare = () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: `Solar Quotation - ${quotation?.quotationId}`,
-        text: `Solar installation quotation for ${quotation?.systemCapacity}kW system`,
-        url: url,
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      alert('✅ Link copied to clipboard!');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
         <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-700 font-medium">Loading quotation...</p>
+          <Loader2 className="animate-spin h-16 w-16 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600 text-lg">Loading quotation...</p>
         </div>
       </div>
     );
@@ -115,266 +131,213 @@ export default function PublicQuotationPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <AlertCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Unable to Load</h1>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <p className="text-sm text-gray-600">Please check the link or contact support.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="text-sm text-gray-500">Please contact the sales team for assistance.</p>
         </div>
       </div>
     );
   }
 
   if (!quotation) {
-    return null;
-  }
-
-  const isApproved = quotation.status === 'Approved' || approved;
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-blue-600 text-white py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          <h1 className="text-3xl font-bold mb-2">Solar Installation Quotation</h1>
-          <p className="text-blue-100">Quotation ID: {quotation.quotationId}</p>
-          <p className="text-sm text-blue-200 mt-1">Reference: {quotation.referenceNumber}</p>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Quotation Not Found</h1>
+          <p className="text-gray-600">This quotation does not exist or has been removed.</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Approval Banner */}
-        {isApproved && (
-          <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 mb-6 flex items-center gap-3">
-            <CheckCircle className="text-green-600" size={32} />
-            <div>
-              <h3 className="font-bold text-green-900">Quotation Approved</h3>
-              <p className="text-sm text-green-800">Thank you! Our team will contact you shortly.</p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white p-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Solar Installation Quotation</h1>
+                <p className="text-blue-100">Quotation ID: {quotation.quotationId}</p>
+                <p className="text-blue-100">Reference: {quotation.referenceNumber}</p>
+              </div>
+              <div className="text-6xl">☀️</div>
+            </div>
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 mt-6">
+              <p className="text-sm text-blue-100 mb-1">Organization</p>
+              <p className="text-xl font-bold">{quotation.organizationName}</p>
             </div>
           </div>
-        )}
 
-        {/* Customer Info */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Customer Information</h2>
+          {/* Status Badge */}
+          {approved && (
+            <div className="bg-green-500 text-white text-center py-4 font-bold text-lg flex items-center justify-center gap-2">
+              <CheckCircle size={24} />
+              QUOTATION APPROVED - Our team will contact you soon!
+            </div>
+          )}
+        </div>
+
+        {/* Customer Information */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-3">
+            Customer Information
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Customer Name</p>
-              <p className="font-semibold text-gray-900">{quotation.customerName}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Phone</p>
-              <p className="font-semibold text-gray-900 flex items-center gap-2">
-                <Phone size={16} />
-                {quotation.customerPhone}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Email</p>
-              <p className="font-semibold text-gray-900 flex items-center gap-2">
-                <Mail size={16} />
-                {quotation.customerEmail}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Location</p>
-              <p className="font-semibold text-gray-900 flex items-center gap-2">
-                <MapPin size={16} />
-                {quotation.location}
-              </p>
-            </div>
+            <InfoCard icon={<Phone className="text-blue-600" />} label="Customer Name" value={quotation.customerName} />
+            <InfoCard icon={<Phone className="text-green-600" />} label="Phone" value={quotation.customerPhone} />
+            <InfoCard icon={<Mail className="text-purple-600" />} label="Email" value={quotation.customerEmail || 'N/A'} />
+            <InfoCard icon={<MapPin className="text-red-600" />} label="Location" value={quotation.location} />
           </div>
         </div>
 
         {/* System Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">System Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600">System Capacity</p>
-              <p className="text-2xl font-bold text-blue-600">{quotation.systemCapacity} kW</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600">System Type</p>
-              <p className="text-2xl font-bold text-green-600">{quotation.systemType}</p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-gray-600">Premises</p>
-              <p className="text-2xl font-bold text-purple-600">{quotation.premisesType}</p>
-            </div>
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-3">
+            System Configuration
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <DetailCard 
+              title="System Capacity" 
+              value={`${quotation.systemCapacity} kW`}
+              subtitle={quotation.systemType}
+              color="blue"
+            />
+            <DetailCard 
+              title="Solar Panels" 
+              value={`${quotation.panelQuantity} Panels`}
+              subtitle={`${quotation.panelMake} ${quotation.panelWattage}Wp`}
+              color="yellow"
+            />
+            <DetailCard 
+              title="Inverter" 
+              value={quotation.inverterMake}
+              subtitle={quotation.inverterModel.substring(0, 20) + '...'}
+              color="green"
+            />
           </div>
-        </div>
-
-        {/* Component Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Components & Specifications</h2>
-
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="text-left py-3 px-4 font-bold text-gray-900">Item</th>
-                <th className="text-left py-3 px-4 font-bold text-gray-900">Make/Specification</th>
-                <th className="text-center py-3 px-4 font-bold text-gray-900">Qty</th>
-                <th className="text-left py-3 px-4 font-bold text-gray-900">Warranty</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              <tr>
-                <td className="py-3 px-4 font-medium">Solar Panels ({quotation.panelWattage}Wp)</td>
-                <td className="py-3 px-4">{quotation.panelMake}</td>
-                <td className="py-3 px-4 text-center">{quotation.panelQuantity}</td>
-                <td className="py-3 px-4">{quotation.panelWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Inverter ({quotation.inverterCapacity}kVA)</td>
-                <td className="py-3 px-4">{quotation.inverterMake} - {quotation.inverterModel}</td>
-                <td className="py-3 px-4 text-center">{quotation.inverterQuantity}</td>
-                <td className="py-3 px-4">{quotation.inverterWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Mounting Structure</td>
-                <td className="py-3 px-4">{quotation.structureType} - {quotation.structureMake}</td>
-                <td className="py-3 px-4 text-center">1 Set</td>
-                <td className="py-3 px-4">{quotation.structureWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Balance of System</td>
-                <td className="py-3 px-4">{quotation.bosItems}</td>
-                <td className="py-3 px-4 text-center">1 Set</td>
-                <td className="py-3 px-4">{quotation.bosWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Cables & Wiring</td>
-                <td className="py-3 px-4">{quotation.cableMake}</td>
-                <td className="py-3 px-4 text-center">As per site</td>
-                <td className="py-3 px-4">{quotation.cableWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Earthing System</td>
-                <td className="py-3 px-4">{quotation.earthingType}</td>
-                <td className="py-3 px-4 text-center">{quotation.earthingQuantity}</td>
-                <td className="py-3 px-4">{quotation.earthingWarranty}</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4 font-medium">Lightning Arrestor</td>
-                <td className="py-3 px-4">{quotation.lightningArrestorType}</td>
-                <td className="py-3 px-4 text-center">{quotation.lightningArrestorQuantity}</td>
-                <td className="py-3 px-4">{quotation.lightningArrestorWarranty}</td>
-              </tr>
-              <tr className="bg-green-50">
-                <td className="py-3 px-4 font-medium">O&M Service</td>
-                <td className="py-3 px-4">{quotation.companyName}</td>
-                <td className="py-3 px-4 text-center">-</td>
-                <td className="py-3 px-4 font-bold text-green-600">{quotation.maintenanceYears} Years</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Pricing</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-gray-700">Base Cost</span>
-              <span className="font-semibold text-gray-900">{formatCurrency(quotation.baseCost)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-gray-700">GST @ {quotation.gstPercentage}%</span>
-              <span className="font-semibold text-gray-900">{formatCurrency(quotation.gstAmount)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="font-medium text-gray-900">Total Cost (including GST)</span>
-              <span className="font-bold text-gray-900">{formatCurrency(quotation.totalCost)}</span>
-            </div>
+        <div className="bg-gradient-to-br from-blue-600 to-green-600 rounded-2xl shadow-2xl p-8 text-white mb-6">
+          <h2 className="text-3xl font-bold mb-6 text-center">Investment Details</h2>
+          <div className="space-y-4">
+            <PriceRow label="System Cost" value={quotation.baseCost} />
+            <PriceRow label={`GST (${quotation.gstPercentage}%)`} value={quotation.gstAmount} />
+            <PriceRow label="Total Cost" value={quotation.totalCost} bold />
             {quotation.subsidyAmount > 0 && (
-              <div className="flex justify-between items-center py-2 border-b text-green-600">
-                <span className="font-medium">Government Subsidy</span>
-                <span className="font-bold">- {formatCurrency(quotation.subsidyAmount)}</span>
-              </div>
+              <PriceRow label="Government Subsidy" value={-quotation.subsidyAmount} isDiscount />
             )}
-            <div className="flex justify-between items-center py-4 bg-blue-50 rounded-lg px-4">
-              <span className="text-lg font-bold text-gray-900">Final Amount</span>
-              <span className="text-2xl font-bold text-blue-600">{formatCurrency(quotation.finalAmount)}</span>
-            </div>
-          </div>
-
-          {/* Payment Terms */}
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm font-bold text-gray-900 mb-1">Payment Terms:</p>
-            <p className="text-sm text-gray-800">{quotation.paymentTerms}</p>
-          </div>
-        </div>
-
-        {/* Company Details */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{quotation.companyName}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">GST Number</p>
-              <p className="font-mono font-semibold text-gray-900">{quotation.companyGst}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Udyam Registration</p>
-              <p className="font-mono font-semibold text-gray-900">{quotation.companyUdyam}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">CSPDCL Registration</p>
-              <p className="font-mono font-semibold text-gray-900">{quotation.companyCspdclReg}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Contact</p>
-              <p className="font-semibold text-gray-900">{quotation.companyPhone}</p>
+            <div className="border-t-2 border-white/30 pt-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">Final Investment:</span>
+                  <span className="text-4xl font-bold">₹{quotation.finalAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <p className="text-center text-sm text-blue-100 mt-3">
+                  Price per Watt: ₹{(quotation.finalAmount / (quotation.systemCapacity * 1000)).toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4">
-          {!isApproved && (
-            <button
-              onClick={handleApprove}
-              disabled={approving}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {approving ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Approving...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={20} />
-                  Approve Quotation
-                </>
-              )}
-            </button>
-          )}
+        {/* Valid Until */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Calendar className="text-orange-600" size={32} />
+              <div>
+                <p className="text-sm text-gray-600">Valid Until</p>
+                <p className="text-xl font-bold text-gray-900">
+                  {new Date(quotation.validUntilDate).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Approve Button */}
+        {!approved && quotation.status !== 'Approved' && (
           <button
-            onClick={handleShare}
-            className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-2"
+            onClick={handleApprove}
+            disabled={approving}
+            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-6 px-8 rounded-2xl text-2xl font-bold shadow-2xl transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
-            <Share2 size={20} />
-            Share
+            {approving ? (
+              <>
+                <Loader2 className="animate-spin" size={28} />
+                Approving...
+              </>
+            ) : (
+              <>
+                <CheckCircle size={28} />
+                Approve This Quotation
+              </>
+            )}
           </button>
-        </div>
-
-        {/* QR Code */}
-        {qrCode && (
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">Scan to view on mobile:</p>
-            <img src={qrCode} alt="QR Code" className="mx-auto" width={150} height={150} />
-          </div>
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>Valid until: {new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}</p>
-          <p className="mt-2">Generated by {quotation.companyName}</p>
+        <div className="text-center text-gray-600 text-sm mt-8">
+          <p>Generated on {new Date(quotation.createdAt).toLocaleDateString('en-IN')}</p>
+          <p className="mt-2">© {quotation.organizationName} - Powered by Solar Arrow</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+      <div className="flex-shrink-0">{icon}</div>
+      <div>
+        <p className="text-xs text-gray-600 font-medium">{label}</p>
+        <p className="text-base font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function DetailCard({ title, value, subtitle, color }: { title: string; value: string; subtitle: string; color: string }) {
+  const bgColors: Record<string, string> = {
+    blue: 'bg-blue-50 border-blue-200',
+    yellow: 'bg-yellow-50 border-yellow-200',
+    green: 'bg-green-50 border-green-200',
+  };
+
+  const textColors: Record<string, string> = {
+    blue: 'text-blue-700',
+    yellow: 'text-yellow-700',
+    green: 'text-green-700',
+  };
+
+  return (
+    <div className={`${bgColors[color]} border-2 rounded-xl p-6 text-center`}>
+      <p className="text-sm text-gray-600 font-medium mb-2">{title}</p>
+      <p className={`text-2xl font-bold ${textColors[color]} mb-1`}>{value}</p>
+      <p className="text-xs text-gray-600">{subtitle}</p>
+    </div>
+  );
+}
+
+function PriceRow({ label, value, bold = false, isDiscount = false }: any) {
+  return (
+    <div className="flex justify-between items-center py-2">
+      <span className={`${bold ? 'text-xl font-bold' : 'text-lg'}`}>{label}:</span>
+      <span className={`${bold ? 'text-2xl font-bold' : 'text-xl font-semibold'} ${isDiscount ? 'text-green-300' : ''}`}>
+        ₹{Math.abs(value).toLocaleString('en-IN')}
+      </span>
     </div>
   );
 }

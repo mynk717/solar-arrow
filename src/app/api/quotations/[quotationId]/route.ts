@@ -1,12 +1,12 @@
 // src/app/api/quotations/[quotationId]/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '../../auth/[...nextauth]/route';
 import { fetchQuotation } from '@/lib/googleSheets';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { quotationId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ quotationId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,10 +15,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Await params (Next.js 15+ requirement)
+    const { quotationId } = await context.params;
     const orgId = (session.user as any).organizationId || 'default-org';
-    const { quotationId } = params;
 
-    console.log(`🔍 Fetching quotation ${quotationId} for ${orgId}`);
+    console.log(`📄 Fetching quotation ${quotationId} for ${orgId}`);
 
     const quotation = await fetchQuotation(orgId, quotationId);
 
@@ -37,4 +38,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+}   
