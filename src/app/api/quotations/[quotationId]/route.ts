@@ -15,18 +15,27 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Await params (Next.js 15+ requirement)
-    const { quotationId } = await context.params;
-    const orgId = (session.user as any).organizationId || 'default-org';
+    // ✅ FIX 1: Properly await params
+    const params = await context.params;
+    const quotationId = params.quotationId;
 
-    console.log(`📄 Fetching quotation ${quotationId} for ${orgId}`);
+    // ✅ FIX 2: Get orgId from session (consistent with your auth setup)
+    const orgId = (session.user as any).organizationId || 'hope-energy';
 
+    console.log(`📄 Fetching quotation ${quotationId} for org: ${orgId}`);
+
+    // ✅ FIX 3: Fetch quotation
     const quotation = await fetchQuotation(orgId, quotationId);
 
+    // ✅ FIX 4: Proper null check
     if (!quotation) {
-      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Quotation not found or access denied' },
+        { status: 404 }
+      );
     }
 
+    // ✅ FIX 5: Return quotation
     return NextResponse.json({
       success: true,
       quotation,
@@ -38,4 +47,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}   
+}

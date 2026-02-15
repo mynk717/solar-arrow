@@ -19,6 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const requiredFields = ['customerName', 'customerPhone', 'systemCapacity', 'baseCost'];
+const missingFields = requiredFields.filter(field => !body[field]);
+
+if (missingFields.length > 0) {
+  return NextResponse.json(
+    { error: `Missing required fields: ${missingFields.join(', ')}` },
+    { status: 400 }
+  );
+}
     // Only admin, owner, sales can create quotations
     const userRole = (session.user as any).role || 'user';
     if (!['admin', 'owner', 'sales'].includes(userRole)) {

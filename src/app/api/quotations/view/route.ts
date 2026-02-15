@@ -7,50 +7,42 @@ export async function POST(request: Request) {
   try {
     const { orgId, quotationId, token } = await request.json();
 
+    // ✅ FIX 1: Validate required parameters
     if (!orgId || !quotationId || !token) {
       return NextResponse.json(
-        { error: 'Missing required parameters' },
+        { error: 'Missing required parameters (orgId, quotationId, token)' },
         { status: 400 }
       );
     }
 
     console.log(`👁️ Public view request: ${orgId}/${quotationId}`);
 
-    // Fetch quotation
+    // ✅ FIX 2: Fetch quotation
     const quotation = await fetchQuotation(orgId, quotationId);
 
     if (!quotation) {
-      return NextResponse.json(
-        { error: 'Quotation not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
 
-    // Validate token
+    // ✅ FIX 3: Validate token
     if (!validateQuotationToken(quotation, token)) {
-      return NextResponse.json(
-        { error: 'Invalid or expired link' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Invalid or expired link' }, { status: 403 });
     }
 
-    // Check if expired
+    // ✅ FIX 4: Check if expired
     if (isQuotationExpired(quotation.validUntilDate)) {
-      return NextResponse.json(
-        { error: 'Quotation has expired' },
-        { status: 410 }
-      );
+      return NextResponse.json({ error: 'Quotation has expired' }, { status: 410 });
     }
 
-    // Track view
+    // ✅ FIX 5: Track view
     const now = new Date().toISOString();
     const updates: any = {
-      viewCount: quotation.viewCount + 1,
+      viewCount: (quotation.viewCount || 0) + 1,
       lastViewedDate: now,
     };
 
     // Set first viewed date if this is the first view
-    if (quotation.viewCount === 0) {
+    if ((quotation.viewCount || 0) === 0) {
       updates.firstViewedDate = now;
       updates.status = 'Viewed';
     }

@@ -12,25 +12,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // ✅ FIX 1: Get query params
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const leadId = searchParams.get('leadId');
 
-    // Get organizationId from session, fallback to 'hope-energy' if not set
+    // ✅ FIX 2: Get organizationId from session with fallback
     const orgId = (session.user as any).organizationId || 'hope-energy';
 
-    console.log(`📋 Fetching quotations for ${orgId}, status: ${status}, leadId: ${leadId}`);
+    console.log(`📋 Fetching quotations for orgId: ${orgId}, status: ${status}, leadId: ${leadId}`);
 
+    // ✅ FIX 3: Fetch from QUOTATIONS sheet (not ENQUIRIES)
     let quotations = await fetchAllQuotations(orgId);
 
-    // Filter by status if provided
+    // ✅ FIX 4: Apply filters if provided
     if (status) {
       quotations = quotations.filter((q: any) => 
         q.status?.toLowerCase() === status.toLowerCase()
       );
     }
 
-    // Filter by leadId if provided
     if (leadId) {
       quotations = quotations.filter((q: any) => q.leadId === leadId);
     }

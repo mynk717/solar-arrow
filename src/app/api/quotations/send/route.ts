@@ -1,13 +1,11 @@
 // src/app/api/quotations/send/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateQuotation, fetchQuotation, updateLead } from '@/lib/googleSheets';
 import { invalidateLeadsCache } from '@/lib/redis';
 
-/**
- * Send Telegram notification
- */
+// Send Telegram notification
 async function sendTelegramNotification(quotation: any, action: string) {
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramChatId = process.env.TELEGRAM_CHAT_ID;
@@ -20,19 +18,21 @@ async function sendTelegramNotification(quotation: any, action: string) {
   let message = '';
 
   if (action === 'sent') {
-    message = `🌞 *New Quotation Sent*
+    message = `
+🎉 *New Quotation Sent*
 
-📋 *Quotation ID:* ${quotation.quotationId}
-👤 *Customer:* ${quotation.customerName}
-📞 *Phone:* ${quotation.customerPhone}
-⚡ *Capacity:* ${quotation.systemCapacity} kW
-💰 *Final Amount:* ₹${quotation.finalAmount.toLocaleString('en-IN')}
+*Quotation ID:* ${quotation.quotationId}
+*Customer:* ${quotation.customerName}
+*Phone:* ${quotation.customerPhone}
+*Capacity:* ${quotation.systemCapacity} kW
+*Final Amount:* ₹${quotation.finalAmount.toLocaleString('en-IN')}
 
-🔗 *Public Link:*
-${quotation.publicUrl}
+🔗 *Public Link:* ${quotation.publicUrl}
 
-📅 *Valid Until:* ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}
-🏢 *Organization:* ${quotation.organizationName}`;
+*Valid Until:* ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}
+
+*Organization:* ${quotation.organizationName}
+    `.trim();
   }
 
   try {
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const { quotationId } = await request.json();
-    const orgId = (session.user as any).organizationId || 'default-org';
+    const orgId = (session.user as any).organizationId || 'hope-energy';
 
     if (!quotationId) {
       return NextResponse.json({ error: 'Quotation ID required' }, { status: 400 });
@@ -78,27 +78,27 @@ export async function POST(request: Request) {
 
     console.log(`📤 Sending quotation ${quotationId} for ${orgId}`);
 
-    // Fetch quotation to verify it exists
+    // ✅ FIX: Fetch quotation to verify it exists
     const quotation = await fetchQuotation(orgId, quotationId);
 
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
 
-    // Update quotation status to "Sent"
+    // ✅ FIX: Update quotation status to "Sent"
     await updateQuotation(orgId, quotationId, {
       status: 'Sent',
       sentBy: session.user.email,
       sentDate: new Date().toISOString(),
     });
 
-    // If linked to a lead, update lead status to "quotation_sent"
+    // ✅ If linked to a lead, update lead status to "quotation-sent"
     if (quotation.leadId) {
       try {
         await updateLead(
           quotation.leadId,
           {
-            status: 'quotation_sent',
+            status: 'quotation-sent',
             lastActivityBy: session.user.email,
             lastActivityDate: new Date(),
           },
@@ -107,9 +107,9 @@ export async function POST(request: Request) {
 
         // Invalidate leads cache
         await invalidateLeadsCache(orgId);
-        console.log(`✅ Updated lead ${quotation.leadId} status to quotation_sent`);
+        console.log(`✅ Updated lead ${quotation.leadId} status to "quotation-sent"`);
       } catch (error) {
-        console.error(`⚠️ Failed to update lead status:`, error);
+        console.error('❌ Failed to update lead status:', error);
         // Don't fail the quotation send if lead update fails
       }
     }
