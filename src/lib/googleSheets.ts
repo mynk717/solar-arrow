@@ -1499,45 +1499,27 @@ export async function fetchProjectStagesFromSheet(): Promise<any[]> {
 
 /**
  * Fetch all quotations for an organization
- * Uses Google Sheets API v4 (same pattern as fetchLeads)
  */
 export async function fetchAllQuotations(orgId: string): Promise<Quotation[]> {
   try {
-    // 1. Check cache first (optional - add if you want caching)
-    // const cached = await getCachedQuotations(orgId);
-    // if (cached && cached.data) {
-    //   console.log('✅ Using cached quotations for org:', orgId);
-    //   return cached.data;
-    // }
-
-    // 2. Fetch from Google Sheets
     const sheets = await getSheets();
     const sheetId = await getSheetId();
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CZ10000',
+      range: 'QUOTATIONS!A2:CB10000',
     });
 
     const rows = response.data.values || [];
 
-    // Get header row to map columns
-    const headerResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A1:CZ1',
-    });
-
-    const headers = headerResponse.data.values?.[0] || [];
-
+    // ✅ FIX: Use simple rowToQuotation without extra params
     const quotations = rows
-      .map((row) => rowToQuotation(row, headers, orgId))
-      .filter((q) => q !== null);
+      .map((row) => rowToQuotation(row))
+      .filter((q): q is Quotation => 
+        q !== null && q.organizationId === orgId
+      );
 
     console.log(`✅ Loaded ${quotations.length} quotations for ${orgId}`);
-
-    // 3. Store in cache (optional)
-    // await cacheSheetData(orgId, 'quotations', quotations);
-
     return quotations;
   } catch (error: any) {
     console.error('❌ Error fetching quotations:', error);
@@ -1558,23 +1540,19 @@ export async function fetchQuotation(
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CZ10000',
+      range: 'QUOTATIONS!A2:CB10000',
     });
 
     const rows = response.data.values || [];
 
-    // Get header row
-    const headerResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A1:CZ1',
-    });
-
-    const headers = headerResponse.data.values?.[0] || [];
-
-    // Find the quotation
+    // ✅ FIX: Simple filtering
     for (const row of rows) {
-      const quotation = rowToQuotation(row, headers, orgId);
-      if (quotation && quotation.quotationId === quotationId) {
+      const quotation = rowToQuotation(row);
+      if (
+        quotation && 
+        quotation.quotationId === quotationId &&
+        quotation.organizationId === orgId
+      ) {
         return quotation;
       }
     }
@@ -1594,102 +1572,103 @@ export async function createQuotation(quotation: Quotation): Promise<void> {
     const sheets = await getSheets();
     const sheetId = await getSheetId();
 
+    // ✅ Row data matching YOUR exact column order
     const row = [
-      quotation.quotationId,
-      quotation.organizationId || 'hope-energy',
-      quotation.referenceNumber,
-      quotation.leadId || '',
-      quotation.enquiryId || '',
-      quotation.quotationType,
-      quotation.customerName,
-      quotation.customerPhone,
-      quotation.customerEmail || '',
-      quotation.customerAddress || '',
-      quotation.location,
-      quotation.premisesType,
-      quotation.systemCapacity,
-      quotation.systemType,
-      quotation.panelType,
-      quotation.panelMake,
-      quotation.panelModel || '',
-      quotation.panelWattage,
-      quotation.panelQuantity,
-      quotation.panelWarranty,
-      quotation.inverterMake,
-      quotation.inverterModel,
-      quotation.inverterCapacity,
-      quotation.inverterQuantity,
-      quotation.inverterWarranty,
-      quotation.structureType,
-      quotation.structureMake,
-      quotation.structureWarranty,
-      quotation.bosItems,
-      quotation.bosWarranty,
-      quotation.cableMake,
-      quotation.cableWarranty,
-      quotation.earthingType,
-      quotation.earthingQuantity,
-      quotation.earthingWarranty,
-      quotation.lightningArrestorType,
-      quotation.lightningArrestorQuantity,
-      quotation.lightningArrestorWarranty,
-      quotation.maintenanceYears,
-      quotation.gridConnectivityIncluded ? 'TRUE' : 'FALSE',
-      quotation.netMeteringIncluded ? 'TRUE' : 'FALSE',
-      quotation.baseCost,
-      quotation.gstPercentage,
-      quotation.gstAmount,
-      quotation.totalCost,
-      quotation.subsidyAmount,
-      quotation.finalAmount,
-      quotation.advancePercentage,
-      quotation.preDispatchPercentage,
-      quotation.preGridPercentage,
-      quotation.paymentTerms,
-      quotation.status,
-      quotation.createdBy,
-      quotation.createdDate,
-      quotation.sentBy || '',
-      quotation.sentDate || '',
-      quotation.viewCount || 0,
-      quotation.firstViewedDate || '',
-      quotation.lastViewedDate || '',
-      quotation.approvedBy || '',
-      quotation.approvedDate || '',
-      quotation.rejectedReason || '',
-      quotation.validUntilDate,
-      quotation.publicUrl || '',
-      quotation.pdfUrl || '',
-      quotation.qrCodeUrl || '',
-      quotation.notes || '',
-      quotation.termsAndConditions,
-      quotation.loanAvailable ? 'TRUE' : 'FALSE',
-      quotation.loanInterestRate || 0,
-      quotation.companyName,
-      quotation.companyGst,
-      quotation.companyUdyam,
-      quotation.companyCspdclReg,
-      quotation.companyBankName,
-      quotation.companyAccountNumber,
-      quotation.companyIfsc,
-      quotation.companyAddress,
-      quotation.companyPhone,
-      quotation.companyEmail,
+      quotation.quotationId,              // A
+      quotation.organizationId,           // B
+      quotation.referenceNumber,          // C
+      quotation.leadId || '',             // D
+      quotation.enquiryId || '',          // E
+      quotation.quotationType,            // F
+      quotation.customerName,             // G
+      quotation.customerPhone,            // H
+      quotation.customerEmail,            // I
+      quotation.customerAddress,          // J
+      quotation.location,                 // K
+      quotation.premisesType,             // L
+      quotation.systemCapacity,           // M
+      quotation.systemType,               // N
+      quotation.panelType,                // O
+      quotation.panelMake,                // P
+      quotation.panelModel || '',         // Q
+      quotation.panelWattage,             // R
+      quotation.panelQuantity,            // S
+      quotation.panelWarranty,            // T
+      quotation.inverterMake,             // U
+      quotation.inverterModel,            // V
+      quotation.inverterCapacity,         // W
+      quotation.inverterQuantity,         // X
+      quotation.inverterWarranty,         // Y
+      quotation.structureType,            // Z
+      quotation.structureMake,            // AA
+      quotation.structureWarranty,        // AB
+      quotation.bosItems,                 // AC
+      quotation.bosWarranty,              // AD
+      quotation.cableMake,                // AE
+      quotation.cableWarranty,            // AF
+      quotation.earthingType,             // AG
+      quotation.earthingQuantity,         // AH
+      quotation.earthingWarranty,         // AI
+      quotation.lightningArrestorType,    // AJ
+      quotation.lightningArrestorQuantity,// AK
+      quotation.lightningArrestorWarranty,// AL
+      quotation.maintenanceYears,         // AM
+      quotation.gridConnectivityIncluded ? 'TRUE' : 'FALSE', // AN
+      quotation.netMeteringIncluded ? 'TRUE' : 'FALSE',      // AO
+      quotation.baseCost,                 // AP
+      quotation.gstPercentage,            // AQ
+      quotation.gstAmount,                // AR
+      quotation.totalCost,                // AS
+      quotation.subsidyAmount,            // AT
+      quotation.finalAmount,              // AU
+      quotation.advancePercentage,        // AV
+      quotation.preDispatchPercentage,    // AW
+      quotation.preGridPercentage,        // AX
+      quotation.paymentTerms,             // AY
+      quotation.status,                   // AZ
+      quotation.createdBy,                // BA
+      quotation.createdDate,              // BB
+      quotation.sentBy || '',             // BC
+      quotation.sentDate || '',           // BD
+      quotation.viewCount || 0,           // BE
+      quotation.firstViewedDate || '',    // BF
+      quotation.lastViewedDate || '',     // BG
+      quotation.approvedBy || '',         // BH
+      quotation.approvedDate || '',       // BI
+      quotation.rejectedReason || '',     // BJ
+      quotation.validUntilDate,           // BK
+      quotation.publicUrl,                // BL
+      quotation.pdfUrl || '',             // BM
+      quotation.qrCodeUrl || '',          // BN
+      quotation.notes || '',              // BO
+      quotation.termsAndConditions,       // BP
+      quotation.loanAvailable ? 'TRUE' : 'FALSE', // BQ
+      quotation.loanInterestRate || 0,    // BR
+      quotation.companyName,              // BS
+      quotation.companyGst,               // BT
+      quotation.companyUdyam,             // BU
+      quotation.companyCspdclReg,         // BV
+      quotation.companyBankName,          // BW
+      quotation.companyAccountNumber,     // BX
+      quotation.companyIfsc,              // BY
+      quotation.companyAddress,           // BZ
+      quotation.companyPhone,             // CA
+      quotation.companyEmail,             // CB
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A:CZ',
-      valueInputOption: 'USER_ENTERED',
+      range: 'QUOTATIONS!A:CB',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [row],
       },
     });
 
-    console.log(`✅ Created quotation: ${quotation.quotationId}`);
-  } catch (error: any) {
+    console.log(`✅ Created quotation ${quotation.quotationId}`);
+  } catch (error) {
     console.error('❌ Error creating quotation:', error);
-    throw new Error(`Failed to create quotation: ${error.message}`);
+    throw error;
   }
 }
 
@@ -1708,27 +1687,18 @@ export async function updateQuotation(
     // Get all rows to find the quotation
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CZ10000',
+      range: 'QUOTATIONS!A2:CB10000',
     });
 
     const rows = response.data.values || [];
 
-    // Get headers
-    const headerResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A1:CZ1',
-    });
-
-    const headers = headerResponse.data.values?.[0] || [];
-
-    // Find the row index (add 2 because: 1 for header, 1 for 0-indexed)
+    // ✅ FIX: Find the row index
     let rowIndex = -1;
     for (let i = 0; i < rows.length; i++) {
-      const rowQuotationId = rows[i][0]; // quotationId is first column
-      const rowOrgId = rows[i][headers.indexOf('organizationId')] || 
-                      (rows[i][headers.indexOf('companyName')] === 'HOPE ENERGY' ? 'hope-energy' : 'default-org');
+      const rowQuotationId = rows[i][0]; // Column A
+      const rowOrgId = rows[i][1];       // Column B
 
-      if (rowQuotationId === quotationId && rowOrgId.toLowerCase() === orgId.toLowerCase()) {
+      if (rowQuotationId === quotationId && rowOrgId === orgId) {
         rowIndex = i + 2; // +2 for header row and 0-indexed
         break;
       }
@@ -1738,23 +1708,41 @@ export async function updateQuotation(
       throw new Error('Quotation not found');
     }
 
-    // Update specific columns
-    const updatePromises = Object.entries(updates).map(([key, value]) => {
-      const colIndex = headers.indexOf(key);
-      if (colIndex === -1) return null;
+    // ✅ FIX: Update specific fields based on column mapping
+    const updateRequests: any[] = [];
 
-      const colLetter = columnToLetter(colIndex);
-      const range = `QUOTATIONS!${colLetter}${rowIndex}`;
+    // Map field names to column letters
+    const fieldToColumn: Record<string, string> = {
+      status: 'AZ',
+      sentBy: 'BC',
+      sentDate: 'BD',
+      viewCount: 'BE',
+      firstViewedDate: 'BF',
+      lastViewedDate: 'BG',
+      approvedBy: 'BH',
+      approvedDate: 'BI',
+      rejectedReason: 'BJ',
+    };
 
-      return sheets.spreadsheets.values.update({
+    Object.entries(updates).forEach(([key, value]) => {
+      const column = fieldToColumn[key];
+      if (column) {
+        updateRequests.push({
+          range: `QUOTATIONS!${column}${rowIndex}`,
+          values: [[value]]
+        });
+      }
+    });
+
+    if (updateRequests.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId: sheetId,
-        range,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: { values: [[value]] },
+        requestBody: {
+          data: updateRequests,
+          valueInputOption: 'RAW',
+        },
       });
-    }).filter(p => p !== null);
-
-    await Promise.all(updatePromises);
+    }
 
     console.log(`✅ Updated quotation: ${quotationId}`);
   } catch (error: any) {
@@ -1766,139 +1754,204 @@ export async function updateQuotation(
 /**
  * Helper: Convert row array to Quotation object
  */
-function rowToQuotation(row: any[], headers: string[], filterOrgId: string): Quotation | null {
-  if (!row || row.length === 0) return null;
+function rowToQuotation(row: any[]): Quotation | null {
+  if (!row || row.length < 10) return null;
 
-  const get = (key: string) => {
-    const index = headers.indexOf(key);
-    return index >= 0 ? row[index] : '';
-  };
-
-  // Check organizationId filter
-  const rowOrgId = get('organizationId') || 
-                  (get('companyName') === 'HOPE ENERGY' ? 'hope-energy' : 'default-org');
-
-  if (rowOrgId.toLowerCase() !== filterOrgId.toLowerCase()) {
-    return null;
-  }
+  const [
+    quotationId,              // Column 0 (A)
+    organizationId,           // Column 1 (B)
+    referenceNumber,          // Column 2 (C)
+    leadId,                   // Column 3 (D)
+    enquiryId,                // Column 4 (E)
+    quotationType,            // Column 5 (F)
+    customerName,             // Column 6 (G)
+    customerPhone,            // Column 7 (H)
+    customerEmail,            // Column 8 (I)
+    customerAddress,          // Column 9 (J)
+    location,                 // Column 10 (K)
+    premisesType,             // Column 11 (L)
+    systemCapacity,           // Column 12 (M)
+    systemType,               // Column 13 (N)
+    panelType,                // Column 14 (O)
+    panelMake,                // Column 15 (P)
+    panelModel,               // Column 16 (Q)
+    panelWattage,             // Column 17 (R)
+    panelQuantity,            // Column 18 (S)
+    panelWarranty,            // Column 19 (T)
+    inverterMake,             // Column 20 (U)
+    inverterModel,            // Column 21 (V)
+    inverterCapacity,         // Column 22 (W)
+    inverterQuantity,         // Column 23 (X)
+    inverterWarranty,         // Column 24 (Y)
+    structureType,            // Column 25 (Z)
+    structureMake,            // Column 26 (AA)
+    structureWarranty,        // Column 27 (AB)
+    bosItems,                 // Column 28 (AC)
+    bosWarranty,              // Column 29 (AD)
+    cableMake,                // Column 30 (AE)
+    cableWarranty,            // Column 31 (AF)
+    earthingType,             // Column 32 (AG)
+    earthingQuantity,         // Column 33 (AH)
+    earthingWarranty,         // Column 34 (AI)
+    lightningArrestorType,    // Column 35 (AJ)
+    lightningArrestorQuantity,// Column 36 (AK)
+    lightningArrestorWarranty,// Column 37 (AL)
+    maintenanceYears,         // Column 38 (AM)
+    gridConnectivityIncluded, // Column 39 (AN)
+    netMeteringIncluded,      // Column 40 (AO)
+    baseCost,                 // Column 41 (AP)
+    gstPercentage,            // Column 42 (AQ)
+    gstAmount,                // Column 43 (AR)
+    totalCost,                // Column 44 (AS)
+    subsidyAmount,            // Column 45 (AT)
+    finalAmount,              // Column 46 (AU)
+    advancePercentage,        // Column 47 (AV)
+    preDispatchPercentage,    // Column 48 (AW)
+    preGridPercentage,        // Column 49 (AX)
+    paymentTerms,             // Column 50 (AY)
+    status,                   // Column 51 (AZ)
+    createdBy,                // Column 52 (BA)
+    createdDate,              // Column 53 (BB)
+    sentBy,                   // Column 54 (BC)
+    sentDate,                 // Column 55 (BD)
+    viewCount,                // Column 56 (BE)
+    firstViewedDate,          // Column 57 (BF)
+    lastViewedDate,           // Column 58 (BG)
+    approvedBy,               // Column 59 (BH)
+    approvedDate,             // Column 60 (BI)
+    rejectedReason,           // Column 61 (BJ)
+    validUntilDate,           // Column 62 (BK)
+    publicUrl,                // Column 63 (BL)
+    pdfUrl,                   // Column 64 (BM)
+    qrCodeUrl,                // Column 65 (BN)
+    notes,                    // Column 66 (BO)
+    termsAndConditions,       // Column 67 (BP)
+    loanAvailable,            // Column 68 (BQ)
+    loanInterestRate,         // Column 69 (BR)
+    companyName,              // Column 70 (BS)
+    companyGst,               // Column 71 (BT)
+    companyUdyam,             // Column 72 (BU)
+    companyCspdclReg,         // Column 73 (BV)
+    companyBankName,          // Column 74 (BW)
+    companyAccountNumber,     // Column 75 (BX)
+    companyIfsc,              // Column 76 (BY)
+    companyAddress,           // Column 77 (BZ)
+    companyPhone,             // Column 78 (CA)
+    companyEmail,             // Column 79 (CB)
+  ] = row;
 
   return {
-    quotationId: get('quotationId') || '',
-    organizationId: rowOrgId,
-    organizationName: get('companyName') || 'HOPE ENERGY',
-    sheetId: get('sheetId') || '',
-    referenceNumber: get('referenceNumber') || '',
-    leadId: get('leadId') || '',
-    enquiryId: get('enquiryId') || '',
-    quotationType: get('quotationType') || 'Initial',
+    // Multi-tenant
+    organizationId: organizationId || '',
+    organizationName: companyName || '',
+    sheetId: '',
 
-    // Customer details
-    customerName: get('customerName') || '',
-    customerPhone: get('customerPhone') || '',
-    customerEmail: get('customerEmail') || '',
-    customerAddress: get('customerAddress') || '',
-    location: get('location') || '',
-    premisesType: get('premisesType') || 'Residence',
+    // Basic
+    quotationId: quotationId || '',
+    referenceNumber: referenceNumber || '',
+    leadId: leadId || undefined,
+    enquiryId: enquiryId || undefined,
+    quotationType: (quotationType || 'Initial') as 'Initial' | 'Revised' | 'Final',
 
-    // System details
-    systemCapacity: parseFloat(get('systemCapacity')) || 0,
-    systemType: get('systemType') || 'On-Grid',
-    panelType: get('panelType') || 'RTS DCR',
+    // Customer
+    customerName: customerName || '',
+    customerPhone: customerPhone || '',
+    customerEmail: customerEmail || '',
+    customerAddress: customerAddress || '',
+    location: location || '',
+    premisesType: (premisesType || 'Residence') as 'Residence' | 'Commercial' | 'Industrial',
 
-    // Panel details
-    panelMake: get('panelMake') || '',
-    panelModel: get('panelModel') || '',
-    panelWattage: parseInt(get('panelWattage')) || 0,
-    panelQuantity: parseInt(get('panelQuantity')) || 0,
-    panelWarranty: get('panelWarranty') || '',
+    // System
+    systemCapacity: parseFloat(systemCapacity) || 0,
+    systemType: (systemType || 'On-Grid') as 'On-Grid' | 'Hybrid' | 'Off-Grid',
+    panelType: panelType || '',
 
-    // Inverter details
-    inverterMake: get('inverterMake') || '',
-    inverterModel: get('inverterModel') || '',
-    inverterCapacity: parseFloat(get('inverterCapacity')) || 0,
-    inverterQuantity: parseInt(get('inverterQuantity')) || 1,
-    inverterWarranty: get('inverterWarranty') || '',
+    // Components
+    panelMake: panelMake || '',
+    panelModel: panelModel || '',
+    panelWattage: parseFloat(panelWattage) || 0,
+    panelQuantity: parseInt(panelQuantity) || 0,
+    panelWarranty: panelWarranty || '',
+    
+    inverterMake: inverterMake || '',
+    inverterModel: inverterModel || '',
+    inverterCapacity: parseFloat(inverterCapacity) || 0,
+    inverterQuantity: parseInt(inverterQuantity) || 1,
+    inverterWarranty: inverterWarranty || '',
+    
+    structureType: structureType || '',
+    structureMake: structureMake || '',
+    structureWarranty: structureWarranty || '',
+    
+    bosItems: bosItems || '',
+    bosWarranty: bosWarranty || '',
+    
+    cableMake: cableMake || '',
+    cableWarranty: cableWarranty || '',
+    
+    earthingType: earthingType || '',
+    earthingQuantity: parseInt(earthingQuantity) || 0,
+    earthingWarranty: earthingWarranty || '',
+    
+    lightningArrestorType: lightningArrestorType || '',
+    lightningArrestorQuantity: parseInt(lightningArrestorQuantity) || 0,
+    lightningArrestorWarranty: lightningArrestorWarranty || '',
 
-    // Other components
-    structureType: get('structureType') || '',
-    structureMake: get('structureMake') || '',
-    structureWarranty: get('structureWarranty') || '',
-    bosItems: get('bosItems') || '',
-    bosWarranty: get('bosWarranty') || '',
-    cableMake: get('cableMake') || '',
-    cableWarranty: get('cableWarranty') || '',
-    earthingType: get('earthingType') || '',
-    earthingQuantity: parseInt(get('earthingQuantity')) || 0,
-    earthingWarranty: get('earthingWarranty') || '',
-    lightningArrestorType: get('lightningArrestorType') || '',
-    lightningArrestorQuantity: parseInt(get('lightningArrestorQuantity')) || 0,
-    lightningArrestorWarranty: get('lightningArrestorWarranty') || '',
-    maintenanceYears: parseInt(get('maintenanceYears')) || 5,
-    gridConnectivityIncluded: get('gridConnectivityIncluded') === 'TRUE',
-    netMeteringIncluded: get('netMeteringIncluded') === 'TRUE',
+    // Services
+    maintenanceYears: parseInt(maintenanceYears) || 5,
+    gridConnectivityIncluded: gridConnectivityIncluded === 'TRUE',
+    netMeteringIncluded: netMeteringIncluded === 'TRUE',
 
     // Pricing
-    baseCost: parseFloat(get('baseCost')) || 0,
-    gstPercentage: parseFloat(get('gstPercentage')) || 0,
-    gstAmount: parseFloat(get('gstAmount')) || 0,
-    totalCost: parseFloat(get('totalCost')) || 0,
-    subsidyAmount: parseFloat(get('subsidyAmount')) || 0,
-    finalAmount: parseFloat(get('finalAmount')) || 0,
+    baseCost: parseFloat(baseCost) || 0,
+    gstPercentage: parseFloat(gstPercentage) || 0,
+    gstAmount: parseFloat(gstAmount) || 0,
+    totalCost: parseFloat(totalCost) || 0,
+    subsidyAmount: parseFloat(subsidyAmount) || 0,
+    finalAmount: parseFloat(finalAmount) || 0,
 
-    // Payment terms
-    advancePercentage: parseInt(get('advancePercentage')) || 70,
-    preDispatchPercentage: parseInt(get('preDispatchPercentage')) || 20,
-    preGridPercentage: parseInt(get('preGridPercentage')) || 10,
-    paymentTerms: get('paymentTerms') || '',
+    // Payment Terms
+    advancePercentage: parseFloat(advancePercentage) || 70,
+    preDispatchPercentage: parseFloat(preDispatchPercentage) || 20,
+    preGridPercentage: parseFloat(preGridPercentage) || 10,
+    paymentTerms: paymentTerms || '',
 
-    // Status tracking
-    status: get('status') || 'Draft',
-    createdBy: get('createdBy') || '',
-    createdDate: get('createdDate') || new Date().toISOString(),
-    sentBy: get('sentBy') || '',
-    sentDate: get('sentDate') || '',
-    viewCount: parseInt(get('viewCount')) || 0,
-    firstViewedDate: get('firstViewedDate') || '',
-    lastViewedDate: get('lastViewedDate') || '',
-    approvedBy: get('approvedBy') || '',
-    approvedDate: get('approvedDate') || '',
-    rejectedReason: get('rejectedReason') || '',
-    validUntilDate: get('validUntilDate') || '',
+    // Tracking
+    status: (status || 'Draft') as 'Draft' | 'Sent' | 'Viewed' | 'Approved' | 'Rejected',
+    createdBy: createdBy || '',
+    createdDate: createdDate || new Date().toISOString(),
+    sentBy: sentBy || undefined,
+    sentDate: sentDate || undefined,
+    viewCount: parseInt(viewCount) || 0,
+    firstViewedDate: firstViewedDate || undefined,
+    lastViewedDate: lastViewedDate || undefined,
+    approvedBy: approvedBy || undefined,
+    approvedDate: approvedDate || undefined,
+    rejectedReason: rejectedReason || undefined,
+    validUntilDate: validUntilDate || new Date().toISOString(),
 
-    // URLs
-    publicToken: get('publicToken') || '',
-    publicUrl: get('publicUrl') || '',
-    pdfUrl: get('pdfUrl') || '',
-    qrCodeUrl: get('qrCodeUrl') || '',
+    // Security & URLs
+    publicToken: publicUrl ? publicUrl.split('token=')[1] || '' : '',
+    publicUrl: publicUrl || '',
+    pdfUrl: pdfUrl || undefined,
+    qrCodeUrl: qrCodeUrl || undefined,
 
     // Additional
-    notes: get('notes') || '',
-    termsAndConditions: get('termsAndConditions') || '',
-    loanAvailable: get('loanAvailable') === 'TRUE',
-    loanInterestRate: parseFloat(get('loanInterestRate')) || 0,
+    notes: notes || '',
+    termsAndConditions: termsAndConditions || '',
+    loanAvailable: loanAvailable === 'TRUE',
+    loanInterestRate: parseFloat(loanInterestRate) || 0,
 
-    // Company details
-    companyName: get('companyName') || '',
-    companyGst: get('companyGst') || '',
-    companyUdyam: get('companyUdyam') || '',
-    companyCspdclReg: get('companyCspdclReg') || '',
-    companyBankName: get('companyBankName') || '',
-    companyAccountNumber: get('companyAccountNumber') || '',
-    companyIfsc: get('companyIfsc') || '',
-    companyAddress: get('companyAddress') || '',
-    companyPhone: get('companyPhone') || '',
-    companyEmail: get('companyEmail') || '',
+    // Company
+    companyName: companyName || '',
+    companyGst: companyGst || '',
+    companyUdyam: companyUdyam || '',
+    companyCspdclReg: companyCspdclReg || '',
+    companyBankName: companyBankName || '',
+    companyAccountNumber: companyAccountNumber || '',
+    companyIfsc: companyIfsc || '',
+    companyAddress: companyAddress || '',
+    companyPhone: companyPhone || '',
+    companyEmail: companyEmail || '',
   };
-}
-
-/**
- * Helper: Convert column index to letter (0 = A, 25 = Z, 26 = AA, etc.)
- */
-function columnToLetter(index: number): string {
-  let letter = '';
-  while (index >= 0) {
-    letter = String.fromCharCode((index % 26) + 65) + letter;
-    index = Math.floor(index / 26) - 1;
-  }
-  return letter;
 }
