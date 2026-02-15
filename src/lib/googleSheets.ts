@@ -1496,137 +1496,92 @@ export async function fetchProjectStagesFromSheet(): Promise<any[]> {
 // QUOTATION FUNCTIONS
 // Add these functions to src/lib/googleSheets.ts
 // ============================================
+
 /**
  * Fetch all quotations for an organization
+ * Uses Google Sheets API v4 (same pattern as fetchLeads)
  */
-export async function fetchQuotations(orgId?: string): Promise<Quotation[]> {
+export async function fetchAllQuotations(orgId: string): Promise<Quotation[]> {
   try {
-    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
-    const sheetId = process.env.GOOGLESHEETID;
+    // 1. Check cache first (optional - add if you want caching)
+    // const cached = await getCachedQuotations(orgId);
+    // if (cached && cached.data) {
+    //   console.log('✅ Using cached quotations for org:', orgId);
+    //   return cached.data;
+    // }
 
-    if (!sheetId) {
-      throw new Error('Google Sheet ID not configured');
-    }
+    // 2. Fetch from Google Sheets
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CF',
+      range: 'QUOTATIONS!A2:CZ10000',
     });
 
     const rows = response.data.values || [];
 
-    const quotations = rows.map((row: any[]) => {
-      const quotation: Quotation = {
-        organizationId: row[0] || '',
-        organizationName: row[1] || '',
-        sheetId: row[2] || '',
-        quotationId: row[3] || '',
-        referenceNumber: row[4] || '',
-        leadId: row[5] || undefined,
-        enquiryId: row[6] || undefined,
-        quotationType: row[7] || 'Initial',
-        customerName: row[8] || '',
-        customerPhone: row[9] || '',
-        customerEmail: row[10] || '',
-        customerAddress: row[11] || '',
-        location: row[12] || '',
-        premisesType: row[13] || 'Residence',
-        systemCapacity: parseFloat(row[14]) || 0,
-        systemType: row[15] || 'On-Grid',
-        panelType: row[16] || '',
-        panelMake: row[17] || '',
-        panelWattage: parseFloat(row[18]) || 0,
-        panelQuantity: parseInt(row[19]) || 0,
-        panelWarranty: row[20] || '',
-        inverterMake: row[21] || '',
-        inverterModel: row[22] || '',
-        inverterCapacity: parseFloat(row[23]) || 0,
-        inverterQuantity: parseInt(row[24]) || 0,
-        inverterWarranty: row[25] || '',
-        structureType: row[26] || '',
-        structureMake: row[27] || '',
-        structureWarranty: row[28] || '',
-        bosItems: row[29] || '',
-        bosWarranty: row[30] || '',
-        cableMake: row[31] || '',
-        cableWarranty: row[32] || '',
-        earthingType: row[33] || '',
-        earthingQuantity: parseInt(row[34]) || 0,
-        earthingWarranty: row[35] || '',
-        lightningArrestorType: row[36] || '',
-        lightningArrestorQuantity: parseInt(row[37]) || 0,
-        lightningArrestorWarranty: row[38] || '',
-        maintenanceYears: parseInt(row[39]) || 0,
-        gridConnectivityIncluded: row[40] === 'TRUE',
-        netMeteringIncluded: row[41] === 'TRUE',
-        baseCost: parseFloat(row[42]) || 0,
-        gstPercentage: parseFloat(row[43]) || 0,
-        gstAmount: parseFloat(row[44]) || 0,
-        totalCost: parseFloat(row[45]) || 0,
-        subsidyAmount: parseFloat(row[46]) || 0,
-        finalAmount: parseFloat(row[47]) || 0,
-        advancePercentage: parseFloat(row[48]) || 0,
-        preDispatchPercentage: parseFloat(row[49]) || 0,
-        preGridPercentage: parseFloat(row[50]) || 0,
-        paymentTerms: row[51] || '',
-        status: row[52] || 'Draft',
-        createdBy: row[53] || '',
-        createdDate: row[54] || new Date().toISOString(),
-        sentBy: row[55] || undefined,
-        sentDate: row[56] || undefined,
-        viewCount: parseInt(row[57]) || 0,
-        firstViewedDate: row[58] || undefined,
-        lastViewedDate: row[59] || undefined,
-        approvedBy: row[60] || undefined,
-        approvedDate: row[61] || undefined,
-        rejectedReason: row[62] || undefined,
-        validUntilDate: row[63] || '',
-        publicToken: row[64] || '',
-        publicUrl: row[65] || '',
-        pdfUrl: row[66] || undefined,
-        qrCodeUrl: row[67] || undefined,
-        notes: row[68] || undefined,
-        termsAndConditions: row[69] || '',
-        loanAvailable: row[70] === 'TRUE',
-        loanInterestRate: row[71] ? parseFloat(row[71]) : undefined,
-        companyName: row[72] || '',
-        companyGst: row[73] || '',
-        companyUdyam: row[74] || '',
-        companyCspdclReg: row[75] || '',
-        companyBankName: row[76] || '',
-        companyAccountNumber: row[77] || '',
-        companyIfsc: row[78] || '',
-        companyAddress: row[79] || '',
-        companyPhone: row[80] || '',
-        companyEmail: row[81] || '',
-      };
-
-      return quotation;
+    // Get header row to map columns
+    const headerResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A1:CZ1',
     });
 
-    if (orgId) {
-      return quotations.filter(q => q.organizationId === orgId);
-    }
+    const headers = headerResponse.data.values?.[0] || [];
+
+    const quotations = rows
+      .map((row) => rowToQuotation(row, headers, orgId))
+      .filter((q) => q !== null);
+
+    console.log(`✅ Loaded ${quotations.length} quotations for ${orgId}`);
+
+    // 3. Store in cache (optional)
+    // await cacheSheetData(orgId, 'quotations', quotations);
 
     return quotations;
   } catch (error: any) {
-    console.error('Error fetching quotations:', error);
-    throw new Error(`Failed to fetch quotations: ${error.message}`);
+    console.error('❌ Error fetching quotations:', error);
+    throw new Error('Failed to fetch quotations: ' + error.message);
   }
 }
 
 /**
- * Fetch single quotation
+ * Fetch single quotation by ID
  */
 export async function fetchQuotation(
   orgId: string,
   quotationId: string
 ): Promise<Quotation | null> {
   try {
-    const quotations = await fetchQuotations(orgId);
-    return quotations.find(q => q.quotationId === quotationId) || null;
-  } catch (error) {
-    console.error('Error fetching quotation:', error);
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A2:CZ10000',
+    });
+
+    const rows = response.data.values || [];
+
+    // Get header row
+    const headerResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A1:CZ1',
+    });
+
+    const headers = headerResponse.data.values?.[0] || [];
+
+    // Find the quotation
+    for (const row of rows) {
+      const quotation = rowToQuotation(row, headers, orgId);
+      if (quotation && quotation.quotationId === quotationId) {
+        return quotation;
+      }
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error('❌ Error fetching quotation:', error);
     return null;
   }
 }
@@ -1636,32 +1591,27 @@ export async function fetchQuotation(
  */
 export async function createQuotation(quotation: Quotation): Promise<void> {
   try {
-    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
-    const sheetId = process.env.GOOGLESHEETID;
-
-    if (!sheetId) {
-      throw new Error('Google Sheet ID not configured');
-    }
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
 
     const row = [
-      quotation.organizationId,
-      quotation.organizationName,
-      quotation.sheetId,
       quotation.quotationId,
+      quotation.organizationId || 'hope-energy',
       quotation.referenceNumber,
       quotation.leadId || '',
       quotation.enquiryId || '',
       quotation.quotationType,
       quotation.customerName,
       quotation.customerPhone,
-      quotation.customerEmail,
-      quotation.customerAddress,
+      quotation.customerEmail || '',
+      quotation.customerAddress || '',
       quotation.location,
       quotation.premisesType,
       quotation.systemCapacity,
       quotation.systemType,
       quotation.panelType,
       quotation.panelMake,
+      quotation.panelModel || '',
       quotation.panelWattage,
       quotation.panelQuantity,
       quotation.panelWarranty,
@@ -1701,21 +1651,20 @@ export async function createQuotation(quotation: Quotation): Promise<void> {
       quotation.createdDate,
       quotation.sentBy || '',
       quotation.sentDate || '',
-      quotation.viewCount,
+      quotation.viewCount || 0,
       quotation.firstViewedDate || '',
       quotation.lastViewedDate || '',
       quotation.approvedBy || '',
       quotation.approvedDate || '',
       quotation.rejectedReason || '',
       quotation.validUntilDate,
-      quotation.publicToken,
-      quotation.publicUrl,
+      quotation.publicUrl || '',
       quotation.pdfUrl || '',
       quotation.qrCodeUrl || '',
       quotation.notes || '',
       quotation.termsAndConditions,
       quotation.loanAvailable ? 'TRUE' : 'FALSE',
-      quotation.loanInterestRate || '',
+      quotation.loanInterestRate || 0,
       quotation.companyName,
       quotation.companyGst,
       quotation.companyUdyam,
@@ -1730,7 +1679,7 @@ export async function createQuotation(quotation: Quotation): Promise<void> {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A:CF',
+      range: 'QUOTATIONS!A:CZ',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [row],
@@ -1739,7 +1688,7 @@ export async function createQuotation(quotation: Quotation): Promise<void> {
 
     console.log(`✅ Created quotation: ${quotation.quotationId}`);
   } catch (error: any) {
-    console.error('Error creating quotation:', error);
+    console.error('❌ Error creating quotation:', error);
     throw new Error(`Failed to create quotation: ${error.message}`);
   }
 }
@@ -1753,56 +1702,203 @@ export async function updateQuotation(
   updates: Partial<Quotation>
 ): Promise<void> {
   try {
-    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
-    const sheetId = process.env.GOOGLESHEETID;
+    const sheets = await getSheets();
+    const sheetId = await getSheetId();
 
-    if (!sheetId) {
-      throw new Error('Google Sheet ID not configured');
-    }
-
+    // Get all rows to find the quotation
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:D',
+      range: 'QUOTATIONS!A2:CZ10000',
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex(
-      (row: any[]) => row[0] === orgId && row[3] === quotationId
-    );
+
+    // Get headers
+    const headerResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A1:CZ1',
+    });
+
+    const headers = headerResponse.data.values?.[0] || [];
+
+    // Find the row index (add 2 because: 1 for header, 1 for 0-indexed)
+    let rowIndex = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const rowQuotationId = rows[i][0]; // quotationId is first column
+      const rowOrgId = rows[i][headers.indexOf('organizationId')] || 
+                      (rows[i][headers.indexOf('companyName')] === 'HOPE ENERGY' ? 'hope-energy' : 'default-org');
+
+      if (rowQuotationId === quotationId && rowOrgId.toLowerCase() === orgId.toLowerCase()) {
+        rowIndex = i + 2; // +2 for header row and 0-indexed
+        break;
+      }
+    }
 
     if (rowIndex === -1) {
       throw new Error('Quotation not found');
     }
 
-    const actualRowNumber = rowIndex + 2;
-
     // Update specific columns
-    const columnMap: Record<string, string> = {
-      status: 'BA',
-      sentBy: 'BC',
-      sentDate: 'BD',
-      viewCount: 'BE',
-      firstViewedDate: 'BF',
-      lastViewedDate: 'BG',
-      approvedBy: 'BH',
-      approvedDate: 'BI',
-    };
+    const updatePromises = Object.entries(updates).map(([key, value]) => {
+      const colIndex = headers.indexOf(key);
+      if (colIndex === -1) return null;
 
-    for (const [key, value] of Object.entries(updates)) {
-      const column = columnMap[key];
-      if (column && value !== undefined) {
-        await sheets.spreadsheets.values.update({
-          spreadsheetId: sheetId,
-          range: `QUOTATIONS!${column}${actualRowNumber}`,
-          valueInputOption: 'USER_ENTERED',
-          requestBody: { values: [[value]] },
-        });
-      }
-    }
+      const colLetter = columnToLetter(colIndex);
+      const range = `QUOTATIONS!${colLetter}${rowIndex}`;
+
+      return sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[value]] },
+      });
+    }).filter(p => p !== null);
+
+    await Promise.all(updatePromises);
 
     console.log(`✅ Updated quotation: ${quotationId}`);
   } catch (error: any) {
-    console.error('Error updating quotation:', error);
+    console.error('❌ Error updating quotation:', error);
     throw new Error(`Failed to update quotation: ${error.message}`);
   }
+}
+
+/**
+ * Helper: Convert row array to Quotation object
+ */
+function rowToQuotation(row: any[], headers: string[], filterOrgId: string): Quotation | null {
+  if (!row || row.length === 0) return null;
+
+  const get = (key: string) => {
+    const index = headers.indexOf(key);
+    return index >= 0 ? row[index] : '';
+  };
+
+  // Check organizationId filter
+  const rowOrgId = get('organizationId') || 
+                  (get('companyName') === 'HOPE ENERGY' ? 'hope-energy' : 'default-org');
+
+  if (rowOrgId.toLowerCase() !== filterOrgId.toLowerCase()) {
+    return null;
+  }
+
+  return {
+    quotationId: get('quotationId') || '',
+    organizationId: rowOrgId,
+    organizationName: get('companyName') || 'HOPE ENERGY',
+    sheetId: get('sheetId') || '',
+    referenceNumber: get('referenceNumber') || '',
+    leadId: get('leadId') || '',
+    enquiryId: get('enquiryId') || '',
+    quotationType: get('quotationType') || 'Initial',
+
+    // Customer details
+    customerName: get('customerName') || '',
+    customerPhone: get('customerPhone') || '',
+    customerEmail: get('customerEmail') || '',
+    customerAddress: get('customerAddress') || '',
+    location: get('location') || '',
+    premisesType: get('premisesType') || 'Residence',
+
+    // System details
+    systemCapacity: parseFloat(get('systemCapacity')) || 0,
+    systemType: get('systemType') || 'On-Grid',
+    panelType: get('panelType') || 'RTS DCR',
+
+    // Panel details
+    panelMake: get('panelMake') || '',
+    panelModel: get('panelModel') || '',
+    panelWattage: parseInt(get('panelWattage')) || 0,
+    panelQuantity: parseInt(get('panelQuantity')) || 0,
+    panelWarranty: get('panelWarranty') || '',
+
+    // Inverter details
+    inverterMake: get('inverterMake') || '',
+    inverterModel: get('inverterModel') || '',
+    inverterCapacity: parseFloat(get('inverterCapacity')) || 0,
+    inverterQuantity: parseInt(get('inverterQuantity')) || 1,
+    inverterWarranty: get('inverterWarranty') || '',
+
+    // Other components
+    structureType: get('structureType') || '',
+    structureMake: get('structureMake') || '',
+    structureWarranty: get('structureWarranty') || '',
+    bosItems: get('bosItems') || '',
+    bosWarranty: get('bosWarranty') || '',
+    cableMake: get('cableMake') || '',
+    cableWarranty: get('cableWarranty') || '',
+    earthingType: get('earthingType') || '',
+    earthingQuantity: parseInt(get('earthingQuantity')) || 0,
+    earthingWarranty: get('earthingWarranty') || '',
+    lightningArrestorType: get('lightningArrestorType') || '',
+    lightningArrestorQuantity: parseInt(get('lightningArrestorQuantity')) || 0,
+    lightningArrestorWarranty: get('lightningArrestorWarranty') || '',
+    maintenanceYears: parseInt(get('maintenanceYears')) || 5,
+    gridConnectivityIncluded: get('gridConnectivityIncluded') === 'TRUE',
+    netMeteringIncluded: get('netMeteringIncluded') === 'TRUE',
+
+    // Pricing
+    baseCost: parseFloat(get('baseCost')) || 0,
+    gstPercentage: parseFloat(get('gstPercentage')) || 0,
+    gstAmount: parseFloat(get('gstAmount')) || 0,
+    totalCost: parseFloat(get('totalCost')) || 0,
+    subsidyAmount: parseFloat(get('subsidyAmount')) || 0,
+    finalAmount: parseFloat(get('finalAmount')) || 0,
+
+    // Payment terms
+    advancePercentage: parseInt(get('advancePercentage')) || 70,
+    preDispatchPercentage: parseInt(get('preDispatchPercentage')) || 20,
+    preGridPercentage: parseInt(get('preGridPercentage')) || 10,
+    paymentTerms: get('paymentTerms') || '',
+
+    // Status tracking
+    status: get('status') || 'Draft',
+    createdBy: get('createdBy') || '',
+    createdDate: get('createdDate') || new Date().toISOString(),
+    sentBy: get('sentBy') || '',
+    sentDate: get('sentDate') || '',
+    viewCount: parseInt(get('viewCount')) || 0,
+    firstViewedDate: get('firstViewedDate') || '',
+    lastViewedDate: get('lastViewedDate') || '',
+    approvedBy: get('approvedBy') || '',
+    approvedDate: get('approvedDate') || '',
+    rejectedReason: get('rejectedReason') || '',
+    validUntilDate: get('validUntilDate') || '',
+
+    // URLs
+    publicToken: get('publicToken') || '',
+    publicUrl: get('publicUrl') || '',
+    pdfUrl: get('pdfUrl') || '',
+    qrCodeUrl: get('qrCodeUrl') || '',
+
+    // Additional
+    notes: get('notes') || '',
+    termsAndConditions: get('termsAndConditions') || '',
+    loanAvailable: get('loanAvailable') === 'TRUE',
+    loanInterestRate: parseFloat(get('loanInterestRate')) || 0,
+
+    // Company details
+    companyName: get('companyName') || '',
+    companyGst: get('companyGst') || '',
+    companyUdyam: get('companyUdyam') || '',
+    companyCspdclReg: get('companyCspdclReg') || '',
+    companyBankName: get('companyBankName') || '',
+    companyAccountNumber: get('companyAccountNumber') || '',
+    companyIfsc: get('companyIfsc') || '',
+    companyAddress: get('companyAddress') || '',
+    companyPhone: get('companyPhone') || '',
+    companyEmail: get('companyEmail') || '',
+  };
+}
+
+/**
+ * Helper: Convert column index to letter (0 = A, 25 = Z, 26 = AA, etc.)
+ */
+function columnToLetter(index: number): string {
+  let letter = '';
+  while (index >= 0) {
+    letter = String.fromCharCode((index % 26) + 65) + letter;
+    index = Math.floor(index / 26) - 1;
+  }
+  return letter;
 }

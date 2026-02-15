@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { createQuotation, fetchQuotations } from '@/lib/googleSheets';
+import { createQuotation, fetchAllQuotations } from '@/lib/googleSheets';
 import { 
   generatePublicToken, 
   generatePublicUrl, 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     // Get current quotation count for this org
-    const existingQuotations = await fetchQuotations(orgId);
+    const existingQuotations = await fetchAllQuotations(orgId);
     const counter = existingQuotations.length + 1;
     const quotationId = `QT-${String(counter).padStart(3, '0')}`;
 
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
 
       // Components
       panelMake: body.panelMake,
+      panelModel: body.panelModel || '',
       panelWattage: parseFloat(body.panelWattage),
       panelQuantity: parseInt(body.panelQuantity),
       panelWarranty: body.panelWarranty,

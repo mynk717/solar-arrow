@@ -159,13 +159,26 @@ export default function QuotationBuilderPage() {
 
   const fetchLeads = async () => {
     try {
-      const response = await fetch('/api/leads/list?status=contacted,qualified');
+      // Use single status parameter approach
+      const response = await fetch('/api/leads/list?status=contacted');
       if (response.ok) {
         const data = await response.json();
-        setLeads(data.leads || []);
+        const contactedLeads = data.leads || [];
+  
+        // Fetch qualified leads separately
+        const response2 = await fetch('/api/leads/list?status=qualified');
+        const qualifiedLeads = response2.ok ? (await response2.json()).leads || [] : [];
+  
+        // Combine both
+        const allLeads = [...contactedLeads, ...qualifiedLeads];
+        setLeads(allLeads);
+  
+        console.log(`✅ Loaded ${allLeads.length} leads (contacted + qualified)`);
       }
     } catch (error) {
       console.error('Error fetching leads:', error);
+      // Don't fail the form if leads can't be loaded
+      setLeads([]);
     }
   };
 

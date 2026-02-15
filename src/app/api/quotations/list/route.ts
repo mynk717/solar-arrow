@@ -1,10 +1,10 @@
 // src/app/api/quotations/list/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { fetchQuotations } from '@/lib/googleSheets';
+import { authOptions } from '../../auth/[...nextauth]/route';
+import { fetchAllQuotations } from '@/lib/googleSheets';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -12,38 +12,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orgId = (session.user as any).organizationId || 'default-org';
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const leadId = searchParams.get('leadId');
 
-    console.log(`📋 Fetching quotations for org: ${orgId}`);
+    // Get organizationId from session, fallback to 'hope-energy' if not set
+    const orgId = (session.user as any).organizationId || 'hope-energy';
 
-    // Fetch all quotations for this organization
-    let quotations = await fetchQuotations(orgId);
+    console.log(`📋 Fetching quotations for ${orgId}, status: ${status}, leadId: ${leadId}`);
 
-    // Apply filters
+    let quotations = await fetchAllQuotations(orgId);
+
+    // Filter by status if provided
     if (status) {
-      quotations = quotations.filter(q => q.status === status);
+      quotations = quotations.filter((q: any) => 
+        q.status?.toLowerCase() === status.toLowerCase()
+      );
     }
 
+    // Filter by leadId if provided
     if (leadId) {
-      quotations = quotations.filter(q => q.leadId === leadId);
+      quotations = quotations.filter((q: any) => q.leadId === leadId);
     }
-
-    // Sort by created date (newest first)
-    quotations.sort((a, b) => {
-      const dateA = new Date(a.createdDate).getTime();
-      const dateB = new Date(b.createdDate).getTime();
-      return dateB - dateA;
-    });
 
     console.log(`✅ Found ${quotations.length} quotations`);
 
     return NextResponse.json({
       success: true,
-      count: quotations.length,
       quotations,
+      count: quotations.length,
     });
   } catch (error: any) {
     console.error('❌ Error fetching quotations:', error);

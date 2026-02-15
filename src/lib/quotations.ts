@@ -28,6 +28,7 @@ export interface Quotation {
 
   // Components
   panelMake: string;
+  panelModel: string;
   panelWattage: number;
   panelQuantity: number;
   panelWarranty: string;
