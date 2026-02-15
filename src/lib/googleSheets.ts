@@ -6,6 +6,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
 import { redis } from './redis';
+import { Quotation } from './quotations';
 import { 
   cacheSheetData,
   getCachedSheetData,
@@ -1488,5 +1489,320 @@ export async function fetchProjectStagesFromSheet(): Promise<any[]> {
   } catch (error: any) {
     console.error('Error fetching project stages:', error);
     return [];
+  }
+}
+
+// ============================================
+// QUOTATION FUNCTIONS
+// Add these functions to src/lib/googleSheets.ts
+// ============================================
+/**
+ * Fetch all quotations for an organization
+ */
+export async function fetchQuotations(orgId?: string): Promise<Quotation[]> {
+  try {
+    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
+    const sheetId = process.env.GOOGLESHEETID;
+
+    if (!sheetId) {
+      throw new Error('Google Sheet ID not configured');
+    }
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A2:CF',
+    });
+
+    const rows = response.data.values || [];
+
+    const quotations = rows.map((row: any[]) => {
+      const quotation: Quotation = {
+        organizationId: row[0] || '',
+        organizationName: row[1] || '',
+        sheetId: row[2] || '',
+        quotationId: row[3] || '',
+        referenceNumber: row[4] || '',
+        leadId: row[5] || undefined,
+        enquiryId: row[6] || undefined,
+        quotationType: row[7] || 'Initial',
+        customerName: row[8] || '',
+        customerPhone: row[9] || '',
+        customerEmail: row[10] || '',
+        customerAddress: row[11] || '',
+        location: row[12] || '',
+        premisesType: row[13] || 'Residence',
+        systemCapacity: parseFloat(row[14]) || 0,
+        systemType: row[15] || 'On-Grid',
+        panelType: row[16] || '',
+        panelMake: row[17] || '',
+        panelWattage: parseFloat(row[18]) || 0,
+        panelQuantity: parseInt(row[19]) || 0,
+        panelWarranty: row[20] || '',
+        inverterMake: row[21] || '',
+        inverterModel: row[22] || '',
+        inverterCapacity: parseFloat(row[23]) || 0,
+        inverterQuantity: parseInt(row[24]) || 0,
+        inverterWarranty: row[25] || '',
+        structureType: row[26] || '',
+        structureMake: row[27] || '',
+        structureWarranty: row[28] || '',
+        bosItems: row[29] || '',
+        bosWarranty: row[30] || '',
+        cableMake: row[31] || '',
+        cableWarranty: row[32] || '',
+        earthingType: row[33] || '',
+        earthingQuantity: parseInt(row[34]) || 0,
+        earthingWarranty: row[35] || '',
+        lightningArrestorType: row[36] || '',
+        lightningArrestorQuantity: parseInt(row[37]) || 0,
+        lightningArrestorWarranty: row[38] || '',
+        maintenanceYears: parseInt(row[39]) || 0,
+        gridConnectivityIncluded: row[40] === 'TRUE',
+        netMeteringIncluded: row[41] === 'TRUE',
+        baseCost: parseFloat(row[42]) || 0,
+        gstPercentage: parseFloat(row[43]) || 0,
+        gstAmount: parseFloat(row[44]) || 0,
+        totalCost: parseFloat(row[45]) || 0,
+        subsidyAmount: parseFloat(row[46]) || 0,
+        finalAmount: parseFloat(row[47]) || 0,
+        advancePercentage: parseFloat(row[48]) || 0,
+        preDispatchPercentage: parseFloat(row[49]) || 0,
+        preGridPercentage: parseFloat(row[50]) || 0,
+        paymentTerms: row[51] || '',
+        status: row[52] || 'Draft',
+        createdBy: row[53] || '',
+        createdDate: row[54] || new Date().toISOString(),
+        sentBy: row[55] || undefined,
+        sentDate: row[56] || undefined,
+        viewCount: parseInt(row[57]) || 0,
+        firstViewedDate: row[58] || undefined,
+        lastViewedDate: row[59] || undefined,
+        approvedBy: row[60] || undefined,
+        approvedDate: row[61] || undefined,
+        rejectedReason: row[62] || undefined,
+        validUntilDate: row[63] || '',
+        publicToken: row[64] || '',
+        publicUrl: row[65] || '',
+        pdfUrl: row[66] || undefined,
+        qrCodeUrl: row[67] || undefined,
+        notes: row[68] || undefined,
+        termsAndConditions: row[69] || '',
+        loanAvailable: row[70] === 'TRUE',
+        loanInterestRate: row[71] ? parseFloat(row[71]) : undefined,
+        companyName: row[72] || '',
+        companyGst: row[73] || '',
+        companyUdyam: row[74] || '',
+        companyCspdclReg: row[75] || '',
+        companyBankName: row[76] || '',
+        companyAccountNumber: row[77] || '',
+        companyIfsc: row[78] || '',
+        companyAddress: row[79] || '',
+        companyPhone: row[80] || '',
+        companyEmail: row[81] || '',
+      };
+
+      return quotation;
+    });
+
+    if (orgId) {
+      return quotations.filter(q => q.organizationId === orgId);
+    }
+
+    return quotations;
+  } catch (error: any) {
+    console.error('Error fetching quotations:', error);
+    throw new Error(`Failed to fetch quotations: ${error.message}`);
+  }
+}
+
+/**
+ * Fetch single quotation
+ */
+export async function fetchQuotation(
+  orgId: string,
+  quotationId: string
+): Promise<Quotation | null> {
+  try {
+    const quotations = await fetchQuotations(orgId);
+    return quotations.find(q => q.quotationId === quotationId) || null;
+  } catch (error) {
+    console.error('Error fetching quotation:', error);
+    return null;
+  }
+}
+
+/**
+ * Create new quotation
+ */
+export async function createQuotation(quotation: Quotation): Promise<void> {
+  try {
+    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
+    const sheetId = process.env.GOOGLESHEETID;
+
+    if (!sheetId) {
+      throw new Error('Google Sheet ID not configured');
+    }
+
+    const row = [
+      quotation.organizationId,
+      quotation.organizationName,
+      quotation.sheetId,
+      quotation.quotationId,
+      quotation.referenceNumber,
+      quotation.leadId || '',
+      quotation.enquiryId || '',
+      quotation.quotationType,
+      quotation.customerName,
+      quotation.customerPhone,
+      quotation.customerEmail,
+      quotation.customerAddress,
+      quotation.location,
+      quotation.premisesType,
+      quotation.systemCapacity,
+      quotation.systemType,
+      quotation.panelType,
+      quotation.panelMake,
+      quotation.panelWattage,
+      quotation.panelQuantity,
+      quotation.panelWarranty,
+      quotation.inverterMake,
+      quotation.inverterModel,
+      quotation.inverterCapacity,
+      quotation.inverterQuantity,
+      quotation.inverterWarranty,
+      quotation.structureType,
+      quotation.structureMake,
+      quotation.structureWarranty,
+      quotation.bosItems,
+      quotation.bosWarranty,
+      quotation.cableMake,
+      quotation.cableWarranty,
+      quotation.earthingType,
+      quotation.earthingQuantity,
+      quotation.earthingWarranty,
+      quotation.lightningArrestorType,
+      quotation.lightningArrestorQuantity,
+      quotation.lightningArrestorWarranty,
+      quotation.maintenanceYears,
+      quotation.gridConnectivityIncluded ? 'TRUE' : 'FALSE',
+      quotation.netMeteringIncluded ? 'TRUE' : 'FALSE',
+      quotation.baseCost,
+      quotation.gstPercentage,
+      quotation.gstAmount,
+      quotation.totalCost,
+      quotation.subsidyAmount,
+      quotation.finalAmount,
+      quotation.advancePercentage,
+      quotation.preDispatchPercentage,
+      quotation.preGridPercentage,
+      quotation.paymentTerms,
+      quotation.status,
+      quotation.createdBy,
+      quotation.createdDate,
+      quotation.sentBy || '',
+      quotation.sentDate || '',
+      quotation.viewCount,
+      quotation.firstViewedDate || '',
+      quotation.lastViewedDate || '',
+      quotation.approvedBy || '',
+      quotation.approvedDate || '',
+      quotation.rejectedReason || '',
+      quotation.validUntilDate,
+      quotation.publicToken,
+      quotation.publicUrl,
+      quotation.pdfUrl || '',
+      quotation.qrCodeUrl || '',
+      quotation.notes || '',
+      quotation.termsAndConditions,
+      quotation.loanAvailable ? 'TRUE' : 'FALSE',
+      quotation.loanInterestRate || '',
+      quotation.companyName,
+      quotation.companyGst,
+      quotation.companyUdyam,
+      quotation.companyCspdclReg,
+      quotation.companyBankName,
+      quotation.companyAccountNumber,
+      quotation.companyIfsc,
+      quotation.companyAddress,
+      quotation.companyPhone,
+      quotation.companyEmail,
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A:CF',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [row],
+      },
+    });
+
+    console.log(`✅ Created quotation: ${quotation.quotationId}`);
+  } catch (error: any) {
+    console.error('Error creating quotation:', error);
+    throw new Error(`Failed to create quotation: ${error.message}`);
+  }
+}
+
+/**
+ * Update quotation
+ */
+export async function updateQuotation(
+  orgId: string,
+  quotationId: string,
+  updates: Partial<Quotation>
+): Promise<void> {
+  try {
+    const sheets = google.sheets({ version: 'v4', auth: await getAuthClient() });
+    const sheetId = process.env.GOOGLESHEETID;
+
+    if (!sheetId) {
+      throw new Error('Google Sheet ID not configured');
+    }
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'QUOTATIONS!A2:D',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex(
+      (row: any[]) => row[0] === orgId && row[3] === quotationId
+    );
+
+    if (rowIndex === -1) {
+      throw new Error('Quotation not found');
+    }
+
+    const actualRowNumber = rowIndex + 2;
+
+    // Update specific columns
+    const columnMap: Record<string, string> = {
+      status: 'BA',
+      sentBy: 'BC',
+      sentDate: 'BD',
+      viewCount: 'BE',
+      firstViewedDate: 'BF',
+      lastViewedDate: 'BG',
+      approvedBy: 'BH',
+      approvedDate: 'BI',
+    };
+
+    for (const [key, value] of Object.entries(updates)) {
+      const column = columnMap[key];
+      if (column && value !== undefined) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: sheetId,
+          range: `QUOTATIONS!${column}${actualRowNumber}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: { values: [[value]] },
+        });
+      }
+    }
+
+    console.log(`✅ Updated quotation: ${quotationId}`);
+  } catch (error: any) {
+    console.error('Error updating quotation:', error);
+    throw new Error(`Failed to update quotation: ${error.message}`);
   }
 }

@@ -1,0 +1,60 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/[...nextauth]/route';
+import { updateLead } from '@/lib/googleSheets';
+import { invalidateLeadsCache } from '@/lib/redis';
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ✅ Admin, Owner, Sales, and Assigned User can qualify
+    const userRole = (session.user as any).role || 'user';
+    const userEmail = session.user.email;
+
+    const { leadId, qualificationNotes, estimatedBudget } = await request.json();
+
+    if (!leadId) {
+      return NextResponse.json({ error: 'Lead ID required' }, { status: 400 });
+    }
+
+    // Check if user has permission to qualify this lead
+    const orgId = (session.user as any).organizationId || 'default-org';
+    
+    console.log(`🎯 Qualifying lead ${leadId} by ${userEmail}`);
+
+    // Update lead to qualified status
+    await updateLead(
+      leadId,
+      {
+        status: 'qualified',
+        qualified: true,
+        qualifiedDate: new Date(),
+        qualifiedBy: userEmail,
+        estimatedBudget: estimatedBudget ? parseFloat(estimatedBudget) : undefined,
+        notes: qualificationNotes || '',
+        lastActivityBy: userEmail,
+        lastActivityDate: new Date(),
+      },
+      userEmail
+    );
+
+    console.log(`✅ Lead ${leadId} qualified successfully`);
+
+    // ✅ Invalidate cache
+    await invalidateLeadsCache(orgId);
+    console.log('✅ Cache invalidated after qualification');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Lead qualified successfully',
+    });
+  } catch (error: any) {
+    console.error('❌ Qualification error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
