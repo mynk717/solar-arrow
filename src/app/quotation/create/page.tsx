@@ -160,7 +160,7 @@ export default function QuotationBuilderPage() {
   const fetchLeads = async () => {
     try {
       // Use single status parameter approach
-      const response = await fetch('/api/leads/list?status=contacted');
+      const response = await fetch('/api/leads/list');
       if (response.ok) {
         const data = await response.json();
         const contactedLeads = data.leads || [];
