@@ -1,4 +1,4 @@
-// src/app/survey/page.tsx - WORKING VERSION + UI ENHANCEMENTS
+// src/app/survey/page.tsx 
 
 'use client';
 import { useState } from 'react';
