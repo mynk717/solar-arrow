@@ -62,8 +62,9 @@ export default function SurveyPage() {
       return true;
     })();
 
-    // User filter - surveyors see only their own
-    const matchesUser = isAdmin || survey.surveyorEmail === session?.user?.email;
+   // ✅ Admin sees all, surveyors see only their own
+const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail === session?.user?.email;
+
 
     return matchesSearch && matchesStatus && matchesUser;
   });
