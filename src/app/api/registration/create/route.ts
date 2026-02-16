@@ -59,26 +59,28 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
 
     // Prepare row: Only enquiryId + registration-specific fields
-    const rowData = [
-      regId,
-      enquiryId,
-      '', // registrationId (empty until approved)
-      applicationNumber || '',
-      consumerNumber || '',
-      discomCircle,
-      discomDivision,
-      discomSubDivision,
-      'submitted',
-      submittedDate || now.split('T')[0],
-      '', // approvedDate
-      '', // rejectedDate
-      '', // feasibilityApprovalNumber
-      notes || '',
-      '', // rejectionReason
-      session.user.email,
-      now,
-      now,
-    ];
+    // Prepare row: Match exact column order A-R
+const rowData = [
+  regId,                              // A: id
+  enquiryId,                          // B: enquiryId
+  '',                                 // C: registrationId (empty until approved)
+  applicationNumber || '',            // D: applicationNumber
+  consumerNumber || '',               // E: consumerNumber
+  discomCircle,                       // F: discomCircle
+  discomDivision,                     // G: discomDivision
+  discomSubDivision,                  // H: discomSubDivision
+  'submitted',                        // I: registrationStatus
+  submittedDate || now.split('T')[0], // J: submittedDate
+  '',                                 // K: approvedDate
+  '',                                 // L: rejectedDate
+  '',                                 // M: feasibilityApprovalNumber
+  notes || '',                        // N: notes
+  '',                                 // O: rejectionReason
+  session.user.email,                 // P: submittedBy
+  now,                                // Q: createdAt
+  now,                                // R: updatedAt
+];
+
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
@@ -113,7 +115,8 @@ export async function POST(request: NextRequest) {
 📍 Sub-Division: ${discomSubDivision}
 ${applicationNumber ? `📝 Application: ${applicationNumber}` : ''}
 
-📅 *Submitted:* ${submittedDate || new Date().toLocaleDateString('en-IN')}
+📅 *Submitted Date:* ${submittedDate || new Date().toLocaleDateString('en-IN')}
+👤 *Submitted By:* ${session.user.email}
 
 ⏳ *Status:* Awaiting DISCOM approval`;
 

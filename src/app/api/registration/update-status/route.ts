@@ -117,6 +117,8 @@ export async function POST(request: NextRequest) {
 📝 *Application No:* ${applicationNumber || 'N/A'}
 📄 *Feasibility No:* ${feasibilityApprovalNumber || 'N/A'}
 📅 *Approved Date:* ${approvedDate || new Date().toLocaleDateString('en-IN')}
+👤 *Updated By:* ${session.user.email}
+
 
 ✅ *Next Step:* Proceed with installation`;
       } else if (registrationStatus === 'rejected') {
@@ -129,6 +131,8 @@ export async function POST(request: NextRequest) {
 📝 *Application No:* ${applicationNumber || 'N/A'}
 📅 *Rejected Date:* ${rejectedDate || new Date().toLocaleDateString('en-IN')}
 ❌ *Reason:* ${rejectionReason || 'Not specified'}
+👤 *Updated By:* ${session.user.email}
+
 
 ⚠️ *Action Required:* Review and resubmit application`;
       } else {
@@ -139,7 +143,8 @@ export async function POST(request: NextRequest) {
 ⚡ *Capacity:* ${enquiry?.[6]} kW
 
 📊 *Status:* ${registrationStatus.toUpperCase()}
-📅 *Updated:* ${new Date().toLocaleDateString('en-IN')}`;
+📅 *Updated:* ${new Date().toLocaleDateString('en-IN')};
+👤 *Updated By:* ${session.user.email}`;
       }
 
       await sendOrgGroupNotification(

@@ -25,6 +25,11 @@ export async function GET(request: NextRequest) {
 
     const regRows = regResponse.data.values || [];
     
+    console.log('Raw registration rows:', regRows.length);
+    if (regRows.length > 0) {
+      console.log('First row:', regRows[0]);
+    }
+
     // Fetch ENQUIRIES for joining
     const enqResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -50,40 +55,45 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Map registrations with enquiry data
-    const registrations = regRows.map((row: any) => {
-      const enquiry = enquiriesMap[row[1]] || {};
-      
-      return {
-        id: row[0],
-        enquiryId: row[1],
-        registrationId: row[2] || null,
-        applicationNumber: row[3] || null,
-        consumerNumber: row[4] || null,
-        discomCircle: row[5] || null,
-        discomDivision: row[6] || null,
-        discomSubDivision: row[7] || null,
-        registrationStatus: row[8] || 'pending',
-        submittedDate: row[9] || null,
-        approvedDate: row[10] || null,
-        rejectedDate: row[11] || null,
-        feasibilityApprovalNumber: row[12] || null,
-        notes: row[13] || null,
-        rejectionReason: row[14] || null,
-        submittedBy: row[15] || null,
-        createdAt: row[16] || null,
-        updatedAt: row[17] || null,
+    // Map registrations with CORRECT column mapping
+    const registrations = regRows
+      .filter((row: any) => row[0]) // Has ID
+      .map((row: any) => {
+        const enquiry = enquiriesMap[row[1]] || {};
         
-        // Joined enquiry data
-        customerName: enquiry.customerName,
-        phone: enquiry.phone,
-        email: enquiry.email,
-        address: enquiry.address,
-        area: enquiry.area,
-        capacity: enquiry.capacity,
-        enquiryStatus: enquiry.status,
-      };
-    });
+        return {
+          // Column A-R mapping (0-17 index)
+          id: row[0],                           // A
+          enquiryId: row[1],                    // B
+          registrationId: row[2] || null,       // C
+          applicationNumber: row[3] || null,    // D
+          consumerNumber: row[4] || null,       // E
+          discomCircle: row[5] || null,         // F
+          discomDivision: row[6] || null,       // G
+          discomSubDivision: row[7] || null,    // H
+          registrationStatus: row[8] || 'pending', // I
+          submittedDate: row[9] || null,        // J
+          approvedDate: row[10] || null,        // K
+          rejectedDate: row[11] || null,        // L
+          feasibilityApprovalNumber: row[12] || null, // M
+          notes: row[13] || null,               // N
+          rejectionReason: row[14] || null,     // O
+          submittedBy: row[15] || null,         // P
+          createdAt: row[16] || null,           // Q
+          updatedAt: row[17] || null,           // R
+          
+          // Joined enquiry data
+          customerName: enquiry.customerName,
+          phone: enquiry.phone,
+          email: enquiry.email,
+          address: enquiry.address,
+          area: enquiry.area,
+          capacity: enquiry.capacity,
+          enquiryStatus: enquiry.status,
+        };
+      });
+
+    console.log('Processed registrations:', registrations.length);
 
     return NextResponse.json({
       success: true,
