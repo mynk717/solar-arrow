@@ -55,15 +55,15 @@ async function sendTelegramNotification(enquiry: any, surveyDate: string, assign
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    console.log('📝 Session:', session?.user?.email); // ✅ ADD
+    const session = await getServerSession(authOptions);  // ✅ FIXED THIS LINE
+    console.log('📝 Session:', session?.user?.email);
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { enquiryId, surveyDate, assignedTo, assignedToName } = await request.json();
-    console.log('📝 Request data:', { enquiryId, surveyDate, assignedTo }); // ✅ ADD
+    console.log('📝 Request data:', { enquiryId, surveyDate, assignedTo });
 
     if (!enquiryId || !surveyDate || !assignedTo) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -71,36 +71,39 @@ export async function POST(request: Request) {
 
     // Get enquiry
     const enquiry = await fetchEnquiryById(enquiryId);
-    console.log('📝 Enquiry found:', enquiry ? 'Yes' : 'No'); // ✅ ADD
+    console.log('📝 Enquiry found:', enquiry ? 'Yes' : 'No');
     
     if (!enquiry) {
       return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
     }
 
     // Update enquiry with survey schedule
-    console.log('📝 Updating enquiry...'); // ✅ ADD
+    console.log('📝 Updating enquiry...');
     await updateEnquiryInSheet(enquiryId, {
       surveyScheduledDate: surveyDate,
       surveyedBy: assignedTo,
       status: 'survey-scheduled',
     });
-    console.log('✅ Enquiry updated'); // ✅ ADD
+    console.log('✅ Enquiry updated');
 
     // Send notification
-    console.log('📝 Sending telegram notification...'); // ✅ ADD
+    console.log('📝 Sending telegram notification...');
     await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo);
-    console.log('✅ Telegram sent (or skipped if not configured)'); // ✅ ADD
+    console.log('✅ Telegram sent (or skipped if not configured)');
 
     return NextResponse.json({ 
       success: true,
       message: 'Survey scheduled successfully'
     });
   } catch (error: any) {
-    console.error('❌ Error scheduling survey:', error); // ✅ ADD
+    console.error('❌ Error scheduling survey:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to schedule survey' },
       { status: 500 }
     );
   }
 }
+
+
+
 

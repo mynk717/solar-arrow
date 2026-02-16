@@ -220,6 +220,14 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
 }
 
 function SurveyCard({ survey, onView }: any) {
+  const { data: session } = useSession();
+  const router = useRouter();
+  const isAdmin = session?.user?.role === 'admin' || session?.user?.email?.includes('admin');
+  const isSurveyor = survey.surveyorEmail === session?.user?.email;
+  
+  // Determine if survey can be submitted (not yet approved/rejected)
+  const canSubmit = !survey.surveyApproved && !survey.surveyNotes?.includes('Reject') && isSurveyor;
+  
   const getStatusBadge = () => {
     if (survey.surveyApproved === true) {
       return (
@@ -319,14 +327,28 @@ function SurveyCard({ survey, onView }: any) {
 
       {/* Actions */}
       <div className="p-3 bg-white border-t border-gray-100">
-        <button
-          onClick={onView}
-          className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 active:scale-95 transition flex items-center justify-center gap-2"
-        >
-          <Eye size={18} />
-          View Details
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onView}
+            className="flex-1 bg-gray-100 text-gray-800 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 active:scale-95 transition flex items-center justify-center gap-2 border border-gray-300"
+          >
+            <Eye size={18} />
+            View
+          </button>
+          
+          {/* Submit Button - Only for assigned surveyor on pending surveys */}
+          {canSubmit && (
+            <button
+              onClick={() => router.push(`/survey/submit/${survey.enquiryId}`)}
+              className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 active:scale-95 transition flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Edit size={18} />
+              Submit
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
