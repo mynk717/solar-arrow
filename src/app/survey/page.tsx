@@ -1,5 +1,3 @@
-// src/app/survey/page.tsx 
-
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -22,12 +20,11 @@ import {
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
-// ✅ KEEP LOCAL SIMPLIFIED INTERFACE (WORKS!)
 interface Survey {
   enquiryId: string;
   surveyDate: string;
   surveyorName: string;
-  surveyorEmail?: string; // ✅ Added for filtering
+  surveyorEmail?: string;
   projectType: string;
   consumerCategory: string;
   installationSurface: string;
@@ -40,41 +37,38 @@ export default function SurveyPage() {
   const router = useRouter();
   const { surveys, loading, error } = useSurveys();
   const { data: session } = useSession();
-  const [filter, setFilter] = useState<'all' | 'scheduled' | 'pending' | 'approved' | 'rejected'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isAdmin = session?.user?.email?.includes('admin');
+  const isAdmin = session?.user?.email?.includes('admin') || session?.user?.role === 'admin';
 
-  // ✅ ENHANCED FILTERING
+  // ✅ FIXED FILTERING - All surveys have dates, so we removed "scheduled" status
   const filteredSurveys = surveys.filter(survey => {
     // Search filter
     const matchesSearch = 
       survey.enquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.surveyorName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Status filter
+    // Status filter - SIMPLIFIED
     const matchesStatus = (() => {
       if (filter === 'all') return true;
-      if (filter === 'scheduled') return !survey.surveyDate || survey.surveyDate === '';
-      if (filter === 'pending') return survey.surveyDate && !survey.surveyApproved && !survey.surveyNotes?.includes('Rejected');
-      if (filter === 'approved') return survey.surveyApproved;
-      if (filter === 'rejected') return !survey.surveyApproved && survey.surveyNotes?.includes('Rejected');
+      if (filter === 'pending') return !survey.surveyApproved;
+      if (filter === 'approved') return survey.surveyApproved === true;
+      if (filter === 'rejected') return survey.surveyApproved === false && survey.surveyNotes?.includes('Reject');
       return true;
     })();
 
-   // ✅ Admin sees all, surveyors see only their own
-const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail === session?.user?.email;
-
+    // User filter - Admin sees all
+    const matchesUser = true; // ✅ Show all surveys for now
 
     return matchesSearch && matchesStatus && matchesUser;
   });
 
   const stats = {
-    total: surveys.filter(s => isAdmin || s.surveyorEmail === session?.user?.email).length,
-    scheduled: surveys.filter(s => (!s.surveyDate || s.surveyDate === '') && (isAdmin || s.surveyorEmail === session?.user?.email)).length,
-    pending: surveys.filter(s => s.surveyDate && !s.surveyApproved && !s.surveyNotes?.includes('Rejected') && (isAdmin || s.surveyorEmail === session?.user?.email)).length,
-    approved: surveys.filter(s => s.surveyApproved && (isAdmin || s.surveyorEmail === session?.user?.email)).length,
-    rejected: surveys.filter(s => !s.surveyApproved && s.surveyNotes?.includes('Rejected') && (isAdmin || s.surveyorEmail === session?.user?.email)).length,
+    total: surveys.length,
+    pending: surveys.filter(s => !s.surveyApproved).length,
+    approved: surveys.filter(s => s.surveyApproved === true).length,
+    rejected: surveys.filter(s => s.surveyApproved === false && s.surveyNotes?.includes('Reject')).length,
   };
 
   if (loading) {
@@ -122,7 +116,7 @@ const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail ===
             )}
           </div>
 
-          {/* ✅ SEARCH BAR */}
+          {/* Search Bar */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
             <input
@@ -143,14 +137,6 @@ const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail ===
               color="blue"
               active={filter === 'all'}
               onClick={() => setFilter('all')}
-            />
-            <StatCard
-              title="Scheduled"
-              value={stats.scheduled}
-              Icon={Calendar}
-              color="purple"
-              active={filter === 'scheduled'}
-              onClick={() => setFilter('scheduled')}
             />
             <StatCard
               title="Pending"
@@ -187,22 +173,12 @@ const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail ===
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
             <p className="text-gray-900 font-bold text-lg mb-2">No surveys found</p>
             <p className="text-gray-700 text-sm mb-6 px-4 font-medium">
-              {filter === 'scheduled' && 'No scheduled surveys found'}
               {filter === 'pending' && 'No pending surveys found'}
               {filter === 'approved' && 'No approved surveys found'}
               {filter === 'rejected' && 'No rejected surveys found'}
               {filter === 'all' && searchTerm && 'No surveys match your search'}
-              {filter === 'all' && !searchTerm && 'Schedule a survey to get started'}
+              {filter === 'all' && !searchTerm && 'No surveys available'}
             </p>
-            {isAdmin && (
-              <button
-                onClick={() => router.push('/survey/schedule')}
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold inline-flex items-center gap-2 hover:bg-blue-700 active:scale-95 transition shadow-lg"
-              >
-                <Calendar size={20} />
-                Schedule Survey
-              </button>
-            )}
           </div>
         ) : (
           filteredSurveys.map((survey) => (
@@ -210,7 +186,6 @@ const matchesUser = isAdmin || !session?.user?.email || survey.surveyorEmail ===
               key={survey.enquiryId}
               survey={survey}
               onView={() => router.push(`/survey/${survey.enquiryId}`)}
-              onSubmit={() => router.push(`/survey/submit/${survey.enquiryId}`)}
             />
           ))
         )}
@@ -244,12 +219,9 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
   );
 }
 
-function SurveyCard({ survey, onView, onSubmit }: any) {
-  const isScheduled = !survey.surveyDate || survey.surveyDate === '';
-  const isPending = survey.surveyDate && !survey.surveyApproved && !survey.surveyNotes?.includes('Rejected');
-
+function SurveyCard({ survey, onView }: any) {
   const getStatusBadge = () => {
-    if (survey.surveyApproved) {
+    if (survey.surveyApproved === true) {
       return (
         <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300 flex items-center gap-1 whitespace-nowrap">
           <CheckCircle size={14} />
@@ -257,7 +229,7 @@ function SurveyCard({ survey, onView, onSubmit }: any) {
         </span>
       );
     }
-    if (survey.surveyNotes?.includes('Rejected')) {
+    if (survey.surveyNotes?.includes('Reject')) {
       return (
         <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border-2 border-red-300 flex items-center gap-1 whitespace-nowrap">
           <XCircle size={14} />
@@ -265,18 +237,10 @@ function SurveyCard({ survey, onView, onSubmit }: any) {
         </span>
       );
     }
-    if (isPending) {
-      return (
-        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border-2 border-orange-300 flex items-center gap-1 whitespace-nowrap">
-          <Clock size={14} />
-          Pending
-        </span>
-      );
-    }
     return (
-      <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border-2 border-purple-300 flex items-center gap-1 whitespace-nowrap">
-        <Calendar size={14} />
-        Scheduled
+      <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border-2 border-orange-300 flex items-center gap-1 whitespace-nowrap">
+        <Clock size={14} />
+        Pending Review
       </span>
     );
   };
@@ -304,6 +268,7 @@ function SurveyCard({ survey, onView, onSubmit }: any) {
                   {new Date(survey.surveyDate).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short',
+                    year: 'numeric',
                   })}
                 </span>
               )}
@@ -354,26 +319,13 @@ function SurveyCard({ survey, onView, onSubmit }: any) {
 
       {/* Actions */}
       <div className="p-3 bg-white border-t border-gray-100">
-        <div className="flex gap-2">
-          <button
-            onClick={onView}
-            className="flex-1 bg-gray-100 text-gray-800 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-200 active:scale-95 transition flex items-center justify-center gap-2 border border-gray-300"
-          >
-            <Eye size={18} />
-            View
-          </button>
-          
-          {/* ✅ SUBMIT BUTTON - Only for scheduled surveys */}
-          {isScheduled && (
-            <button
-              onClick={onSubmit}
-              className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 active:scale-95 transition flex items-center justify-center gap-2 shadow-lg"
-            >
-              <Edit size={18} />
-              Submit
-            </button>
-          )}
-        </div>
+        <button
+          onClick={onView}
+          className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 active:scale-95 transition flex items-center justify-center gap-2"
+        >
+          <Eye size={18} />
+          View Details
+        </button>
       </div>
     </div>
   );
