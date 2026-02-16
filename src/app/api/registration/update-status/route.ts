@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { sendOrgGroupNotification } from '@/lib/telegram';
+import { invalidateRegistrationCache } from '@/lib/redis';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -154,7 +156,12 @@ export async function POST(request: NextRequest) {
     } catch (notificationError) {
       console.error('Telegram notification failed:', notificationError);
     }
-
+    try {
+      await invalidateRegistrationCache((session.user as any).organizationId!);
+      console.log('Registration cache invalidated after status update');
+    } catch (cacheError) {
+      console.error('Cache invalidation failed:', cacheError);
+    }
     return NextResponse.json({
       success: true,
       message: `Registration status updated to ${registrationStatus}`,

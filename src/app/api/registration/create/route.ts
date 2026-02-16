@@ -4,6 +4,8 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { nanoid } from 'nanoid';
 import { sendOrgGroupNotification } from '@/lib/telegram';
+import { invalidateRegistrationCache } from '@/lib/redis';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -127,13 +129,19 @@ ${applicationNumber ? `📝 Application: ${applicationNumber}` : ''}
     } catch (notificationError) {
       console.error('Telegram notification failed:', notificationError);
     }
-
+    try {
+      await invalidateRegistrationCache((session.user as any).organizationId!);
+      console.log('Registration cache invalidated');
+    } catch (cacheError) {
+      console.error('Cache invalidation failed:', cacheError);
+    }
     return NextResponse.json({
       success: true,
       registration: { id: regId, enquiryId, registrationStatus: 'submitted' },
     });
   } catch (error: any) {
     console.error('Error creating registration:', error);
+    
     return NextResponse.json(
       { error: error.message || 'Failed to create registration' },
       { status: 500 }

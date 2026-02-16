@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
+import {redis} from '@/lib/redis';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,9 +13,22 @@ export async function GET(request: NextRequest) {
     }
 
     const sheetId = (session.user as any).sheetId;
+    const orgId = (session.user as any).organizationId || 'default-org';
+
     if (!sheetId) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
+
+    // Try cache first
+    const cacheKey = `org:${orgId}:registrations`;
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      console.log('✅ Returning cached registrations');
+      return NextResponse.json(JSON.parse(cached as string));
+    }
+
+    console.log('❌ Cache miss, fetching from sheets');
 
     const sheets = await getGoogleSheetsClient();
 
@@ -26,9 +41,6 @@ export async function GET(request: NextRequest) {
     const regRows = regResponse.data.values || [];
     
     console.log('Raw registration rows:', regRows.length);
-    if (regRows.length > 0) {
-      console.log('First row:', regRows[0]);
-    }
 
     // Fetch ENQUIRIES for joining
     const enqResponse = await sheets.spreadsheets.values.get({
@@ -95,11 +107,17 @@ export async function GET(request: NextRequest) {
 
     console.log('Processed registrations:', registrations.length);
 
-    return NextResponse.json({
+    const result = {
       success: true,
       registrations,
       count: registrations.length,
-    });
+    };
+
+    // Cache for 5 minutes
+    await redis.setex(cacheKey, 300, JSON.stringify(result));
+    console.log('✅ Registrations cached');
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error('Error fetching registrations:', error);
     return NextResponse.json(
@@ -108,3 +126,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

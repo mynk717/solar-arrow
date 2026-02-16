@@ -257,3 +257,13 @@ export async function getCachedLeads(orgId: string) {
 export async function invalidateLeadsCache(orgId: string) {
   return invalidateSheetCache(orgId, 'leads');
 }
+
+export async function invalidateRegistrationCache(orgId: string) {
+  try {
+    const cacheKey = `org:${orgId}:registrations`;
+    await redis.del(cacheKey);
+    console.log(`✅ Registration cache invalidated for org: ${orgId}`);
+  } catch (error) {
+    console.error('Failed to invalidate registration cache:', error);
+  }
+}
