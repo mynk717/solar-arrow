@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { nanoid } from 'nanoid';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
-// Create manual registration entry
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,10 +18,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { enquiryId, applicationNumber, notes } = body;
+    const {
+      enquiryId,
+      applicationNumber,
+      consumerNumber,
+      discomCircle,
+      discomDivision,
+      discomSubDivision,
+      submittedDate,
+      notes,
+    } = body;
 
-    if (!enquiryId) {
-      return NextResponse.json({ error: 'Enquiry ID required' }, { status: 400 });
+    if (!enquiryId || !discomCircle || !discomDivision || !discomSubDivision) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
     const sheetId = (session.user as any).sheetId;
@@ -46,17 +58,18 @@ export async function POST(request: NextRequest) {
     const regId = `REG-${nanoid(6).toUpperCase()}`;
     const now = new Date().toISOString();
 
+    // Prepare row: Only enquiryId + registration-specific fields
     const rowData = [
       regId,
       enquiryId,
-      '', // registrationId
+      '', // registrationId (empty until approved)
       applicationNumber || '',
-      '', // consumerNumber
-      '', // discomCircle
-      '', // discomDivision
-      '', // discomSubDivision
-      'pending',
-      '', // submittedDate
+      consumerNumber || '',
+      discomCircle,
+      discomDivision,
+      discomSubDivision,
+      'submitted',
+      submittedDate || now.split('T')[0],
       '', // approvedDate
       '', // rejectedDate
       '', // feasibilityApprovalNumber
@@ -76,9 +89,45 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Fetch enquiry for notification
+    const enqResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'ENQUIRIES!A2:G1000',
+    });
+
+    const enqRows = enqResponse.data.values || [];
+    const enquiry = enqRows.find((row: any) => row[0] === enquiryId);
+
+    // Send notification
+    try {
+      const message = `📋 *REGISTRATION SUBMITTED TO DISCOM*
+
+🆔 *Enquiry:* ${enquiryId}
+👤 *Customer:* ${enquiry?.[1] || 'N/A'}
+📞 *Phone:* ${enquiry?.[2] || 'N/A'}
+⚡ *Capacity:* ${enquiry?.[6]} kW
+
+🏢 *DISCOM Details:*
+📍 Circle: ${discomCircle}
+📍 Division: ${discomDivision}
+📍 Sub-Division: ${discomSubDivision}
+${applicationNumber ? `📝 Application: ${applicationNumber}` : ''}
+
+📅 *Submitted:* ${submittedDate || new Date().toLocaleDateString('en-IN')}
+
+⏳ *Status:* Awaiting DISCOM approval`;
+
+      await sendOrgGroupNotification(
+        (session.user as any).organizationId!,
+        { text: message, parseMode: 'Markdown' }
+      );
+    } catch (notificationError) {
+      console.error('Telegram notification failed:', notificationError);
+    }
+
     return NextResponse.json({
       success: true,
-      registration: { id: regId, enquiryId, registrationStatus: 'pending' },
+      registration: { id: regId, enquiryId, registrationStatus: 'submitted' },
     });
   } catch (error: any) {
     console.error('Error creating registration:', error);
