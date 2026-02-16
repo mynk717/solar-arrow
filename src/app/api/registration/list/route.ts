@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
-import {redis} from '@/lib/redis';
-
+import { redis } from '@/lib/redis';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +24,8 @@ export async function GET(request: NextRequest) {
 
     if (cached) {
       console.log('✅ Returning cached registrations');
-      return NextResponse.json(JSON.parse(cached as string));
+      // ✅ FIX: Redis already returns parsed object, don't parse again
+      return NextResponse.json(cached);
     }
 
     console.log('❌ Cache miss, fetching from sheets');
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Cache for 5 minutes
-    await redis.setex(cacheKey, 300, JSON.stringify(result));
+    await redis.set(cacheKey, result, { ex: 300 });
     console.log('✅ Registrations cached');
 
     return NextResponse.json(result);
@@ -126,4 +126,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
