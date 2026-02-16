@@ -233,11 +233,15 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
 function SurveyCard({ survey, onView }: any) {
   const { data: session } = useSession();
   const router = useRouter();
-  const isAdmin = session?.user?.role === 'admin' || session?.user?.email?.includes('admin');
+  
+  // ✅ Check permissions
+  const isAdminOrOwner = ['admin', 'owner'].includes(session?.user?.role || '');
   const isSurveyor = survey.surveyorEmail === session?.user?.email;
   
-  // Determine if survey can be submitted (not yet approved/rejected)
-  const canSubmit = !survey.surveyApproved && !survey.surveyNotes?.includes('Reject') && isSurveyor;
+  // ✅ Can submit if: not approved, not rejected, and is assigned surveyor
+  const canSubmit = !survey.surveyApproved && 
+                    !survey.surveyNotes?.includes('Reject') && 
+                    isSurveyor;
   
   const getStatusBadge = () => {
     if (survey.surveyApproved === true) {
@@ -336,7 +340,7 @@ function SurveyCard({ survey, onView }: any) {
         )}
       </div>
 
-      {/* Actions */}
+      {/* ✅ FIXED Actions - View + Submit buttons */}
       <div className="p-3 bg-white border-t border-gray-100">
         <div className="flex gap-2">
           <button
@@ -347,7 +351,7 @@ function SurveyCard({ survey, onView }: any) {
             View
           </button>
           
-          {/* Submit Button - Only for assigned surveyor on pending surveys */}
+          {/* ✅ Submit Button - Only for assigned surveyor on pending surveys */}
           {canSubmit && (
             <button
               onClick={() => router.push(`/survey/submit/${survey.enquiryId}`)}
@@ -362,4 +366,5 @@ function SurveyCard({ survey, onView }: any) {
     </div>
   );
 }
+
 

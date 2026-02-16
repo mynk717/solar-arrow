@@ -5,24 +5,15 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 import { createSurvey, updateSurvey, fetchSurveyByEnquiryId, updateEnquiryInSheet } from '@/lib/googleSheets';
 import type { Survey } from '@/lib/types';
 import { redis } from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
-async function sendTelegramNotification(survey: Survey, enquiry: any) {
-  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-  
-  if (!telegramBotToken) return;
-
+async function sendTelegramNotification(survey: Survey, enquiry: any, orgId: string) {
   try {
-    const orgId = enquiry.organizationId || 'default-org';
-    const chatId = await redis.get(`org:${orgId}:telegram:surveyteam`);
-    
-    if (!chatId) return;
+    const message = `✅ *SURVEY COMPLETED*
 
-    const message = `
-✅ *SURVEY COMPLETED*
-
-*Enquiry ID:* ${survey.enquiryId}
-*Customer:* ${enquiry.customerName}
-*Surveyor:* ${survey.surveyorName}
+📋 *Enquiry:* ${survey.enquiryId}
+👤 *Customer:* ${enquiry.customerName}
+👷 *Surveyor:* ${survey.surveyorName}
 
 *Technical Details:*
 ⚡ Sanctioned Load: ${survey.sanctionedLoad} kW
@@ -34,22 +25,15 @@ async function sendTelegramNotification(survey: Survey, enquiry: any) {
 
 *Notes:* ${survey.surveyNotes || 'None'}
 
-*Action Required:* Review and approve survey to proceed with quotation.
-`.trim();
+*Action Required:* Review and approve survey to proceed with quotation.`;
 
-    await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'Markdown',
-      }),
-    });
+    await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
   } catch (error) {
     console.error('Telegram notification failed:', error);
   }
 }
+
+
 
 export async function POST(request: Request) {
   try {
@@ -142,10 +126,10 @@ export async function POST(request: Request) {
     const { fetchEnquiryById } = await import('@/lib/googleSheets');
     const enquiry = await fetchEnquiryById(surveyData.enquiryId);
 
-    if (enquiry) {
-      await sendTelegramNotification(survey, enquiry);
-    }
-
+    // In POST function, call it with orgId:
+if (enquiry) {
+  await sendTelegramNotification(survey, enquiry, session.user.organizationId!);
+}
     return NextResponse.json({
       success: true,
       message: 'Survey submitted successfully',
