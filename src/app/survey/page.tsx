@@ -40,16 +40,18 @@ export default function SurveyPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const isAdmin = session?.user?.email?.includes('admin') || session?.user?.role === 'admin';
+  // ✅ Admin/Owner can schedule surveys
+  const canSchedule = ['admin', 'owner'].includes(session?.user?.role || '');
+  const isAdminOrOwner = ['admin', 'owner'].includes(session?.user?.role || '');
 
-  // ✅ FIXED FILTERING - All surveys have dates, so we removed "scheduled" status
+  // ✅ ROLE-BASED FILTERING
   const filteredSurveys = surveys.filter(survey => {
     // Search filter
     const matchesSearch = 
       survey.enquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.surveyorName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Status filter - SIMPLIFIED
+    // Status filter
     const matchesStatus = (() => {
       if (filter === 'all') return true;
       if (filter === 'pending') return !survey.surveyApproved;
@@ -58,17 +60,22 @@ export default function SurveyPage() {
       return true;
     })();
 
-    // User filter - Admin sees all
-    const matchesUser = true; // ✅ Show all surveys for now
+    // ✅ User filter - Admin/Owner see all, Surveyors see only assigned
+    const matchesUser = isAdminOrOwner || survey.surveyorEmail === session?.user?.email;
 
     return matchesSearch && matchesStatus && matchesUser;
   });
 
+  // ✅ Stats based on user role
+  const visibleSurveys = surveys.filter(s => 
+    isAdminOrOwner || s.surveyorEmail === session?.user?.email
+  );
+
   const stats = {
-    total: surveys.length,
-    pending: surveys.filter(s => !s.surveyApproved).length,
-    approved: surveys.filter(s => s.surveyApproved === true).length,
-    rejected: surveys.filter(s => s.surveyApproved === false && s.surveyNotes?.includes('Reject')).length,
+    total: visibleSurveys.length,
+    pending: visibleSurveys.filter(s => !s.surveyApproved).length,
+    approved: visibleSurveys.filter(s => s.surveyApproved === true).length,
+    rejected: visibleSurveys.filter(s => s.surveyApproved === false && s.surveyNotes?.includes('Reject')).length,
   };
 
   if (loading) {
@@ -105,7 +112,8 @@ export default function SurveyPage() {
               <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
               <p className="text-sm text-gray-700 mt-0.5 font-bold">{stats.total} total surveys</p>
             </div>
-            {isAdmin && (
+            {/* ✅ Only admin/owner can schedule */}
+            {canSchedule && (
               <button
                 onClick={() => router.push('/survey/schedule')}
                 className="bg-blue-600 active:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold shadow-lg active:scale-95 transition-transform"
@@ -177,7 +185,9 @@ export default function SurveyPage() {
               {filter === 'approved' && 'No approved surveys found'}
               {filter === 'rejected' && 'No rejected surveys found'}
               {filter === 'all' && searchTerm && 'No surveys match your search'}
-              {filter === 'all' && !searchTerm && 'No surveys available'}
+              {filter === 'all' && !searchTerm && (
+                isAdminOrOwner ? 'No surveys available' : 'No surveys assigned to you'
+              )}
             </p>
           </div>
         ) : (
@@ -193,6 +203,7 @@ export default function SurveyPage() {
     </div>
   );
 }
+
 
 function StatCard({ title, value, Icon, color, active, onClick }: any) {
   const colors: Record<string, string> = {

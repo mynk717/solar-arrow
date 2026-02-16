@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session?.user?.organizationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -105,40 +105,40 @@ export async function POST(request: Request) {
       shadowRemovable: surveyData.shadowRemovable || false,
       internetAvailability: surveyData.internetAvailability || 'WIFI',
       monitoringSystem: surveyData.monitoringSystem || 'RMS',
-      surveyApproved: false, // Pending approval
+      surveyApproved: false,
       surveyNotes: surveyData.surveyNotes || '',
       surveyPhotos: surveyData.surveyPhotos || '',
     };
 
-   // Check if survey already exists
-const existing = await fetchSurveyByEnquiryId(
-  session.user.organizationId!,
-  session.user.email,
-  surveyData.enquiryId
-);
+    // ✅ Check if survey exists (using existing function signature)
+    const existing = await fetchSurveyByEnquiryId(
+      session.user.organizationId,
+      session.user.email,
+      surveyData.enquiryId
+    );
 
-if (existing) {
-  await updateSurvey(
-    session.user.organizationId!,
-    session.user.email,
-    surveyData.enquiryId,
-    survey
-  );
-} else {
-  await createSurvey(
-    session.user.organizationId!,
-    session.user.email,
-    survey
-  );
-}
+    if (existing) {
+      await updateSurvey(
+        session.user.organizationId,
+        session.user.email,
+        surveyData.enquiryId,
+        survey
+      );
+    } else {
+      await createSurvey(
+        session.user.organizationId,
+        session.user.email,
+        survey
+      );
+    }
 
-    // Update enquiry status
+    // ✅ Update enquiry status (using existing function signature - 2 params)
     await updateEnquiryInSheet(surveyData.enquiryId, {
       surveyCompletedDate: new Date().toISOString(),
       status: 'survey-completed',
     });
 
-    // Get enquiry for notification
+    // ✅ Get enquiry for notification (using existing function signature - 1 param)
     const { fetchEnquiryById } = await import('@/lib/googleSheets');
     const enquiry = await fetchEnquiryById(surveyData.enquiryId);
 
@@ -158,3 +158,5 @@ if (existing) {
     );
   }
 }
+
+
