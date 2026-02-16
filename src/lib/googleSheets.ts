@@ -1961,7 +1961,7 @@ function rowToQuotation(row: any[]): Quotation | null {
   };
 }
 
-// Add to src/lib/googleSheets.ts
+
 
 // Convert row to Survey object
 function rowToSurvey(row: any[]): Survey | null {
@@ -2104,11 +2104,28 @@ function surveyToRow(survey: Survey): any[] {
 }
 
 // Fetch all surveys
-export async function fetchSurveys(): Promise<Survey[]> {
+export async function fetchSurveys(orgId: string, userEmail: string): Promise<Survey[]> {
   try {
-    const sheets = await getSheets();
-    const sheetId = await getSheetId();
+    // Get org info to find sheet ID
+    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
+    if (!orgInfo?.sheetId) {
+      throw new Error("No sheet configured for organization");
+    }
+    
+    const sheetId = orgInfo.sheetId;
+    
+    // Get valid access token (from admin if user is regular user)
+    const accessToken = await getValidAccessToken(orgId, userEmail);
+    if (!accessToken) {
+      throw new Error("No valid access token available");
+    }
 
+    // Create authenticated Google Sheets client
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Fetch from Survey tab (columns A to AO)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'SURVEY!A2:AO10000',
@@ -2123,26 +2140,43 @@ export async function fetchSurveys(): Promise<Survey[]> {
 }
 
 // Fetch survey by enquiry ID
-export async function fetchSurveyByEnquiryId(enquiryId: string): Promise<Survey | null> {
-  const surveys = await fetchSurveys();
+export async function fetchSurveyByEnquiryId(
+  orgId: string,
+  userEmail: string,
+  enquiryId: string
+): Promise<Survey | null> {
+  const surveys = await fetchSurveys(orgId, userEmail);
   return surveys.find(s => s.enquiryId === enquiryId) || null;
 }
 
 // Create survey
-export async function createSurvey(survey: Survey): Promise<void> {
+export async function createSurvey(
+  orgId: string,
+  userEmail: string,
+  survey: Survey
+): Promise<void> {
   try {
-    const sheets = await getSheets();
-    const sheetId = await getSheetId();
+    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
+    if (!orgInfo?.sheetId) {
+      throw new Error("No sheet configured");
+    }
+    
+    const accessToken = await getValidAccessToken(orgId, userEmail);
+    if (!accessToken) {
+      throw new Error("No valid access token");
+    }
+
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const sheets = google.sheets({ version: 'v4', auth });
 
     const row = surveyToRow(survey);
-
+    
     await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
+      spreadsheetId: orgInfo.sheetId,
       range: 'SURVEY!A:AO',
       valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [row],
-      },
+      requestBody: { values: [row] },
     });
 
     console.log('✅ Survey created for enquiry:', survey.enquiryId);
@@ -2153,13 +2187,29 @@ export async function createSurvey(survey: Survey): Promise<void> {
 }
 
 // Update survey
-export async function updateSurvey(enquiryId: string, updates: Partial<Survey>): Promise<void> {
+export async function updateSurvey(
+  orgId: string,
+  userEmail: string,
+  enquiryId: string,
+  updates: Partial<Survey>
+): Promise<void> {
   try {
-    const sheets = await getSheets();
-    const sheetId = await getSheetId();
+    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
+    if (!orgInfo?.sheetId) {
+      throw new Error("No sheet configured");
+    }
+    
+    const accessToken = await getValidAccessToken(orgId, userEmail);
+    if (!accessToken) {
+      throw new Error("No valid access token");
+    }
+
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const sheets = google.sheets({ version: 'v4', auth });
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
+      spreadsheetId: orgInfo.sheetId,
       range: 'SURVEY!A2:AO10000',
     });
 
@@ -2177,31 +2227,12 @@ export async function updateSurvey(enquiryId: string, updates: Partial<Survey>):
     const updatedRow = surveyToRow(updatedSurvey);
 
     await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `SURVEY!A${rowIndex + 2}:AO${rowIndex + 2}`,
+      spreadsheetId: orgInfo.sheetId,
+      range: `Survey!A${rowIndex + 2}:AO${rowIndex + 2}`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [updatedRow],
-      },
+      requestBody: { values: [updatedRow] },
     });
-/*
-await updateEnquiryInSheet(enquiryId, {
-  surveyScheduledDate: surveyDate,
-  surveyedBy: assignedTo,
-  status: 'survey-scheduled', // ✅ Status updated
-});
 
-
-await updateEnquiryInSheet(surveyData.enquiryId, {
-  surveyCompletedDate: new Date().toISOString(),
-  status: 'survey-completed', // ✅ Status updated
-});
-*/
-// When approved:
-await updateEnquiryInSheet(enquiryId, {
-  surveyApproved: true,
-  status: 'survey-approved', // ✅ Status updated
-});
     console.log('✅ Survey updated for enquiry:', enquiryId);
   } catch (error: any) {
     console.error('Error updating survey:', error);

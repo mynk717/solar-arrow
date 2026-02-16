@@ -1,18 +1,23 @@
-// src/app/api/survey/list/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { fetchSurveys } from '@/lib/googleSheets';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    if (!session?.user?.email || !session?.user?.organizationId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
-    const surveys = await fetchSurveys();
+    const surveys = await fetchSurveys(
+      session.user.organizationId,
+      session.user.email
+    );
 
     return NextResponse.json({
       success: true,

@@ -72,12 +72,16 @@ export async function POST(request: Request) {
     }
 
     // Update survey
-    await updateSurvey(enquiryId, {
-      surveyApproved: approved,
-      surveyNotes: approved 
-        ? `Approved by ${session.user.email}` 
-        : `Rejected: ${rejectionReason || 'No reason provided'}`,
-    });
+await updateSurvey(
+  session.user.organizationId!,
+  session.user.email,
+  enquiryId,
+  {
+    surveyApproved: approved,
+    surveyNotes: approved ? `Approved by ${session.user.email}` : `Rejected: ${rejectionReason || 'No reason provided'}`,
+  }
+);
+
 
     // Update enquiry
     if (approved) {

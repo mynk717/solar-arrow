@@ -110,14 +110,27 @@ export async function POST(request: Request) {
       surveyPhotos: surveyData.surveyPhotos || '',
     };
 
-    // Check if survey already exists
-    const existing = await fetchSurveyByEnquiryId(surveyData.enquiryId);
+   // Check if survey already exists
+const existing = await fetchSurveyByEnquiryId(
+  session.user.organizationId!,
+  session.user.email,
+  surveyData.enquiryId
+);
 
-    if (existing) {
-      await updateSurvey(surveyData.enquiryId, survey);
-    } else {
-      await createSurvey(survey);
-    }
+if (existing) {
+  await updateSurvey(
+    session.user.organizationId!,
+    session.user.email,
+    surveyData.enquiryId,
+    survey
+  );
+} else {
+  await createSurvey(
+    session.user.organizationId!,
+    session.user.email,
+    survey
+  );
+}
 
     // Update enquiry status
     await updateEnquiryInSheet(surveyData.enquiryId, {
