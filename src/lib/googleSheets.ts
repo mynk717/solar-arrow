@@ -2002,13 +2002,13 @@ function rowToSurvey(row: any[]): Survey | null {
     existingEarthingCount,
     newEarthingRequired,
     lightningArrestorRequired,
-    shadowSources,
+    shadowSourcesCount,           // ✅ Changed: it's a count, not array
     shadowRemovable,
-    internetAvailability,
-    monitoringSystem,
+    internetAvailabilityCode,      // ✅ Changed: it's a code
+    shadowSourcesList,             // ✅ Changed: this is the actual array
     surveyApproved,
-    surveyNotes,
-    surveyPhotos,
+    internetAvailability,          // ✅ Changed: actual value (WIFI/GSM)
+    monitoringSystem,              // ✅ Changed: actual value (RMS/SCADA)
   ] = row;
 
   return {
@@ -2046,15 +2046,16 @@ function rowToSurvey(row: any[]): Survey | null {
     existingEarthingCount: parseInt(existingEarthingCount) || 0,
     newEarthingRequired: parseInt(newEarthingRequired) || 0,
     lightningArrestorRequired: parseInt(lightningArrestorRequired) || 0,
-    shadowSources: shadowSources ? JSON.parse(shadowSources) : [],
+    shadowSources: shadowSourcesList ? JSON.parse(shadowSourcesList) : [],  // ✅ Parse the actual list
     shadowRemovable: shadowRemovable === 'TRUE',
-    internetAvailability: (internetAvailability || 'WIFI') as 'WIFI' | 'GSM' | 'LAN' | 'NONE',
-    monitoringSystem: (monitoringSystem || 'RMS') as 'RMS' | 'SCADA' | 'NONE',
+    internetAvailability: (internetAvailability || 'WIFI') as 'WIFI' | 'GSM' | 'LAN' | 'NONE',  // ✅ Use correct column
+    monitoringSystem: (monitoringSystem || 'RMS') as 'RMS' | 'SCADA' | 'NONE',  // ✅ Use correct column
     surveyApproved: surveyApproved === 'TRUE',
-    surveyNotes: surveyNotes || '',
-    surveyPhotos: surveyPhotos || '',
+    surveyNotes: '',  // ✅ Not in current data
+    surveyPhotos: '',  // ✅ Not in current data
   };
 }
+
 
 // Convert Survey to row
 function surveyToRow(survey: Survey): any[] {
