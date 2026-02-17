@@ -74,7 +74,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate cache
-    await redis.del(`org:${orgId}:boms`);
+    const cacheKey = `org:${orgId}:boms`;
+await redis.del(cacheKey);
+console.log('✅ Cache cleared:', cacheKey);
 
     // Send Telegram notification
     try {

@@ -20,6 +20,7 @@ export default function BOMPage() {
   const [filterEnquiry, setFilterEnquiry] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false); // NEW
   const [selectedBOM, setSelectedBOM] = useState<any>(null);
 
   // Parse materialsJSON for each BOM
@@ -52,6 +53,12 @@ export default function BOMPage() {
   const handleMarkDispatched = (bom: any) => {
     setSelectedBOM(bom);
     setShowDispatchModal(true);
+  };
+
+  // NEW: Add delivery handler
+  const handleMarkDelivered = (bom: any) => {
+    setSelectedBOM(bom);
+    setShowDeliveryModal(true);
   };
 
   return (
@@ -129,6 +136,7 @@ export default function BOMPage() {
               key={bom.bomId || bom.enquiryId} 
               bom={bom} 
               onMarkDispatched={() => handleMarkDispatched(bom)}
+              onMarkDelivered={() => handleMarkDelivered(bom)} // NEW: Pass handler
               onRefetch={refetch}
             />
           ))
@@ -150,9 +158,26 @@ export default function BOMPage() {
           }}
         />
       )}
+
+      {/* NEW: Delivery Modal */}
+      {showDeliveryModal && selectedBOM && (
+        <DeliveryModal
+          bom={selectedBOM}
+          onClose={() => {
+            setShowDeliveryModal(false);
+            setSelectedBOM(null);
+          }}
+          onSuccess={() => {
+            setShowDeliveryModal(false);
+            setSelectedBOM(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }
+
 
 function StatCard({ icon, label, value, color }: any) {
   const colorClasses = {
@@ -175,7 +200,7 @@ function StatCard({ icon, label, value, color }: any) {
   );
 }
 
-function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
+function BOMCard({ bom, onMarkDispatched, onMarkDelivered, onRefetch }: any) {
   const [expanded, setExpanded] = useState(false);
 
   const getStatusBgClass = (status: string): string => {
@@ -225,6 +250,8 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
             <Eye size={16} className="inline mr-1" />
             {expanded ? 'Hide' : 'View'} Items
           </button>
+          
+          {/* NEW: Show appropriate action button based on status */}
           {bom.dispatchStatus === 'pending' && (
             <button
               onClick={onMarkDispatched}
@@ -232,6 +259,16 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
             >
               <Send size={16} className="inline mr-1" />
               Mark Dispatched
+            </button>
+          )}
+          
+          {bom.dispatchStatus === 'dispatched' && (
+            <button
+              onClick={onMarkDelivered}
+              className="flex-1 sm:flex-initial px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm transition-colors"
+            >
+              <CheckCircle size={16} className="inline mr-1" />
+              Mark Delivered
             </button>
           )}
         </div>
@@ -271,6 +308,7 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
     </div>
   );
 }
+
 
 function DispatchModal({ bom, onClose, onSuccess }: any) {
   const [loading, setLoading] = useState(false);
@@ -395,6 +433,100 @@ function DispatchModal({ bom, onClose, onSuccess }: any) {
               className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:bg-slate-400 font-semibold transition-colors"
             >
               {loading ? 'Processing...' : 'Confirm Dispatch'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 bg-slate-200 text-slate-800 py-3 rounded-xl hover:bg-slate-300 font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DeliveryModal({ bom, onClose, onSuccess }: any) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    deliveredTo: '',
+    deliveryNotes: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/bom/update-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiryId: bom.enquiryId,
+          ...formData,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to mark as delivered');
+      }
+
+      alert('✅ Materials marked as delivered successfully!');
+      onSuccess();
+    } catch (error: any) {
+      console.error('Delivery error:', error);
+      alert('❌ ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">Mark as Delivered</h2>
+          <p className="text-slate-600 text-sm mt-1">{bom.enquiryId} - {bom.customerName}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Delivered To <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.deliveredTo}
+              onChange={(e) => setFormData({ ...formData, deliveredTo: e.target.value })}
+              placeholder="e.g., Site Manager, Customer Name"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Delivery Notes
+            </label>
+            <textarea
+              value={formData.deliveryNotes}
+              onChange={(e) => setFormData({ ...formData, deliveryNotes: e.target.value })}
+              placeholder="Any notes about the delivery..."
+              rows={4}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 disabled:bg-slate-400 font-semibold transition-colors"
+            >
+              {loading ? 'Processing...' : 'Confirm Delivery'}
             </button>
             <button
               type="button"
