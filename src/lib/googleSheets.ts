@@ -2248,60 +2248,65 @@ export async function updateSurvey(
 /**
  * Convert row array to BOMItem object
  */
+/**
+ * Convert row array to BOMLineItem object
+ */
 function rowToBOMLineItem(row: any): BOMLineItem | null {
   if (!row || row.length < 10) return null;
 
+  // Parse materials JSON (column index 21 = V)
+  let materialsJSON = '{"items":[]}';
+  try {
+    if (row[21]) {
+      materialsJSON = row[21];
+    }
+  } catch (e) {
+    console.error('Failed to parse materials JSON:', e);
+  }
+
   return {
-    id: row[0] || '',
+    bomId: row[0] || '',
     enquiryId: row[1] || '',
-    bomStatus: row[2] || 'draft',
-    bomGeneratedDate: row[3] || '',
-    bomGeneratedBy: row[4] || '',
-    dispatchStatus: row[5] || 'pending',
-    dispatchDate: row[6] || '',
-    dispatchedBy: row[7] || '',
-    trackingNumber: row[8] || '',
-    vehicleNumber: row[9] || '',
-    driverName: row[10] || '',
-    driverContact: row[11] || '',
-    expectedDeliveryDate: row[12] || '',
-    actualDeliveryDate: row[13] || '',
-    deliveredTo: row[14] || '',
-    deliveryNotes: row[15] || '',
-    installationStatus: row[16] || 'not_started',
-    installationStartDate: row[17] || '',
-    installationCompletedDate: row[18] || '',
-    installedBy: row[19] || '',
-    materialUtilizationStatus: row[20] || 'not_started',
-    materialReturnStatus: row[21] || 'not_applicable',
-    returnCollectedDate: row[22] || '',
-    returnCollectedBy: row[23] || '',
-    sno: parseInt(row[24]) || 0,
-    section: row[25] || '',
-    particular: row[26] || '',
-    uom: row[27] || '',
-    qty: parseFloat(row[28]) || 0,
-    rem: row[29] || '',
-    qtyDispatched: parseFloat(row[30]) || 0,
-    qtyUtilized: parseFloat(row[31]) || 0,
-    qtyReturned: parseFloat(row[32]) || 0,
-    utilizationNotes: row[33] || '',
-    createdAt: row[34] || new Date().toISOString(),
-    updatedAt: row[35] || '',
+    customerName: row[2] || '',
+    systemCapacity: row[3] || '',
+    bomStatus: row[4] || 'draft',
+    bomGeneratedDate: row[5] || '',
+    bomGeneratedBy: row[6] || '',
+    dispatchStatus: row[7] || 'pending',
+    dispatchDate: row[8] || '',
+    dispatchedBy: row[9] || '',
+    trackingNumber: row[10] || '',
+    vehicleNumber: row[11] || '',
+    driverName: row[12] || '',
+    driverContact: row[13] || '',
+    expectedDeliveryDate: row[14] || '',
+    actualDeliveryDate: row[15] || '',
+    deliveredTo: row[16] || '',
+    deliveryNotes: row[17] || '',
+    installationStatus: row[18] || 'not_started',
+    installationDate: row[19] || '',
+    installedBy: row[20] || '',
+    materialsJSON: materialsJSON,
+    materialUtilizationStatus: row[22] || 'not_started',
+    materialReturnStatus: row[23] || 'not_applicable',
+    returnCollectedDate: row[24] || '',
+    utilizationNotes: row[25] || '',
+    createdAt: row[26] || new Date().toISOString(),
+    updatedAt: row[27] || '',
   };
 }
 
 /**
- * Fetch all BOMs from BOM tab
+ * Fetch all BOMs from Google Sheet
  */
 export async function fetchBOMs(): Promise<BOMLineItem[]> {
   try {
-    const sheets = await getSheets();
-    const sheetId = await getSheetId();
+    const sheets = await getGoogleSheetsClient();
+    const sheetId = await getSheetId(); // Your existing function
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'BOM!A2:AJ1000',
+      range: 'BOM!A2:AB1000',
     });
 
     const rows = response.data.values || [];
@@ -2312,6 +2317,88 @@ export async function fetchBOMs(): Promise<BOMLineItem[]> {
   } catch (error: any) {
     console.error('Error fetching BOMs:', error);
     return [];
+  }
+}
+
+/**
+ * Update BOM row in Google Sheet
+ */
+export async function updateBOMInSheet(
+  bomId: string,
+  updates: Partial<BOMLineItem>
+): Promise<boolean> {
+  try {
+    const sheets = await getGoogleSheetsClient();
+    const sheetId = await getSheetId();
+
+    // Find the row
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'BOM!A2:AB1000',
+    });
+
+    const rows = response.data.values || [];
+    const rowIndex = rows.findIndex((row: any) => row[0] === bomId);
+
+    if (rowIndex === -1) {
+      console.error('BOM not found:', bomId);
+      return false;
+    }
+
+    const existingRow = rows[rowIndex];
+    const existingBOM = rowToBOMLineItem(existingRow);
+
+    if (!existingBOM) return false;
+
+    // Merge updates
+    const updatedBOM = { ...existingBOM, ...updates, updatedAt: new Date().toISOString() };
+
+    // Convert back to row array
+    const updatedRow = [
+      updatedBOM.bomId,
+      updatedBOM.enquiryId,
+      updatedBOM.customerName,
+      updatedBOM.systemCapacity,
+      updatedBOM.bomStatus,
+      updatedBOM.bomGeneratedDate,
+      updatedBOM.bomGeneratedBy,
+      updatedBOM.dispatchStatus,
+      updatedBOM.dispatchDate || '',
+      updatedBOM.dispatchedBy || '',
+      updatedBOM.trackingNumber || '',
+      updatedBOM.vehicleNumber || '',
+      updatedBOM.driverName || '',
+      updatedBOM.driverContact || '',
+      updatedBOM.expectedDeliveryDate || '',
+      updatedBOM.actualDeliveryDate || '',
+      updatedBOM.deliveredTo || '',
+      updatedBOM.deliveryNotes || '',
+      updatedBOM.installationStatus,
+      updatedBOM.installationDate || '',
+      updatedBOM.installedBy || '',
+      updatedBOM.materialsJSON,
+      updatedBOM.materialUtilizationStatus,
+      updatedBOM.materialReturnStatus,
+      updatedBOM.returnCollectedDate || '',
+      updatedBOM.utilizationNotes || '',
+      updatedBOM.createdAt,
+      updatedBOM.updatedAt || '',
+    ];
+
+    // Update the row (rowIndex + 2 because of header row and 1-indexing)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `BOM!A${rowIndex + 2}:AB${rowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [updatedRow],
+      },
+    });
+
+    return true;
+  } catch (error: any) {
+    console.error('Error updating BOM:', error);
+    return false;
   }
 }
 

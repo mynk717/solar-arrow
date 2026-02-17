@@ -425,19 +425,22 @@ export interface LiaisonStage2 {
   notes?: string;
 }
 
-// RENAMED from BOMItem to BOMLineItem to avoid conflict
+/**
+ * NEW BOM Structure: 1 BOM = 1 Row
+ */
 export interface BOMLineItem {
-  // Identification
-  id: string;
+  bomId: string;
   enquiryId: string;
+  customerName: string;
+  systemCapacity: string;
   
   // BOM Status
-  bomStatus: BOMStatus;
+  bomStatus: 'draft' | 'generated' | 'approved' | 'cancelled';
   bomGeneratedDate: string;
   bomGeneratedBy: string;
   
   // Dispatch Tracking
-  dispatchStatus: DispatchStatus;
+  dispatchStatus: 'pending' | 'dispatched' | 'in_transit' | 'delivered';
   dispatchDate?: string;
   dispatchedBy?: string;
   trackingNumber?: string;
@@ -449,19 +452,26 @@ export interface BOMLineItem {
   deliveredTo?: string;
   deliveryNotes?: string;
   
-  // Installation Tracking
-  installationStatus: InstallationStatus;
-  installationStartDate?: string;
-  installationCompletedDate?: string;
+  // Installation
+  installationStatus: 'not_started' | 'in_progress' | 'completed';
+  installationDate?: string;
   installedBy?: string;
   
-  // Material Return Tracking
-  materialUtilizationStatus: MaterialUtilizationStatus;
-  materialReturnStatus: MaterialReturnStatus;
-  returnCollectedDate?: string;
-  returnCollectedBy?: string;
+  // Materials - JSON string
+  materialsJSON: string;
   
-  // Line Item Details
+  // Material Utilization
+  materialUtilizationStatus: 'not_started' | 'partial' | 'completed';
+  materialReturnStatus: 'not_applicable' | 'pending' | 'collected';
+  returnCollectedDate?: string;
+  utilizationNotes?: string;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface MaterialItem {
   sno: number;
   section: string;
   particular: string;
@@ -471,12 +481,8 @@ export interface BOMLineItem {
   qtyDispatched: number;
   qtyUtilized: number;
   qtyReturned: number;
-  utilizationNotes?: string;
-  
-  // Metadata
-  createdAt: string;
-  updatedAt?: string;
 }
+
 
 
 export interface BOM {

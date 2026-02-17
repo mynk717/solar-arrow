@@ -5,7 +5,10 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
-// GET - Fetch all BOMs
+/**
+ * GET - Fetch all BOMs from Google Sheet
+ * New Structure: 1 BOM = 1 Row with materials as JSON in column V
+ */
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -20,71 +23,89 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // Try cache first
+    // Try cache first (5 minute TTL)
     const cacheKey = `org:${orgId}:boms`;
     const cached = await redis.get(cacheKey);
     
     if (cached) {
       console.log('✅ Returning cached BOMs');
-      return NextResponse.json(cached);
+      return NextResponse.json({ 
+        boms: typeof cached === 'string' ? JSON.parse(cached) : cached,
+        cached: true 
+      });
     }
 
-    console.log('📊 Cache miss, fetching from sheets');
+    console.log('📊 Cache miss, fetching from Google Sheets');
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch BOM tab
+    // Fetch BOM tab - NEW STRUCTURE (A-AB = 28 columns)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'BOM!A2:AJ1000',
+      range: 'BOM!A2:AB1000',
     });
 
     const rows = response.data.values || [];
     
-    const boms = rows.map((row: any) => ({
-      id: row[0] || '',
-      enquiryId: row[1] || '',
-      bomStatus: row[2] || 'draft',
-      bomGeneratedDate: row[3] || '',
-      bomGeneratedBy: row[4] || '',
-      dispatchStatus: row[5] || 'pending',
-      dispatchDate: row[6] || '',
-      dispatchedBy: row[7] || '',
-      trackingNumber: row[8] || '',
-      vehicleNumber: row[9] || '',
-      driverName: row[10] || '',
-      driverContact: row[11] || '',
-      expectedDeliveryDate: row[12] || '',
-      actualDeliveryDate: row[13] || '',
-      deliveredTo: row[14] || '',
-      deliveryNotes: row[15] || '',
-      installationStatus: row[16] || 'not_started',
-      installationStartDate: row[17] || '',
-      installationCompletedDate: row[18] || '',
-      installedBy: row[19] || '',
-      materialUtilizationStatus: row[20] || 'not_started',
-      materialReturnStatus: row[21] || 'not_applicable',
-      returnCollectedDate: row[22] || '',
-      returnCollectedBy: row[23] || '',
-      sno: parseInt(row[24]) || 0,
-      section: row[25] || '',
-      particular: row[26] || '',
-      uom: row[27] || '',
-      qty: parseFloat(row[28]) || 0,
-      rem: row[29] || '',
-      qtyDispatched: parseFloat(row[30]) || 0,
-      qtyUtilized: parseFloat(row[31]) || 0,
-      qtyReturned: parseFloat(row[32]) || 0,
-      utilizationNotes: row[33] || '',
-      createdAt: row[34] || new Date().toISOString(),
-      updatedAt: row[35] || '',
-    }));
+    // Map rows to BOMLineItem objects
+    const boms = rows
+      .filter((row: any) => row && row.length > 0 && row[0]) // Filter empty rows
+      .map((row: any) => {
+        // Parse materials JSON safely
+        let materialsJSON = '{"items":[]}';
+        try {
+          if (row[21] && typeof row[21] === 'string') {
+            // Validate JSON
+            JSON.parse(row[21]);
+            materialsJSON = row[21];
+          }
+        } catch (e) {
+          console.error('Invalid materials JSON for BOM:', row[0], e);
+        }
+
+        return {
+          bomId: row[0] || '',
+          enquiryId: row[1] || '',
+          customerName: row[2] || '',
+          systemCapacity: row[3] || '',
+          bomStatus: row[4] || 'draft',
+          bomGeneratedDate: row[5] || '',
+          bomGeneratedBy: row[6] || '',
+          dispatchStatus: row[7] || 'pending',
+          dispatchDate: row[8] || '',
+          dispatchedBy: row[9] || '',
+          trackingNumber: row[10] || '',
+          vehicleNumber: row[11] || '',
+          driverName: row[12] || '',
+          driverContact: row[13] || '',
+          expectedDeliveryDate: row[14] || '',
+          actualDeliveryDate: row[15] || '',
+          deliveredTo: row[16] || '',
+          deliveryNotes: row[17] || '',
+          installationStatus: row[18] || 'not_started',
+          installationDate: row[19] || '',
+          installedBy: row[20] || '',
+          materialsJSON: materialsJSON, // Column V (index 21)
+          materialUtilizationStatus: row[22] || 'not_started',
+          materialReturnStatus: row[23] || 'not_applicable',
+          returnCollectedDate: row[24] || '',
+          utilizationNotes: row[25] || '',
+          createdAt: row[26] || new Date().toISOString(),
+          updatedAt: row[27] || '',
+        };
+      });
 
     // Cache for 5 minutes
-    await redis.set(cacheKey, boms, { ex: 300 });
+    await redis.setex(cacheKey, 300, JSON.stringify(boms));
 
-    return NextResponse.json(boms);
+    console.log(`✅ Fetched ${boms.length} BOMs from Google Sheets`);
+
+    return NextResponse.json({ 
+      boms, 
+      cached: false,
+      count: boms.length 
+    });
   } catch (error: any) {
-    console.error('Error fetching BOMs:', error);
+    console.error('❌ Error fetching BOMs:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch BOMs' },
       { status: 500 }
