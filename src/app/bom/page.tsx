@@ -324,41 +324,63 @@ function BOMCard({ bom, onMarkDispatched, onMarkDelivered, onRefetch }: any) {
       )}
 
       {/* Actions - Mobile First */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200">
-        <p className="text-slate-800 font-medium text-sm md:text-base">
-          <strong className="text-slate-900">{bom.materials?.length || 0}</strong> line items
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex-1 sm:flex-initial px-4 py-2 bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 font-medium text-sm transition-colors"
-          >
-            <Eye size={16} className="inline mr-1" />
-            {expanded ? 'Hide' : 'View'} Items
-          </button>
-          
-          {/* Show appropriate action button based on status */}
-          {bom.dispatchStatus === 'pending' && (
-            <button
-              onClick={onMarkDispatched}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
-            >
-              <Send size={16} className="inline mr-1" />
-              Mark Dispatched
-            </button>
-          )}
-          
-          {bom.dispatchStatus === 'dispatched' && (
-            <button
-              onClick={onMarkDelivered}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm transition-colors"
-            >
-              <CheckCircle size={16} className="inline mr-1" />
-              Mark Delivered
-            </button>
-          )}
-        </div>
-      </div>
+<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200">
+  <p className="text-slate-800 font-medium text-sm md:text-base">
+    <strong className="text-slate-900">{bom.materials?.length || 0}</strong> line items
+    {/* DEBUG: Show current status */}
+    <span className="ml-2 text-xs text-red-600 font-mono">
+      (Status: {bom.dispatchStatus})
+    </span>
+  </p>
+  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+    <button
+      onClick={() => setExpanded(!expanded)}
+      className="flex-1 sm:flex-initial px-4 py-2 bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 font-medium text-sm transition-colors"
+    >
+      <Eye size={16} className="inline mr-1" />
+      {expanded ? 'Hide' : 'View'} Items
+    </button>
+    
+    {/* DEBUG: Always show both buttons with conditions */}
+    {bom.dispatchStatus === 'pending' && (
+      <button
+        onClick={onMarkDispatched}
+        className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+      >
+        <Send size={16} className="inline mr-1" />
+        Mark Dispatched
+      </button>
+    )}
+    
+    {bom.dispatchStatus === 'dispatched' && (
+      <button
+        onClick={onMarkDelivered}
+        className="flex-1 sm:flex-initial px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm transition-colors"
+      >
+        <CheckCircle size={16} className="inline mr-1" />
+        Mark Delivered
+      </button>
+    )}
+
+    {/* DEBUG: Show if status is delivered */}
+    {bom.dispatchStatus === 'delivered' && (
+      <span className="flex-1 sm:flex-initial px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium text-sm flex items-center justify-center">
+        <CheckCircle size={16} className="inline mr-1" />
+        Delivered ✓
+      </span>
+    )}
+
+    {/* DEBUG: If no button shows, display raw status */}
+    {bom.dispatchStatus !== 'pending' && 
+     bom.dispatchStatus !== 'dispatched' && 
+     bom.dispatchStatus !== 'delivered' && (
+      <span className="text-xs text-red-600">
+        Unknown status: "{bom.dispatchStatus}"
+      </span>
+    )}
+  </div>
+</div>
+
 
       {/* Expanded Table - Mobile Scrollable */}
       {expanded && bom.materials && bom.materials.length > 0 && (
@@ -410,7 +432,7 @@ function DispatchModal({ bom, onClose, onSuccess }: any) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
       const response = await fetch('/api/bom/update-dispatch', {
         method: 'POST',
@@ -421,13 +443,19 @@ function DispatchModal({ bom, onClose, onSuccess }: any) {
           ...formData,
         }),
       });
-
+  
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to mark as dispatched');
       }
-
+  
+      const result = await response.json();
+      console.log('✅ Dispatch result:', result);
+      
       alert('✅ BOM marked as dispatched successfully!');
+      
+      // Force immediate refetch
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
       onSuccess();
     } catch (error: any) {
       console.error('Dispatch error:', error);
@@ -436,6 +464,7 @@ function DispatchModal({ bom, onClose, onSuccess }: any) {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

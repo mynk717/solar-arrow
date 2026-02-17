@@ -77,6 +77,9 @@ export async function POST(request: NextRequest) {
     const cacheKey = `org:${orgId}:boms`;
 await redis.del(cacheKey);
 console.log('✅ Cache cleared:', cacheKey);
+// ALSO clear any variation of the cache key
+await redis.del(`boms:${orgId}`);
+await redis.del(`org:${orgId}:enquiries`);
 
     // Send Telegram notification
     try {
