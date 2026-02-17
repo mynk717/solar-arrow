@@ -22,27 +22,20 @@ export default function BOMPage() {
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const [selectedBOM, setSelectedBOM] = useState<any>(null);
 
-  // Group BOMs by enquiryId
-  const groupedBOMs = boms.reduce((acc: any, bom) => {
-    if (!acc[bom.enquiryId]) {
-      acc[bom.enquiryId] = {
-        enquiryId: bom.enquiryId,
-        customerName: bom.customerName,
-        systemCapacity: bom.systemCapacity,
-        bomStatus: bom.bomStatus,
-        dispatchStatus: bom.dispatchStatus,
-        generatedDate: bom.bomGeneratedDate,
-        items: [],
-      };
+  // Parse materialsJSON for each BOM
+  const parsedBOMs = boms.map((bom) => {
+    let materials: any[] = [];
+    try {
+      const parsed = JSON.parse(bom.materialsJSON || '{"items":[]}');
+      materials = parsed.items || [];
+    } catch (e) {
+      console.error('Failed to parse materialsJSON:', e);
     }
-    acc[bom.enquiryId].items.push(bom);
-    return acc;
-  }, {});
-
-  const bomList = Object.values(groupedBOMs);
+    return { ...bom, materials };
+  });
 
   // Filter
-  const filteredBOMs = bomList.filter((bom: any) => {
+  const filteredBOMs = parsedBOMs.filter((bom) => {
     const matchesEnquiry = !filterEnquiry || 
       bom.enquiryId.toLowerCase().includes(filterEnquiry.toLowerCase()) ||
       bom.customerName?.toLowerCase().includes(filterEnquiry.toLowerCase());
@@ -51,10 +44,10 @@ export default function BOMPage() {
   });
 
   // Stats
-  const totalBOMs = bomList.length;
-  const pendingDispatch = bomList.filter((b: any) => b.dispatchStatus === 'pending').length;
-  const dispatched = bomList.filter((b: any) => b.dispatchStatus === 'dispatched').length;
-  const delivered = bomList.filter((b: any) => b.dispatchStatus === 'delivered').length;
+  const totalBOMs = parsedBOMs.length;
+  const pendingDispatch = parsedBOMs.filter((b) => b.dispatchStatus === 'pending').length;
+  const dispatched = parsedBOMs.filter((b) => b.dispatchStatus === 'dispatched').length;
+  const delivered = parsedBOMs.filter((b) => b.dispatchStatus === 'delivered').length;
 
   const handleMarkDispatched = (bom: any) => {
     setSelectedBOM(bom);
@@ -131,9 +124,9 @@ export default function BOMPage() {
             <p className="text-slate-500 text-sm mt-2">Create your first BOM to get started</p>
           </div>
         ) : (
-          filteredBOMs.map((bom: any) => (
+          filteredBOMs.map((bom) => (
             <BOMCard 
-              key={bom.enquiryId} 
+              key={bom.bomId || bom.enquiryId} 
               bom={bom} 
               onMarkDispatched={() => handleMarkDispatched(bom)}
               onRefetch={refetch}
@@ -205,7 +198,7 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <p className="text-xs md:text-sm text-slate-600">
-              Generated: {new Date(bom.generatedDate).toLocaleDateString('en-IN')}
+              Generated: {new Date(bom.bomGeneratedDate).toLocaleDateString('en-IN')}
             </p>
             {bom.systemCapacity && (
               <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-medium">
@@ -222,7 +215,7 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
       {/* Actions - Mobile First */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200">
         <p className="text-slate-800 font-medium text-sm md:text-base">
-          <strong className="text-slate-900">{bom.items.length}</strong> line items
+          <strong className="text-slate-900">{bom.materials?.length || 0}</strong> line items
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -245,7 +238,7 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
       </div>
 
       {/* Expanded Table - Mobile Scrollable */}
-      {expanded && (
+      {expanded && bom.materials && bom.materials.length > 0 && (
         <div className="mt-4 pt-4 border-t border-slate-200">
           <div className="overflow-x-auto -mx-4 md:mx-0">
             <table className="w-full text-xs md:text-sm min-w-[600px]">
@@ -260,7 +253,7 @@ function BOMCard({ bom, onMarkDispatched, onRefetch }: any) {
                 </tr>
               </thead>
               <tbody>
-                {bom.items.map((item: any, idx: number) => (
+                {bom.materials.map((item: any, idx: number) => (
                   <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50">
                     <td className="px-3 py-2.5 text-slate-900 font-medium">{item.sno || idx + 1}</td>
                     <td className="px-3 py-2.5 text-slate-800">{item.section}</td>
@@ -294,22 +287,26 @@ function DispatchModal({ bom, onClose, onSuccess }: any) {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/bom/dispatch', {
+      const response = await fetch('/api/bom/update-dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           enquiryId: bom.enquiryId,
+          dispatchStatus: 'dispatched',
           ...formData,
-          dispatchDate: new Date().toISOString(),
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to mark as dispatched');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to mark as dispatched');
+      }
 
-      alert('BOM marked as dispatched successfully!');
+      alert('✅ BOM marked as dispatched successfully!');
       onSuccess();
     } catch (error: any) {
-      alert(error.message);
+      console.error('Dispatch error:', error);
+      alert('❌ ' + error.message);
     } finally {
       setLoading(false);
     }
