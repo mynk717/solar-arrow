@@ -237,6 +237,92 @@ function BOMCard({ bom, onMarkDispatched, onMarkDelivered, onRefetch }: any) {
         </span>
       </div>
 
+      {/* NEW: Dispatch Details - Show when dispatched/delivered */}
+      {(bom.dispatchStatus === 'dispatched' || bom.dispatchStatus === 'delivered') && (
+        bom.vehicleNumber || bom.driverName || bom.trackingNumber || bom.dispatchDate
+      ) && (
+        <div className="mb-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+          <p className="text-xs font-semibold text-blue-900 mb-2 flex items-center gap-1">
+            <Truck size={14} />
+            Dispatch Information
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {bom.vehicleNumber && (
+              <div>
+                <span className="text-blue-700">Vehicle:</span>
+                <span className="text-blue-900 font-medium ml-1">{bom.vehicleNumber}</span>
+              </div>
+            )}
+            {bom.driverName && (
+              <div>
+                <span className="text-blue-700">Driver:</span>
+                <span className="text-blue-900 font-medium ml-1">{bom.driverName}</span>
+              </div>
+            )}
+            {bom.driverContact && (
+              <div>
+                <span className="text-blue-700">Contact:</span>
+                <span className="text-blue-900 font-medium ml-1">{bom.driverContact}</span>
+              </div>
+            )}
+            {bom.trackingNumber && (
+              <div>
+                <span className="text-blue-700">Tracking:</span>
+                <span className="text-blue-900 font-medium ml-1">{bom.trackingNumber}</span>
+              </div>
+            )}
+            {bom.dispatchDate && (
+              <div>
+                <span className="text-blue-700">Dispatched:</span>
+                <span className="text-blue-900 font-medium ml-1">
+                  {new Date(bom.dispatchDate).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+            )}
+            {bom.expectedDeliveryDate && (
+              <div>
+                <span className="text-blue-700">Expected:</span>
+                <span className="text-blue-900 font-medium ml-1">
+                  {new Date(bom.expectedDeliveryDate).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Delivery Details - Show when delivered */}
+      {bom.dispatchStatus === 'delivered' && (bom.deliveredTo || bom.actualDeliveryDate) && (
+        <div className="mb-4 bg-green-50 rounded-lg p-3 border border-green-200">
+          <p className="text-xs font-semibold text-green-900 mb-2 flex items-center gap-1">
+            <CheckCircle size={14} />
+            Delivery Information
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {bom.actualDeliveryDate && (
+              <div>
+                <span className="text-green-700">Delivered On:</span>
+                <span className="text-green-900 font-medium ml-1">
+                  {new Date(bom.actualDeliveryDate).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+            )}
+            {bom.deliveredTo && (
+              <div>
+                <span className="text-green-700">Delivered To:</span>
+                <span className="text-green-900 font-medium ml-1">{bom.deliveredTo}</span>
+              </div>
+            )}
+            {bom.deliveryNotes && (
+              <div className="col-span-2">
+                <span className="text-green-700">Notes:</span>
+                <span className="text-green-900 font-medium ml-1">{bom.deliveryNotes}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Actions - Mobile First */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200">
         <p className="text-slate-800 font-medium text-sm md:text-base">
@@ -251,7 +337,7 @@ function BOMCard({ bom, onMarkDispatched, onMarkDelivered, onRefetch }: any) {
             {expanded ? 'Hide' : 'View'} Items
           </button>
           
-          {/* NEW: Show appropriate action button based on status */}
+          {/* Show appropriate action button based on status */}
           {bom.dispatchStatus === 'pending' && (
             <button
               onClick={onMarkDispatched}
@@ -308,6 +394,7 @@ function BOMCard({ bom, onMarkDispatched, onMarkDelivered, onRefetch }: any) {
     </div>
   );
 }
+
 
 
 function DispatchModal({ bom, onClose, onSuccess }: any) {
