@@ -2,50 +2,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { fetchEnquiries } from '@/lib/googleSheets';
+import { getGoogleSheetsClient } from '@/lib/googleSheets';
+import { redis } from '@/lib/redis';
 
+// GET - Fetch all BOMs
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch enquiries with BOM-relevant data
-    const enquiries = await fetchEnquiries();
-    
-    // Filter for enquiries that have reached payment/installation stage
-    const bomsData = enquiries
-      .filter((enq: any) => 
-        enq.registrationId && 
-        (enq.paymentDate || enq.installationDate || enq.status === 'installation')
-      )
-      .map((enq: any) => ({
-        id: enq.id,
-        customerName: enq.customerName,
-        capacity: enq.capacity,
-        registrationId: enq.registrationId || enq.consumerRegistrationNumber,
-        
-        // Calculate materials based on capacity
-        materials: calculateMaterialsBOM(parseFloat(enq.capacity) || 0),
-        
-        totalCost: enq.estimatedCost || calculateTotalCost(parseFloat(enq.capacity) || 0),
-        status: determineBOMStatus(enq),
-        createdAt: enq.paymentDate || enq.registrationDate || enq.createdAt,
-        
-        // Additional fields from sheet
-        sanctionLoad: enq.sanctionLoad,
-        proposedPVCapacity: enq.proposedPVCapacity,
-        installedPVModuleCapacity: enq.installedPVModuleCapacity,
-        pvModuleMake: enq.pvModuleMake,
-        moduleCapacity: enq.moduleCapacity,
-        moduleQuantity: enq.moduleQuantity,
-        inverterCapacity: enq.inverterCapacity,
-        inverterMake: enq.inverterMake,
-      }));
+    const sheetId = (session.user as any).sheetId;
+    const orgId = (session.user as any).organizationId || 'default-org';
 
-    return NextResponse.json({ boms: bomsData });
+    if (!sheetId) {
+      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
+    }
+
+    // Try cache first
+    const cacheKey = `org:${orgId}:boms`;
+    const cached = await redis.get(cacheKey);
+    
+    if (cached) {
+      console.log('✅ Returning cached BOMs');
+      return NextResponse.json(cached);
+    }
+
+    console.log('📊 Cache miss, fetching from sheets');
+    const sheets = await getGoogleSheetsClient();
+
+    // Fetch BOM tab
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'BOM!A2:AJ1000',
+    });
+
+    const rows = response.data.values || [];
+    
+    const boms = rows.map((row: any) => ({
+      id: row[0] || '',
+      enquiryId: row[1] || '',
+      bomStatus: row[2] || 'draft',
+      bomGeneratedDate: row[3] || '',
+      bomGeneratedBy: row[4] || '',
+      dispatchStatus: row[5] || 'pending',
+      dispatchDate: row[6] || '',
+      dispatchedBy: row[7] || '',
+      trackingNumber: row[8] || '',
+      vehicleNumber: row[9] || '',
+      driverName: row[10] || '',
+      driverContact: row[11] || '',
+      expectedDeliveryDate: row[12] || '',
+      actualDeliveryDate: row[13] || '',
+      deliveredTo: row[14] || '',
+      deliveryNotes: row[15] || '',
+      installationStatus: row[16] || 'not_started',
+      installationStartDate: row[17] || '',
+      installationCompletedDate: row[18] || '',
+      installedBy: row[19] || '',
+      materialUtilizationStatus: row[20] || 'not_started',
+      materialReturnStatus: row[21] || 'not_applicable',
+      returnCollectedDate: row[22] || '',
+      returnCollectedBy: row[23] || '',
+      sno: parseInt(row[24]) || 0,
+      section: row[25] || '',
+      particular: row[26] || '',
+      uom: row[27] || '',
+      qty: parseFloat(row[28]) || 0,
+      rem: row[29] || '',
+      qtyDispatched: parseFloat(row[30]) || 0,
+      qtyUtilized: parseFloat(row[31]) || 0,
+      qtyReturned: parseFloat(row[32]) || 0,
+      utilizationNotes: row[33] || '',
+      createdAt: row[34] || new Date().toISOString(),
+      updatedAt: row[35] || '',
+    }));
+
+    // Cache for 5 minutes
+    await redis.set(cacheKey, boms, { ex: 300 });
+
+    return NextResponse.json(boms);
   } catch (error: any) {
     console.error('Error fetching BOMs:', error);
     return NextResponse.json(
@@ -53,73 +90,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to calculate materials based on capacity
-function calculateMaterialsBOM(capacityKW: number) {
-  const panelWattage = 580; // Waaree 580W panels
-  const numPanels = Math.ceil((capacityKW * 1000) / panelWattage);
-  
-  return [
-    {
-      item: `Solar Panels ${panelWattage}W`,
-      quantity: numPanels,
-      unit: 'units',
-      unitPrice: 8500,
-      total: numPanels * 8500,
-    },
-    {
-      item: `Inverter ${capacityKW}kW`,
-      quantity: 1,
-      unit: 'unit',
-      unitPrice: capacityKW <= 3 ? 28000 : capacityKW * 9000,
-      total: capacityKW <= 3 ? 28000 : capacityKW * 9000,
-    },
-    {
-      item: 'Mounting Structure',
-      quantity: 1,
-      unit: 'set',
-      unitPrice: capacityKW * 7000,
-      total: capacityKW * 7000,
-    },
-    {
-      item: 'AC/DC Cables',
-      quantity: 1,
-      unit: 'set',
-      unitPrice: capacityKW * 2500,
-      total: capacityKW * 2500,
-    },
-    {
-      item: 'Junction Box',
-      quantity: 1,
-      unit: 'unit',
-      unitPrice: 3000,
-      total: 3000,
-    },
-    {
-      item: 'Earthing Kit',
-      quantity: 1,
-      unit: 'set',
-      unitPrice: 5000,
-      total: 5000,
-    },
-    {
-      item: 'Installation Labor',
-      quantity: 1,
-      unit: 'set',
-      unitPrice: capacityKW * 2800,
-      total: capacityKW * 2800,
-    },
-  ];
-}
-
-function calculateTotalCost(capacityKW: number): number {
-  const materials = calculateMaterialsBOM(capacityKW);
-  return materials.reduce((sum, mat) => sum + mat.total, 0);
-}
-
-function determineBOMStatus(enq: any): string {
-  if (enq.installationCompletedDate || enq.installationDate) return 'approved';
-  if (enq.paymentDate) return 'approved';
-  return 'pending';
 }

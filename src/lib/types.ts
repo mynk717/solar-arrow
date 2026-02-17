@@ -425,17 +425,59 @@ export interface LiaisonStage2 {
   notes?: string;
 }
 
-// ============================================
-// BOM (BILL OF MATERIALS)
-// ============================================
-
-export interface BOMItem {
-  item: string;
-  quantity: number;
-  unit: string;
-  unitPrice: number;
-  total: number;
+// RENAMED from BOMItem to BOMLineItem to avoid conflict
+export interface BOMLineItem {
+  // Identification
+  id: string;
+  enquiryId: string;
+  
+  // BOM Status
+  bomStatus: BOMStatus;
+  bomGeneratedDate: string;
+  bomGeneratedBy: string;
+  
+  // Dispatch Tracking
+  dispatchStatus: DispatchStatus;
+  dispatchDate?: string;
+  dispatchedBy?: string;
+  trackingNumber?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverContact?: string;
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  deliveredTo?: string;
+  deliveryNotes?: string;
+  
+  // Installation Tracking
+  installationStatus: InstallationStatus;
+  installationStartDate?: string;
+  installationCompletedDate?: string;
+  installedBy?: string;
+  
+  // Material Return Tracking
+  materialUtilizationStatus: MaterialUtilizationStatus;
+  materialReturnStatus: MaterialReturnStatus;
+  returnCollectedDate?: string;
+  returnCollectedBy?: string;
+  
+  // Line Item Details
+  sno: number;
+  section: string;
+  particular: string;
+  uom: string;
+  qty: number;
+  rem?: string;
+  qtyDispatched: number;
+  qtyUtilized: number;
+  qtyReturned: number;
+  utilizationNotes?: string;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt?: string;
 }
+
 
 export interface BOM {
   id: string;
@@ -681,4 +723,87 @@ export interface Survey {
   surveyApproved: boolean;
   surveyNotes: string;
   surveyPhotos: string; // URL or path
+}
+
+// ============================================
+// BOM (BILL OF MATERIALS) TYPES
+// ============================================
+
+export type BOMStatus = 
+  | 'draft' 
+  | 'generated' 
+  | 'approved' 
+  | 'cancelled';
+
+export type DispatchStatus = 
+  | 'pending' 
+  | 'dispatched' 
+  | 'in_transit' 
+  | 'delivered';
+
+export type InstallationStatus = 
+  | 'not_started' 
+  | 'in_progress' 
+  | 'completed';
+
+export type MaterialUtilizationStatus = 
+  | 'not_started' 
+  | 'partial' 
+  | 'completed';
+
+export type MaterialReturnStatus = 
+  | 'not_applicable' 
+  | 'pending' 
+  | 'collected';
+
+export interface BOMItem {
+  // Identification
+  id: string;
+  enquiryId: string;
+  
+  // BOM Status
+  bomStatus: BOMStatus;
+  bomGeneratedDate: string;
+  bomGeneratedBy: string;
+  
+  // Dispatch Tracking
+  dispatchStatus: DispatchStatus;
+  dispatchDate?: string;
+  dispatchedBy?: string;
+  trackingNumber?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverContact?: string;
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  deliveredTo?: string;
+  deliveryNotes?: string;
+  
+  // Installation Tracking
+  installationStatus: InstallationStatus;
+  installationStartDate?: string;
+  installationCompletedDate?: string;
+  installedBy?: string;
+  
+  // Material Return Tracking
+  materialUtilizationStatus: MaterialUtilizationStatus;
+  materialReturnStatus: MaterialReturnStatus;
+  returnCollectedDate?: string;
+  returnCollectedBy?: string;
+  
+  // Line Item Details
+  sno: number;
+  section: string; // "3KW KIT", "STRUCTURE", etc.
+  particular: string; // Item name
+  uom: string; // Unit of measure (nos, mtr, pkt, kg)
+  qty: number; // Quantity allocated
+  rem?: string; // Remarks
+  qtyDispatched: number;
+  qtyUtilized: number;
+  qtyReturned: number;
+  utilizationNotes?: string;
+  
+  // Metadata
+  createdAt: string;
+  updatedAt?: string;
 }
