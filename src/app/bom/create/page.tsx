@@ -33,13 +33,9 @@ const MATERIAL_DATABASE = [
   { name: "TEE 25MM", uom: "nos", category: "Conduits" },
   { name: "ELECTRICAL TAPE", uom: "nos", category: "Hardware" },
   { name: "KAJU KHILA 25MM", uom: "pkt", category: "Hardware" },
-  { name: "KAJU KHILA 12MM", uom: "pkt", category: "Hardware" },
   { name: "CABLE TIE 300MM", uom: "pkt", category: "Hardware" },
   { name: "P 3540 Structure", uom: "nos", category: "Structure" },
   { name: "R 3850 Structure", uom: "nos", category: "Structure" },
-  { name: "L 1800 Structure", uom: "nos", category: "Structure" },
-  { name: "L 2400 Structure", uom: "nos", category: "Structure" },
-  { name: "B 2600 Structure", uom: "nos", category: "Structure" },
   { name: "M8 BOLT", uom: "nos", category: "Structure" },
   { name: "M12 BOLT", uom: "nos", category: "Structure" },
   { name: "FASTNER", uom: "nos", category: "Structure" },
@@ -49,7 +45,7 @@ const MATERIAL_DATABASE = [
 ];
 
 // System Capacity Templates
-const CAPACITY_TEMPLATES = {
+const CAPACITY_TEMPLATES: Record<string, Array<{ material: string; qty: number }>> = {
   '3': [
     { material: "PANEL DCR 580W", qty: 6 },
     { material: "INVERTER 3KW", qty: 1 },
@@ -111,7 +107,6 @@ export default function CreateBOMPage() {
   const [systemCapacity, setSystemCapacity] = useState<string>('3');
   const [materials, setMaterials] = useState<MaterialRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchEligibleEnquiries();
@@ -144,7 +139,7 @@ export default function CreateBOMPage() {
 
   // Import all materials from template
   const importTemplate = () => {
-    const template = CAPACITY_TEMPLATES[systemCapacity as keyof typeof CAPACITY_TEMPLATES] || CAPACITY_TEMPLATES['3'];
+    const template = CAPACITY_TEMPLATES[systemCapacity] || CAPACITY_TEMPLATES['3'];
     
     const newMaterials = template.map((item, idx) => {
       const matInfo = MATERIAL_DATABASE.find(m => m.name === item.material);
@@ -197,15 +192,6 @@ export default function CreateBOMPage() {
   const removeMaterial = (id: string) => {
     setMaterials(prev => prev.filter(item => item.id !== id));
   };
-
-  // Filter materials for search
-  const filteredMaterials = useMemo(() => {
-    if (!searchTerm) return MATERIAL_DATABASE;
-    return MATERIAL_DATABASE.filter(m =>
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm]);
 
   // Submit BOM
   const handleSubmit = async (e: React.FormEvent) => {
@@ -396,7 +382,6 @@ export default function CreateBOMPage() {
                           list={`materials-${item.id}`}
                           value={item.material}
                           onChange={(e) => updateMaterial(item.id, 'material', e.target.value)}
-                          onFocus={() => setSearchTerm('')}
                           placeholder="Type or select material..."
                           className="w-full p-2.5 rounded-lg border border-transparent group-hover:border-slate-200 bg-transparent focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none text-sm text-slate-900"
                         />
