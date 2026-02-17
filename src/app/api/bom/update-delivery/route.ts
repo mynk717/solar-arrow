@@ -27,66 +27,63 @@ export async function POST(request: NextRequest) {
     const orgId = (session.user as any).organizationId || 'default-org';
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch BOM rows for this enquiry
+    // Fetch entire BOM rows to preserve all data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'BOM!A2:AJ1000',
+      range: 'BOM!A2:AB1000',
     });
 
     const rows = response.data.values || [];
-    const updates: any[] = [];
+    let updatedCount = 0;
     let customerName = '';
-    let itemCount = 0;
 
-    // Find all rows for this enquiry and update delivery fields
-    rows.forEach((row: any, index: number) => {
-      if (row[1] === enquiryId) { // enquiryId in column B
-        const rowNumber = index + 2;
-        itemCount++;
+    // Find and update ALL rows with matching enquiryId
+    const updatedRows = rows.map((row: any[]) => {
+      if (row[1] === enquiryId) { // Column B = enquiryId
+        updatedCount++;
+        if (!customerName) customerName = row[2]; // Get customer name
         
-        updates.push({
-          range: `BOM!F${rowNumber}`, // dispatchStatus column
-          values: [['delivered']],
-        });
+        // CORRECTED: Preserve all columns and only update delivery fields
+        const updatedRow = [...row]; // Clone existing row
         
-        updates.push({
-          range: `BOM!N${rowNumber}:P${rowNumber}`, // Columns N-P (delivery fields)
-          values: [[
-            new Date().toISOString().split('T')[0], // N: actualDeliveryDate
-            deliveredTo || '', // O: deliveredTo
-            deliveryNotes || '', // P: deliveryNotes
-          ]],
-        });
-
-        updates.push({
-          range: `BOM!AJ${rowNumber}`, // updatedAt column
-          values: [[new Date().toISOString()]],
-        });
+        // Update dispatch status to 'delivered' and delivery fields
+        updatedRow[7] = 'delivered';                           // H: dispatchStatus
+        updatedRow[15] = new Date().toISOString().split('T')[0]; // P: actualDeliveryDate
+        updatedRow[16] = deliveredTo || '';                    // Q: deliveredTo
+        updatedRow[17] = deliveryNotes || '';                  // R: deliveryNotes
+        updatedRow[27] = new Date().toISOString();             // AB: updatedAt
+        
+        return updatedRow;
       }
+      return row;
     });
 
-    if (updates.length === 0) {
+    if (updatedCount === 0) {
       return NextResponse.json({ error: 'No BOM found for this enquiry' }, { status: 404 });
     }
 
-    // Batch update
-    await sheets.spreadsheets.values.batchUpdate({
+    // Write back ALL rows
+    await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
+      range: 'BOM!A2:AB1000',
+      valueInputOption: 'RAW',
       requestBody: {
-        data: updates,
-        valueInputOption: 'USER_ENTERED',
+        values: updatedRows,
       },
     });
 
     // Invalidate cache
-    await redis.del(`org:${orgId}:boms`);
+    const cacheKey = `org:${orgId}:boms`;
+    await redis.del(cacheKey);
+    console.log('✅ Cache cleared for delivery:', cacheKey);
 
     // Send Telegram notification
     try {
       const message = `✅ *MATERIALS DELIVERED*
 
 *Enquiry:* ${enquiryId}
-*Items Delivered:* ${itemCount} line items
+*Customer:* ${customerName}
+*Items Delivered:* ${updatedCount} line items
 
 *Delivery Details:*
 *Delivered To:* ${deliveredTo || 'Site'}
@@ -108,7 +105,7 @@ _Installation team can now start the installation work._`;
     return NextResponse.json({
       success: true,
       message: 'Delivery updated successfully',
-      itemsUpdated: itemCount,
+      itemsUpdated: updatedCount,
     });
   } catch (error: any) {
     console.error('Error updating delivery:', error);
