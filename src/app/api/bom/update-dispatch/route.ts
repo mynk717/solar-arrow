@@ -31,62 +31,68 @@ export async function POST(request: NextRequest) {
     const orgId = (session.user as any).organizationId || 'default-org';
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch BOM rows for this enquiry
+    // Fetch entire BOM row to preserve all data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'BOM!A2:AJ1000',
+      range: 'BOM!A2:AB1000',
     });
 
     const rows = response.data.values || [];
-    const updates: any[] = [];
+    let updatedCount = 0;
 
-    // Find all rows for this enquiry
-    rows.forEach((row: any, index: number) => {
-      if (row[1] === enquiryId) { // enquiryId in column B
-        const rowNumber = index + 2;
-        updates.push({
-          range: `BOM!F${rowNumber}:M${rowNumber}`, // Columns F-M (dispatch fields)
-          values: [[
-            dispatchStatus, // F: dispatchStatus
-            new Date().toISOString().split('T')[0], // G: dispatchDate
-            session.user.email, // H: dispatchedBy
-            trackingNumber || '', // I: trackingNumber
-            vehicleNumber || '', // J: vehicleNumber
-            driverName || '', // K: driverName
-            driverContact || '', // L: driverContact
-            expectedDeliveryDate || '', // M: expectedDeliveryDate
-          ]],
-        });
+    // Find and update ALL rows with matching enquiryId
+    const updatedRows = rows.map((row: any[], index: number) => {
+      if (row[1] === enquiryId) { // Column B = enquiryId
+        updatedCount++;
+        
+        // CORRECTED: Preserve all columns and only update dispatch fields
+        const updatedRow = [...row]; // Clone existing row
+        
+        // Update ONLY dispatch-related columns (H-O)
+        updatedRow[7] = dispatchStatus;                              // H: dispatchStatus
+        updatedRow[8] = new Date().toISOString().split('T')[0];     // I: dispatchDate
+        updatedRow[9] = session.user.email;                          // J: dispatchedBy
+        updatedRow[10] = trackingNumber || '';                       // K: trackingNumber
+        updatedRow[11] = vehicleNumber || '';                        // L: vehicleNumber
+        updatedRow[12] = driverName || '';                           // M: driverName
+        updatedRow[13] = driverContact || '';                        // N: driverContact
+        updatedRow[14] = expectedDeliveryDate || '';                 // O: expectedDeliveryDate
+        updatedRow[27] = new Date().toISOString();                   // AB: updatedAt
+        
+        return updatedRow;
       }
+      return row;
     });
 
-    if (updates.length === 0) {
+    if (updatedCount === 0) {
       return NextResponse.json({ error: 'No BOM found for this enquiry' }, { status: 404 });
     }
 
-    // Batch update
-    await sheets.spreadsheets.values.batchUpdate({
+    // Write back ALL rows
+    await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
+      range: 'BOM!A2:AB1000',
+      valueInputOption: 'RAW',
       requestBody: {
-        data: updates,
-        valueInputOption: 'USER_ENTERED',
+        values: updatedRows,
       },
     });
 
-    // Invalidate cache
+    // Invalidate cache - FORCE CLEAR
     const cacheKey = `org:${orgId}:boms`;
-await redis.del(cacheKey);
-console.log('✅ Cache cleared:', cacheKey);
-// ALSO clear any variation of the cache key
-await redis.del(`boms:${orgId}`);
-await redis.del(`org:${orgId}:enquiries`);
+    await redis.del(cacheKey);
+    console.log('✅ Cache cleared for:', cacheKey);
+
+    // ALSO clear any variation of the cache key
+    await redis.del(`boms:${orgId}`);
+    await redis.del(`org:${orgId}:enquiries`);
 
     // Send Telegram notification
     try {
       const message = `🚚 *MATERIALS DISPATCHED*
 
 *Enquiry:* ${enquiryId}
-*Items:* ${updates.length} line items
+*Items:* ${updatedCount} line items
 
 *Tracking Details:*
 ${trackingNumber ? `Tracking: ${trackingNumber}` : ''}
@@ -109,7 +115,7 @@ _Installation team will be notified upon delivery._`;
     return NextResponse.json({
       success: true,
       message: 'Dispatch updated successfully',
-      updatedItems: updates.length,
+      updatedItems: updatedCount,
     });
   } catch (error: any) {
     console.error('Error updating dispatch:', error);
