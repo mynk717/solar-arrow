@@ -5,10 +5,6 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
-/**
- * GET - Fetch all BOMs from Google Sheet
- * New Structure: 1 BOM = 1 Row with materials as JSON in column V
- */
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -38,7 +34,7 @@ export async function GET(request: NextRequest) {
     console.log('📊 Cache miss, fetching from Google Sheets');
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch BOM tab - NEW STRUCTURE (A-AB = 28 columns)
+    // Fetch BOM tab - CORRECTED COLUMN MAPPING
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'BOM!A2:AB1000',
@@ -46,51 +42,51 @@ export async function GET(request: NextRequest) {
 
     const rows = response.data.values || [];
     
-    // Map rows to BOMLineItem objects
+    // Map rows to BOM objects with CORRECT indices
     const boms = rows
       .filter((row: any) => row && row.length > 0 && row[0]) // Filter empty rows
       .map((row: any) => {
-        // Parse materials JSON safely
+        // Safely parse materials JSON
         let materialsJSON = '{"items":[]}';
         try {
           if (row[21] && typeof row[21] === 'string') {
-            // Validate JSON
-            JSON.parse(row[21]);
+            JSON.parse(row[21]); // Validate
             materialsJSON = row[21];
           }
         } catch (e) {
           console.error('Invalid materials JSON for BOM:', row[0], e);
         }
 
+        // CORRECTED MAPPING - Check your sheet structure
         return {
-          bomId: row[0] || '',
-          enquiryId: row[1] || '',
-          customerName: row[2] || '',
-          systemCapacity: row[3] || '',
-          bomStatus: row[4] || 'draft',
-          bomGeneratedDate: row[5] || '',
-          bomGeneratedBy: row[6] || '',
-          dispatchStatus: row[7] || 'pending',
-          dispatchDate: row[8] || '',
-          dispatchedBy: row[9] || '',
-          trackingNumber: row[10] || '',
-          vehicleNumber: row[11] || '',
-          driverName: row[12] || '',
-          driverContact: row[13] || '',
-          expectedDeliveryDate: row[14] || '',
-          actualDeliveryDate: row[15] || '',
-          deliveredTo: row[16] || '',
-          deliveryNotes: row[17] || '',
-          installationStatus: row[18] || 'not_started',
-          installationDate: row[19] || '',
-          installedBy: row[20] || '',
-          materialsJSON: materialsJSON, // Column V (index 21)
-          materialUtilizationStatus: row[22] || 'not_started',
-          materialReturnStatus: row[23] || 'not_applicable',
-          returnCollectedDate: row[24] || '',
-          utilizationNotes: row[25] || '',
-          createdAt: row[26] || new Date().toISOString(),
-          updatedAt: row[27] || '',
+          bomId: row[0] || '',                    // A
+          enquiryId: row[1] || '',                // B
+          customerName: row[2] || '',             // C
+          systemCapacity: row[3] || '',           // D
+          bomStatus: row[4] || 'draft',           // E
+          bomGeneratedDate: row[5] || '',         // F
+          bomGeneratedBy: row[6] || '',           // G
+          dispatchStatus: row[7] || 'pending',    // H ← THIS IS THE KEY!
+          dispatchDate: row[8] || '',             // I
+          dispatchedBy: row[9] || '',             // J
+          trackingNumber: row[10] || '',          // K
+          vehicleNumber: row[11] || '',           // L
+          driverName: row[12] || '',              // M
+          driverContact: row[13] || '',           // N
+          expectedDeliveryDate: row[14] || '',    // O
+          actualDeliveryDate: row[15] || '',      // P
+          deliveredTo: row[16] || '',             // Q
+          deliveryNotes: row[17] || '',           // R
+          installationStatus: row[18] || 'not_started', // S
+          installationDate: row[19] || '',        // T
+          installedBy: row[20] || '',             // U
+          materialsJSON: materialsJSON,           // V (index 21)
+          materialUtilizationStatus: row[22] || 'not_started', // W
+          materialReturnStatus: row[23] || 'not_applicable',   // X
+          returnCollectedDate: row[24] || '',     // Y
+          utilizationNotes: row[25] || '',        // Z
+          createdAt: row[26] || new Date().toISOString(), // AA
+          updatedAt: row[27] || '',               // AB
         };
       });
 
@@ -98,6 +94,11 @@ export async function GET(request: NextRequest) {
     await redis.setex(cacheKey, 300, JSON.stringify(boms));
 
     console.log(`✅ Fetched ${boms.length} BOMs from Google Sheets`);
+    
+    // DEBUG: Log first BOM to verify structure
+    if (boms.length > 0) {
+      console.log('Sample BOM:', JSON.stringify(boms[0], null, 2));
+    }
 
     return NextResponse.json({ 
       boms, 
