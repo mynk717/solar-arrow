@@ -20,7 +20,6 @@ export default function BOMPage() {
   const { boms, loading, refetch } = useBOM();
   const [filterEnquiry, setFilterEnquiry] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Group BOMs by enquiryId
   const groupedBOMs = boms.reduce((acc: any, bom) => {
@@ -61,7 +60,7 @@ export default function BOMPage() {
           <p className="text-gray-600 mt-1">Manage BOMs, dispatch, and material tracking</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => window.location.href = '/bom/create'}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
         >
           <Plus size={20} />
@@ -116,17 +115,6 @@ export default function BOMPage() {
           ))
         )}
       </div>
-
-      {/* Create BOM Modal */}
-      {showCreateModal && (
-        <CreateBOMModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            refetch();
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -234,86 +222,6 @@ function BOMCard({ bom, onUpdate }: any) {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-function CreateBOMModal({ onClose, onSuccess }: any) {
-  const [enquiryId, setEnquiryId] = useState('');
-  const [systemCapacity, setSystemCapacity] = useState('3');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/bom/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enquiryId, systemCapacity }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create BOM');
-
-      alert('BOM created successfully!');
-      onSuccess();
-    } catch (error: any) {
-      alert(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Create BOM</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Enquiry ID</label>
-            <input
-              type="text"
-              value={enquiryId}
-              onChange={(e) => setEnquiryId(e.target.value)}
-              placeholder="ENQ-001"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">System Capacity</label>
-            <select
-              value={systemCapacity}
-              onChange={(e) => setSystemCapacity(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="3">3 kW</option>
-              <option value="5">5 kW</option>
-              <option value="7">7 kW</option>
-              <option value="10">10 kW</option>
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Creating...' : 'Create BOM'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }
