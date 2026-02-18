@@ -5,6 +5,8 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
+export const revalidate = 0; // ✅ Disable Next.js cache
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,19 +21,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // Try cache first (5 minute TTL)
+    // ✅ Check if force refresh is requested (from mutations)
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+
+    // Try cache first (only if not forced refresh)
     const cacheKey = `org:${orgId}:installations`;
-    const cached = await redis.get(cacheKey);
     
-    if (cached) {
-      console.log('✅ Returning cached installations');
-      return NextResponse.json({ 
-        installations: typeof cached === 'string' ? JSON.parse(cached) : cached,
-        cached: true 
-      });
+    if (!forceRefresh) {
+      const cached = await redis.get(cacheKey);
+      
+      if (cached) {
+        console.log('✅ Returning cached installations');
+        return NextResponse.json({ 
+          installations: typeof cached === 'string' ? JSON.parse(cached) : cached,
+          cached: true 
+        });
+      }
     }
 
-    console.log('📊 Cache miss, fetching from Google Sheets');
+    console.log('📊 Fetching fresh data from Google Sheets');
     const sheets = await getGoogleSheetsClient();
 
     // STEP 1: Fetch BOM tab to check delivery status
@@ -67,71 +76,73 @@ export async function GET(request: NextRequest) {
     const installations = rows
       .filter((row: any) => {
         const enquiryId = row[0] || ''; // Column A: id
-        
-        // ONLY include if BOM is delivered
         return deliveredEnquiries.has(enquiryId);
       })
       .map((row: any) => {
         return {
           // Basic Info
-          enquiryId: row[0] || '',                    // A: id
-          customerName: row[1] || '',                 // B: customerName
-          phone: row[2] || '',                        // C: phone
-          email: row[3] || '',                        // D: email
-          address: row[4] || '',                      // E: address
-          area: row[5] || '',                         // F: area
-          capacity: row[6] || '',                     // G: capacity
-          status: row[7] || '',                       // H: status
+          enquiryId: row[0] || '',
+          customerName: row[1] || '',
+          phone: row[2] || '',
+          email: row[3] || '',
+          address: row[4] || '',
+          area: row[5] || '',
+          capacity: row[6] || '',
+          status: row[7] || '',
           
-          // System Details (from columns 73-85)
-          systemCapacity: row[72] || '',              // BS: systemCapacity
-          panelMake: row[73] || '',                   // BT: panelMake
-          panelWattage: row[74] || '',                // BU: panelWattage
-          panelQuantity: row[75] || '',               // BV: panelQuantity
-          inverterMake: row[76] || '',                // BW: inverterMake
-          inverterCapacity: row[77] || '',            // BX: inverterCapacity
-          structureType: row[81] || '',               // CB: structureType
+          // System Details
+          systemCapacity: row[72] || '',
+          panelMake: row[73] || '',
+          panelWattage: row[74] || '',
+          panelQuantity: row[75] || '',
+          inverterMake: row[76] || '',
+          inverterCapacity: row[77] || '',
+          structureType: row[81] || '',
           
-          // Installation Details (columns 82-96)
-          installationScheduledDate: row[82] || '',   // CC: installationScheduledDate
-          installationStartDate: row[83] || '',       // CD: installationStartDate
-          installationCompletedDate: row[84] || '',   // CE: installationCompletedDate
-          installationTeam: row[85] || '',            // CF: installationTeam
-          installationSupervisor: row[86] || '',      // CG: installationSupervisor
-          installationNotes: row[87] || '',           // CH: installationNotes
-          pvModuleSerialNumbers: row[88] || '',       // CI: pvModuleSerialNumbers
-          inverterSerialNumber: row[89] || '',        // CJ: inverterSerialNumber
-          meterNumber: row[90] || '',                 // CK: meterNumber
-          meterInstalledDate: row[91] || '',          // CL: meterInstalledDate
-          meterReadingInitial: row[92] || '',         // CM: meterReadingInitial
-          earthingDone: row[93] || 'FALSE',           // CN: earthingDone
-          earthingResistance: row[94] || '',          // CO: earthingResistance
-          installationPhotos: row[95] || '',          // CP: installationPhotos
+          // Installation Details
+          installationScheduledDate: row[82] || '',
+          installationStartDate: row[83] || '',
+          installationCompletedDate: row[84] || '',
+          installationTeam: row[85] || '',
+          installationSupervisor: row[86] || '',
+          installationNotes: row[87] || '',
+          pvModuleSerialNumbers: row[88] || '',
+          inverterSerialNumber: row[89] || '',
+          meterNumber: row[90] || '',
+          meterInstalledDate: row[91] || '',
+          meterReadingInitial: row[92] || '',
+          earthingDone: row[93] || 'FALSE',
+          earthingResistance: row[94] || '',
+          installationPhotos: row[95] || '',
           
-          // Inspection Details (columns 96-102)
-          inspectionScheduledDate: row[96] || '',     // CQ: inspectionScheduledDate
-          inspectionDate: row[97] || '',              // CR: inspectionDate
-          inspectionOfficer: row[98] || '',           // CS: inspectionOfficer
-          inspectionStatus: row[99] || '',            // CT: inspectionStatus
-          inspectionApproved: row[100] || 'FALSE',    // CU: inspectionApproved
-          inspectionRejectedReason: row[101] || '',   // CV: inspectionRejectedReason
-          inspectionReportPath: row[102] || '',       // CW: inspectionReportPath
+          // Inspection Details
+          inspectionScheduledDate: row[96] || '',
+          inspectionDate: row[97] || '',
+          inspectionOfficer: row[98] || '',
+          inspectionStatus: row[99] || '',
+          inspectionApproved: row[100] || 'FALSE',
+          inspectionRejectedReason: row[101] || '',
+          inspectionReportPath: row[102] || '',
           
           // Metadata
-          createdAt: row[8] || '',                    // I: createdAt
-          updatedAt: row[9] || '',                    // J: updatedAt
+          createdAt: row[8] || '',
+          updatedAt: row[9] || '',
         };
       });
 
-    // Cache for 5 minutes
-    await redis.setex(cacheKey, 300, JSON.stringify(installations));
+    // ✅ Cache for 2 minutes (shorter TTL, will be invalidated on updates)
+    await redis.setex(cacheKey, 120, JSON.stringify(installations));
 
-    console.log(`✅ Fetched ${installations.length} installations (with delivered BOM) from Google Sheets`);
+    console.log(`✅ Fetched ${installations.length} installations from Google Sheets`);
 
     return NextResponse.json({ 
       installations, 
       cached: false,
       count: installations.length 
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, must-revalidate',
+      }
     });
   } catch (error: any) {
     console.error('❌ Error fetching installations:', error);

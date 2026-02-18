@@ -69,14 +69,21 @@ export default function InstallationPage() {
   const [selectedInstallation, setSelectedInstallation] = useState<Installation | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchInstallations();
-  }, []);
-
-  const fetchInstallations = async () => {
+  // ✅ Updated fetch function with force refresh option
+  const fetchInstallations = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/installation');
+      
+      // Add refresh parameter to bypass cache
+      const url = forceRefresh ? '/api/installation?refresh=true' : '/api/installation';
+      
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      
       if (!response.ok) throw new Error('Failed to fetch installations');
       const data = await response.json();
       setInstallations(data.installations || []);
@@ -87,6 +94,10 @@ export default function InstallationPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchInstallations();
+  }, []);
 
   // Filter installations
   const filteredInstallations = installations.filter((inst) => {
@@ -194,7 +205,7 @@ export default function InstallationPage() {
         )}
       </div>
 
-      {/* Schedule Modal */}
+      {/* Schedule Modal - ✅ Pass fetchInstallations as prop */}
       {showScheduleModal && selectedInstallation && (
         <ScheduleModal
           installation={selectedInstallation}
@@ -205,12 +216,13 @@ export default function InstallationPage() {
           onSuccess={() => {
             setShowScheduleModal(false);
             setSelectedInstallation(null);
-            fetchInstallations();
+            fetchInstallations(true); // Force refresh after scheduling
           }}
+          onRefresh={() => fetchInstallations(true)}
         />
       )}
 
-      {/* Complete Modal */}
+      {/* Complete Modal - ✅ Pass fetchInstallations as prop */}
       {showCompleteModal && selectedInstallation && (
         <CompleteModal
           installation={selectedInstallation}
@@ -221,8 +233,9 @@ export default function InstallationPage() {
           onSuccess={() => {
             setShowCompleteModal(false);
             setSelectedInstallation(null);
-            fetchInstallations();
+            fetchInstallations(true); // Force refresh after completion
           }}
+          onRefresh={() => fetchInstallations(true)}
         />
       )}
     </div>
@@ -267,7 +280,6 @@ function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, 
     // Default
     return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">PENDING</span>;
   };
-  
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
@@ -441,7 +453,8 @@ function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, 
   );
 }
 
-function ScheduleModal({ installation, onClose, onSuccess }: any) {
+// ✅ Updated ScheduleModal with onRefresh prop
+function ScheduleModal({ installation, onClose, onSuccess, onRefresh }: any) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     installationScheduledDate: '',
@@ -469,6 +482,10 @@ function ScheduleModal({ installation, onClose, onSuccess }: any) {
       }
 
       alert('✅ Installation scheduled successfully!');
+      
+      // ✅ Force refresh to see updated data immediately
+      await onRefresh();
+      
       onSuccess();
     } catch (error: any) {
       console.error('Schedule error:', error);
@@ -550,7 +567,8 @@ function ScheduleModal({ installation, onClose, onSuccess }: any) {
   );
 }
 
-function CompleteModal({ installation, onClose, onSuccess }: any) {
+// ✅ Updated CompleteModal with onRefresh prop
+function CompleteModal({ installation, onClose, onSuccess, onRefresh }: any) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     installationCompletedDate: new Date().toISOString().split('T')[0],
@@ -586,6 +604,10 @@ function CompleteModal({ installation, onClose, onSuccess }: any) {
       }
 
       alert('✅ Installation marked as completed successfully!');
+      
+      // ✅ Force refresh to see updated data immediately
+      await onRefresh();
+      
       onSuccess();
     } catch (error: any) {
       console.error('Complete error:', error);
