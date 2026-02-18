@@ -16,22 +16,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const orgId = (session.user as any).organizationId || 'default-org';
+    const sheetId = (session.user as any).sheetId;
+
+    if (!sheetId) {
+      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
+    }
+
     // Check for force refresh
     const { searchParams } = new URL(request.url);
     const forceRefresh = searchParams.get('refresh') === 'true';
 
     // Try cache first (unless force refresh)
+    const cacheKey = `org:${orgId}:${CACHE_KEY}`;
     if (!forceRefresh) {
-      const cached = (await redis.get(CACHE_KEY)) as string | null;
+      const cached = await redis.get(cacheKey) as string | null;
       if (cached) {
-        return NextResponse.json({ subsidies: JSON.parse(cached) });
+        return NextResponse.json({ subsidies: JSON.parse(cached), cached: true });
       }
     }
 
     const sheets = await getGoogleSheetsClient();
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID!,
-      range: `${SHEET_NAME}!A:CZ`,
+      spreadsheetId: sheetId,
+      range: `${SHEET_NAME}!A2:CZ1000`,
     });
 
     const rows = response.data.values || [];
@@ -39,22 +47,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ subsidies: [] });
     }
 
-    const headers = rows[0];
-    const dataRows = rows.slice(1);
+    // Get headers
+    const headerResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `${SHEET_NAME}!A1:CZ1`,
+    });
+    const headers = headerResponse.data.values?.[0] || [];
 
-    // Column indices
+    // Column indices - Match your ENQUIRIES tab
     const idIndex = headers.indexOf('id');
     const customerNameIndex = headers.indexOf('customerName');
     const phoneIndex = headers.indexOf('phone');
+    const emailIndex = headers.indexOf('email');
     const addressIndex = headers.indexOf('address');
     const areaIndex = headers.indexOf('area');
     const capacityIndex = headers.indexOf('capacity');
     const statusIndex = headers.indexOf('status');
-    const systemCapacityIndex = headers.indexOf('systemCapacity');
     
-    // Inspection fields
+    // System details
+    const systemCapacityIndex = headers.indexOf('systemCapacity');
+    const systemCostIndex = headers.indexOf('systemCost');
+    
+    // Inspection fields (required before subsidy)
     const inspectionApprovedIndex = headers.indexOf('inspectionApproved');
     const inspectionDateIndex = headers.indexOf('inspectionDate');
+    
+    // Registration fields
+    const registrationIdIndex = headers.indexOf('registrationId');
+    const consumerRegistrationNumberIndex = headers.indexOf('consumerRegistrationNumber');
+    const applicationNumberIndex = headers.indexOf('applicationNumber');
     
     // Subsidy fields
     const subsidyAmountIndex = headers.indexOf('subsidyAmount');
@@ -65,29 +86,49 @@ export async function GET(request: NextRequest) {
     const subsidyRejectedDateIndex = headers.indexOf('subsidyRejectedDate');
     const subsidyRejectionReasonIndex = headers.indexOf('subsidyRejectionReason');
     const subsidyBankAccountIndex = headers.indexOf('subsidyBankAccount');
+    const subsidyBankIFSCIndex = headers.indexOf('subsidyBankIFSC');
     const subsidyUTRIndex = headers.indexOf('subsidyUTR');
     const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');
+    const subsidyNotesIndex = headers.indexOf('subsidyNotes');
+    
+    // Grid sync
+    const gridSyncDateIndex = headers.indexOf('gridSyncDate');
+    const activationDateIndex = headers.indexOf('activationDate');
     
     const createdAtIndex = headers.indexOf('createdAt');
     const updatedAtIndex = headers.indexOf('updatedAt');
 
-    // Filter: Only show enquiries with inspection approved
-    const subsidies = dataRows
+    // Filter: Only show enquiries with inspection approved (eligible for subsidy)
+    const subsidies = rows
       .filter((row) => {
         const inspectionApproved = row[inspectionApprovedIndex] || '';
         return inspectionApproved.toUpperCase() === 'TRUE';
       })
       .map((row) => ({
+        // Basic info
         enquiryId: row[idIndex] || '',
         customerName: row[customerNameIndex] || '',
         phone: row[phoneIndex] || '',
+        email: row[emailIndex] || '',
         address: row[addressIndex] || '',
         area: row[areaIndex] || '',
         capacity: row[capacityIndex] || '',
         status: row[statusIndex] || '',
+        
+        // System details
         systemCapacity: row[systemCapacityIndex] || '',
+        systemCost: row[systemCostIndex] || '',
+        
+        // Inspection
         inspectionApproved: row[inspectionApprovedIndex] || '',
         inspectionDate: row[inspectionDateIndex] || '',
+        
+        // Registration
+        registrationId: row[registrationIdIndex] || '',
+        consumerRegistrationNumber: row[consumerRegistrationNumberIndex] || '',
+        applicationNumber: row[applicationNumberIndex] || '',
+        
+        // Subsidy details
         subsidyAmount: row[subsidyAmountIndex] || '',
         subsidyStatus: row[subsidyStatusIndex] || 'pending',
         subsidyAppliedDate: row[subsidyAppliedDateIndex] || '',
@@ -96,16 +137,27 @@ export async function GET(request: NextRequest) {
         subsidyRejectedDate: row[subsidyRejectedDateIndex] || '',
         subsidyRejectionReason: row[subsidyRejectionReasonIndex] || '',
         subsidyBankAccount: row[subsidyBankAccountIndex] || '',
+        subsidyBankIFSC: row[subsidyBankIFSCIndex] || '',
         subsidyUTR: row[subsidyUTRIndex] || '',
         subsidyDocumentPath: row[subsidyDocumentPathIndex] || '',
+        subsidyNotes: row[subsidyNotesIndex] || '',
+        
+        // Grid sync
+        gridSyncDate: row[gridSyncDateIndex] || '',
+        activationDate: row[activationDateIndex] || '',
+        
         createdAt: row[createdAtIndex] || '',
         updatedAt: row[updatedAtIndex] || '',
       }));
 
     // Cache the results
-    await redis.setex(CACHE_KEY, CACHE_TTL, JSON.stringify(subsidies));
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(subsidies));
 
-    return NextResponse.json({ subsidies });
+    return NextResponse.json({ 
+      subsidies, 
+      cached: false,
+      count: subsidies.length 
+    });
   } catch (error: any) {
     console.error('Error fetching subsidies:', error);
     return NextResponse.json(

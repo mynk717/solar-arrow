@@ -37,7 +37,6 @@ const navigation = [
   { name: 'Registration', href: '/registration', icon: Scale },
   { name: 'Payments', href: '/payments', icon: DollarSign },
   { name: 'BOM', href: '/bom', icon: Package },
-  { name: 'Dispatch', href: '/dispatch', icon: Truck },
   { name: 'Installation', href: '/installation', icon: Wrench },
   { name: 'Liaison', href: '/liaison', icon: Scale },
   { name: 'WCR', href: '/wcr', icon: CheckSquare },
