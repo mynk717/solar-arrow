@@ -23,16 +23,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // Check for force refresh
     const { searchParams } = new URL(request.url);
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Try cache first (unless force refresh)
     const cacheKey = `org:${orgId}:${CACHE_KEY}`;
     if (!forceRefresh) {
-      const cached = await redis.get(cacheKey) as string | null;
+      const cached = await redis.get(cacheKey);
       if (cached) {
-        return NextResponse.json({ subsidies: JSON.parse(cached), cached: true });
+        // ✅ FIX: Handle both string and object from Redis
+        const subsidies = typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return NextResponse.json({ subsidies, cached: true });
       }
     }
 
@@ -47,14 +47,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ subsidies: [] });
     }
 
-    // Get headers
     const headerResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: `${SHEET_NAME}!A1:CZ1`,
     });
     const headers = headerResponse.data.values?.[0] || [];
 
-    // Column indices - Match your ENQUIRIES tab
+    // Column indices
     const idIndex = headers.indexOf('id');
     const customerNameIndex = headers.indexOf('customerName');
     const phoneIndex = headers.indexOf('phone');
@@ -63,21 +62,13 @@ export async function GET(request: NextRequest) {
     const areaIndex = headers.indexOf('area');
     const capacityIndex = headers.indexOf('capacity');
     const statusIndex = headers.indexOf('status');
-    
-    // System details
     const systemCapacityIndex = headers.indexOf('systemCapacity');
     const systemCostIndex = headers.indexOf('systemCost');
-    
-    // Inspection fields (required before subsidy)
     const inspectionApprovedIndex = headers.indexOf('inspectionApproved');
     const inspectionDateIndex = headers.indexOf('inspectionDate');
-    
-    // Registration fields
     const registrationIdIndex = headers.indexOf('registrationId');
     const consumerRegistrationNumberIndex = headers.indexOf('consumerRegistrationNumber');
     const applicationNumberIndex = headers.indexOf('applicationNumber');
-    
-    // Subsidy fields
     const subsidyAmountIndex = headers.indexOf('subsidyAmount');
     const subsidyStatusIndex = headers.indexOf('subsidyStatus');
     const subsidyAppliedDateIndex = headers.indexOf('subsidyAppliedDate');
@@ -90,22 +81,17 @@ export async function GET(request: NextRequest) {
     const subsidyUTRIndex = headers.indexOf('subsidyUTR');
     const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');
     const subsidyNotesIndex = headers.indexOf('subsidyNotes');
-    
-    // Grid sync
     const gridSyncDateIndex = headers.indexOf('gridSyncDate');
     const activationDateIndex = headers.indexOf('activationDate');
-    
     const createdAtIndex = headers.indexOf('createdAt');
     const updatedAtIndex = headers.indexOf('updatedAt');
 
-    // Filter: Only show enquiries with inspection approved (eligible for subsidy)
     const subsidies = rows
       .filter((row) => {
         const inspectionApproved = row[inspectionApprovedIndex] || '';
         return inspectionApproved.toUpperCase() === 'TRUE';
       })
       .map((row) => ({
-        // Basic info
         enquiryId: row[idIndex] || '',
         customerName: row[customerNameIndex] || '',
         phone: row[phoneIndex] || '',
@@ -114,21 +100,13 @@ export async function GET(request: NextRequest) {
         area: row[areaIndex] || '',
         capacity: row[capacityIndex] || '',
         status: row[statusIndex] || '',
-        
-        // System details
         systemCapacity: row[systemCapacityIndex] || '',
         systemCost: row[systemCostIndex] || '',
-        
-        // Inspection
         inspectionApproved: row[inspectionApprovedIndex] || '',
         inspectionDate: row[inspectionDateIndex] || '',
-        
-        // Registration
         registrationId: row[registrationIdIndex] || '',
         consumerRegistrationNumber: row[consumerRegistrationNumberIndex] || '',
         applicationNumber: row[applicationNumberIndex] || '',
-        
-        // Subsidy details
         subsidyAmount: row[subsidyAmountIndex] || '',
         subsidyStatus: row[subsidyStatusIndex] || 'pending',
         subsidyAppliedDate: row[subsidyAppliedDateIndex] || '',
@@ -141,17 +119,14 @@ export async function GET(request: NextRequest) {
         subsidyUTR: row[subsidyUTRIndex] || '',
         subsidyDocumentPath: row[subsidyDocumentPathIndex] || '',
         subsidyNotes: row[subsidyNotesIndex] || '',
-        
-        // Grid sync
         gridSyncDate: row[gridSyncDateIndex] || '',
         activationDate: row[activationDateIndex] || '',
-        
         createdAt: row[createdAtIndex] || '',
         updatedAt: row[updatedAtIndex] || '',
       }));
 
-    // Cache the results
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(subsidies));
+    // ✅ FIX: Store as JSON string
+    await redis.set(cacheKey, JSON.stringify(subsidies), { ex: CACHE_TTL });
 
     return NextResponse.json({ 
       subsidies, 

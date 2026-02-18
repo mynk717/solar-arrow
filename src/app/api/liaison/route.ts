@@ -30,9 +30,11 @@ export async function GET(request: NextRequest) {
     // Try cache first (unless force refresh)
     const cacheKey = `org:${orgId}:${CACHE_KEY}`;
     if (!forceRefresh) {
-      const cached = await redis.get(cacheKey) as string | null;
+      const cached = await redis.get(cacheKey);
       if (cached) {
-        return NextResponse.json({ liaisons: JSON.parse(cached), cached: true });
+        // ✅ FIX: Redis already returns parsed object, don't parse again
+        const liaisons = typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return NextResponse.json({ liaisons, cached: true });
       }
     }
 
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
     });
     const headers = headerResponse.data.values?.[0] || [];
 
-    // Column indices - Match your ENQUIRIES tab structure
+    // Column indices
     const idIndex = headers.indexOf('id');
     const customerNameIndex = headers.indexOf('customerName');
     const phoneIndex = headers.indexOf('phone');
@@ -106,7 +108,6 @@ export async function GET(request: NextRequest) {
     const liaisons = rows
       .filter((row) => {
         const installationCompletedDate = row[installationCompletedDateIndex] || '';
-        // Validate it's not empty and not "Invalid Date"
         if (!installationCompletedDate || installationCompletedDate.trim() === '') return false;
         
         // Check if it's a valid date
@@ -114,7 +115,6 @@ export async function GET(request: NextRequest) {
         return !isNaN(date.getTime());
       })
       .map((row) => ({
-        // Basic info
         enquiryId: row[idIndex] || '',
         customerName: row[customerNameIndex] || '',
         phone: row[phoneIndex] || '',
@@ -123,19 +123,13 @@ export async function GET(request: NextRequest) {
         area: row[areaIndex] || '',
         capacity: row[capacityIndex] || '',
         status: row[statusIndex] || '',
-        
-        // System details
         systemCapacity: row[systemCapacityIndex] || '',
         panelType: row[panelTypeIndex] || '',
         panelMake: row[panelMakeIndex] || '',
         inverterMake: row[inverterMakeIndex] || '',
-        
-        // Installation
         installationCompletedDate: row[installationCompletedDateIndex] || '',
         installationTeam: row[installationTeamIndex] || '',
         installationNotes: row[installationNotesIndex] || '',
-        
-        // Inspection
         inspectionScheduledDate: row[inspectionScheduledDateIndex] || '',
         inspectionDate: row[inspectionDateIndex] || '',
         inspectionOfficer: row[inspectionOfficerIndex] || '',
@@ -143,28 +137,21 @@ export async function GET(request: NextRequest) {
         inspectionApproved: row[inspectionApprovedIndex] || '',
         inspectionRejectedReason: row[inspectionRejectedReasonIndex] || '',
         inspectionReportPath: row[inspectionReportPathIndex] || '',
-        
-        // Net metering
         meterNumber: row[meterNumberIndex] || '',
         meterInstallationDate: row[meterInstallationDateIndex] || '',
         netMeteringAgreement: row[netMeteringAgreementIndex] || '',
-        
-        // Grid sync
         gridSyncDate: row[gridSyncDateIndex] || '',
         activationDate: row[activationDateIndex] || '',
         liaisonStage: row[liaisonStageIndex] || 'inspection-pending',
-        
-        // Registration
         registrationId: row[registrationIdIndex] || '',
         consumerRegistrationNumber: row[consumerRegistrationNumberIndex] || '',
         applicationNumber: row[applicationNumberIndex] || '',
-        
         createdAt: row[createdAtIndex] || '',
         updatedAt: row[updatedAtIndex] || '',
       }));
 
-    // Cache the results
-    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(liaisons));
+    // ✅ FIX: Cache as JSON string for consistency
+    await redis.set(cacheKey, JSON.stringify(liaisons), { ex: CACHE_TTL });
 
     return NextResponse.json({ 
       liaisons, 
