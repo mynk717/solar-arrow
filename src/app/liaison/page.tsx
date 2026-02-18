@@ -61,6 +61,8 @@ export default function LiaisonPage() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedLiaison, setSelectedLiaison] = useState<Liaison | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+
 
   // Fetch liaisons (only enquiries with installation completed)
   const fetchLiaisons = async (forceRefresh = false) => {
@@ -119,6 +121,12 @@ export default function LiaisonPage() {
     setSelectedLiaison(liaison);
     setShowCompleteModal(true);
   };
+
+  const handleApprove = (liaison: Liaison) => {
+    setSelectedLiaison(liaison);
+    setShowApprovalModal(true);
+  };
+  
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8">
@@ -252,6 +260,24 @@ export default function LiaisonPage() {
           onRefresh={() => fetchLiaisons(true)}
         />
       )}
+
+      {/* NEW: Approval Modal */}
+{showApprovalModal && selectedLiaison && (
+  <ApprovalModal
+    liaison={selectedLiaison}
+    onClose={() => {
+      setShowApprovalModal(false);
+      setSelectedLiaison(null);
+    }}
+    onSuccess={() => {
+      setShowApprovalModal(false);
+      setSelectedLiaison(null);
+      fetchLiaisons(true);
+    }}
+    onRefresh={() => fetchLiaisons(true)}
+  />
+)}
+
     </div>
   );
 }
@@ -278,7 +304,7 @@ function StatCard({ icon, label, value, color }: any) {
   );
 }
 
-function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete }: any) {
+function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete, onApprove  }: any) {
   const getStatusBadge = () => {
     if (liaison.inspectionApproved === 'TRUE') {
       return (
@@ -420,6 +446,28 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
           )}
         </div>
       </div>
+
+      {/* NEW: Separate Approval Button */}
+{liaison.inspectionDate && 
+ liaison.inspectionDate.trim() !== '' && 
+ liaison.inspectionApproved !== 'TRUE' && 
+ !liaison.meterNumber && (
+  <button
+    onClick={() => onApprove(liaison)}
+    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium transition-colors"
+  >
+    <CheckCircle size={18} />
+    Approve Inspection
+  </button>
+)}
+
+{/* Show if already approved */}
+{liaison.inspectionApproved === 'TRUE' && !liaison.meterNumber && (
+  <div className="flex items-center gap-2 text-green-700 bg-green-50 px-4 py-2 rounded-lg border-2 border-green-200">
+    <CheckCircle size={18} />
+    <span className="font-semibold">Inspection Approved</span>
+  </div>
+)}
 
       {/* Expanded Details */}
       {expanded && (
@@ -693,6 +741,189 @@ function CompleteModal({ liaison, onClose, onSuccess, onRefresh }: any) {
               className="px-6 bg-slate-200 text-slate-800 py-3 rounded-xl hover:bg-slate-300 font-semibold transition-colors"
             >
               Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ApprovalModal({
+  liaison,
+  onClose,
+  onSuccess,
+  onRefresh,
+}: {
+  liaison: Liaison;
+  onClose: () => void;
+  onSuccess: () => void;
+  onRefresh: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    approved: true,
+    rejectionReason: '',
+    approvalNotes: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.approved && !formData.rejectionReason.trim()) {
+      alert('Rejection reason is required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/liaison/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiryId: liaison.enquiryId,
+          approved: formData.approved,
+          rejectionReason: formData.rejectionReason,
+          approvalNotes: formData.approvalNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit approval');
+      }
+
+      alert(formData.approved ? 'Inspection approved!' : 'Inspection rejected');
+      await onRefresh();
+      onSuccess();
+    } catch (error: any) {
+      console.error('Approval error:', error);
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">
+            {formData.approved ? 'Approve Inspection' : 'Reject Inspection'}
+          </h2>
+          <p className="text-slate-600 text-sm mt-1">
+            {liaison.enquiryId} - {liaison.customerName}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Inspection Summary */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm font-semibold text-slate-700">Inspection Date:</span>
+              <span className="text-sm font-bold text-slate-900">
+                {liaison.inspectionDate ? new Date(liaison.inspectionDate).toLocaleDateString('en-IN') : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm font-semibold text-slate-700">Inspector:</span>
+              <span className="text-sm font-bold text-slate-900">{liaison.inspectionOfficer || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm font-semibold text-slate-700">System Capacity:</span>
+              <span className="text-sm font-bold text-slate-900">{liaison.systemCapacity || liaison.capacity} kW</span>
+            </div>
+          </div>
+
+          {/* Approval Decision */}
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Decision <span className="text-red-500">*</span>
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="decision"
+                  checked={formData.approved}
+                  onChange={() => setFormData({ ...formData, approved: true })}
+                  className="w-4 h-4 text-green-600"
+                />
+                <span className="font-semibold text-green-700">✅ Approve</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="decision"
+                  checked={!formData.approved}
+                  onChange={() => setFormData({ ...formData, approved: false })}
+                  className="w-4 h-4 text-red-600"
+                />
+                <span className="font-semibold text-red-700">❌ Reject</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Rejection Reason (only if rejected) */}
+          {!formData.approved && (
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Rejection Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                required={!formData.approved}
+                rows={3}
+                value={formData.rejectionReason}
+                onChange={(e) => setFormData({ ...formData, rejectionReason: e.target.value })}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 text-slate-900"
+                placeholder="Specify the reason for rejection (safety issues, incomplete work, etc.)"
+              />
+            </div>
+          )}
+
+          {/* Approval Notes (optional) */}
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              rows={3}
+              value={formData.approvalNotes}
+              onChange={(e) => setFormData({ ...formData, approvalNotes: e.target.value })}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+              placeholder="Any additional comments or observations..."
+            />
+          </div>
+
+          {/* Warning for Rejection */}
+          {!formData.approved && (
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3">
+              <p className="text-sm font-medium text-red-900">
+                ⚠️ Rejecting will require the installation team to rectify issues and re-schedule inspection.
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 border-2 border-slate-300 text-slate-900 font-bold px-4 py-2.5 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`flex-1 font-bold px-4 py-2.5 rounded-lg disabled:opacity-50 ${
+                formData.approved
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-red-600 hover:bg-red-700 text-white'
+              }`}
+            >
+              {loading ? 'Processing...' : formData.approved ? 'Approve Inspection' : 'Reject Inspection'}
             </button>
           </div>
         </form>

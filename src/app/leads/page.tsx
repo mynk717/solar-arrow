@@ -39,6 +39,9 @@ export default function LeadsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showQualifyModal, setShowQualifyModal] = useState(false);
+const [selectedLeadForQualify, setSelectedLeadForQualify] = useState<Lead | null>(null);
+
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'all'>('all');
@@ -392,12 +395,17 @@ return (
 
             {/* Modals - Lazy render */}
             {selectedLead && !showCallLogModal && !showConvertModal && (
-              <LeadDetailsModal
-                lead={selectedLead}
-                onClose={() => setSelectedLead(null)}
-                isDemoMode={isDemoMode}
-              />
-            )}
+  <LeadDetailsModal
+    lead={selectedLead}
+    onClose={() => setSelectedLead(null)}
+    isDemoMode={isDemoMode}
+    onQualify={(lead) => {
+      setSelectedLeadForQualify(lead);
+      setShowQualifyModal(true);
+    }}
+  />
+)}
+
 
             {showCallLogModal && selectedLead && (
               <CallLogModal
@@ -434,6 +442,18 @@ return (
     isDemoMode={isDemoMode}
   />
 )}
+{/* Qualify Modal */}
+{showQualifyModal && selectedLeadForQualify && (
+  <QualifyLeadModal
+    lead={selectedLeadForQualify}
+    onClose={() => {
+      setShowQualifyModal(false);
+      setSelectedLeadForQualify(null);
+    }}
+    isDemoMode={isDemoMode}
+  />
+)}
+
           </div>
         );}
 
@@ -905,10 +925,12 @@ function LeadDetailsModal({
   lead,
   onClose,
   isDemoMode,
+  onQualify,
 }: {
   lead: Lead;
   onClose: () => void;
   isDemoMode: boolean;
+  onQualify: (lead: Lead) => void;
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
@@ -984,14 +1006,34 @@ function LeadDetailsModal({
           )}
         </div>
 
-        <div className="p-6 border-t-2 border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg touch-manipulation"
-          >
-            Close
-          </button>
-        </div>
+        <div className="p-6 border-t-2 border-gray-200 bg-gray-50 space-y-3">
+  {/* Show Qualify button if lead is contacted but not qualified */}
+  {(lead.status === 'contacted' || lead.status === 'callback') && !lead.qualified && (
+    <button
+    onClick={() => {
+      onQualify(lead);
+      onClose();
+    }}
+  
+      disabled={isDemoMode}
+      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 touch-manipulation"
+    >
+      ✅ Mark as Qualified
+    </button>
+  )}
+  
+  {/* Show qualified badge if already qualified */}
+  {lead.qualified && (
+    <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">
+      <span className="text-green-800 font-bold">✅ Lead Qualified on {lead.qualifiedDate ? new Date(lead.qualifiedDate).toLocaleDateString() : 'N/A'}</span>
+    </div>
+  )}
+  
+  <button onClick={onClose} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg touch-manipulation">
+    Close
+  </button>
+</div>
+
       </div>
     </div>
   );
@@ -1086,30 +1128,64 @@ function CallLogModal({
 }
 
 // Convert Modal
-function ConvertToEnquiryModal({
-  lead,
-  onClose,
-  isDemoMode,
-}: {
-  lead: Lead;
-  onClose: () => void;
-  isDemoMode: boolean;
-}) {
+function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onClose: () => void; isDemoMode: boolean }) {
   const [processing, setProcessing] = useState(false);
+  
+  // Add form state
+  const [formData, setFormData] = useState({
+    systemCapacity: lead.capacity || '',
+    estimatedBudget: lead.estimatedBudget || '',
+    preferredInstallationDate: '',
+    roofType: 'rcc',
+    electricityBill: '',
+    specialRequirements: '',
+  });
 
   const handleConvert = async () => {
     if (isDemoMode) return;
+    
+    // Validate required fields
+    if (!formData.systemCapacity) {
+      alert('System capacity is required');
+      return;
+    }
+    
     setProcessing(true);
     try {
       const response = await fetch('/api/leads/convert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, enquiryData: {} }),
+        body: JSON.stringify({
+          leadId: lead.id,
+          enquiryData: {
+            // Pass lead data
+            customerName: lead.customerName,
+            phone: lead.phone,
+            email: lead.email,
+            address: lead.address,
+            area: lead.area,
+            
+            // Pass form data
+            capacity: formData.systemCapacity,
+            estimatedCost: formData.estimatedBudget,
+            preferredInstallationDate: formData.preferredInstallationDate,
+            roofType: formData.roofType,
+            electricityBill: formData.electricityBill,
+            notes: formData.specialRequirements,
+            
+            // Set initial status
+            status: 'survey-pending',
+            leadSource: lead.source,
+            convertedFrom: lead.id,
+          },
+        }),
       });
+
       if (!response.ok) throw new Error('Failed');
+      
       const data = await response.json();
       alert(`Lead converted successfully! Enquiry ID: ${data.enquiry.id}`);
-      window.location.href = `/enquiries`;
+      window.location.href = `/enquiries/${data.enquiry.id}`;
     } catch (error) {
       alert('Failed to convert lead. Please try again.');
     } finally {
@@ -1119,11 +1195,14 @@ function ConvertToEnquiryModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-lg max-w-lg w-full shadow-2xl">
+      <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b-2 border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Convert Lead to Enquiry</h2>
+          <p className="text-sm text-gray-600 mt-1">{lead.customerName}</p>
         </div>
-        <div className="p-6">
+
+        <div className="p-6 space-y-4">
+          {/* Lead Summary */}
           <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4 space-y-2">
             <div className="flex items-start gap-2">
               <span className="text-sm font-bold text-gray-900 min-w-[100px]">Lead:</span>
@@ -1134,29 +1213,324 @@ function ConvertToEnquiryModal({
               <span className="text-sm font-semibold text-gray-900">{lead.phone}</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-sm font-bold text-gray-900 min-w-[100px]">Capacity:</span>
-              <span className="text-sm font-semibold text-gray-900">{lead.capacity || 'Not specified'}</span>
+              <span className="text-sm font-bold text-gray-900 min-w-[100px]">Area:</span>
+              <span className="text-sm font-semibold text-gray-900">{lead.area || 'Not specified'}</span>
             </div>
           </div>
-          <div className="mt-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
+
+          {/* Form Fields */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                System Capacity (kW) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                required
+                value={formData.systemCapacity}
+                onChange={(e) => setFormData({ ...formData, systemCapacity: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+                placeholder="e.g., 5.0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Estimated Budget (₹)
+              </label>
+              <input
+                type="number"
+                value={formData.estimatedBudget}
+                onChange={(e) => setFormData({ ...formData, estimatedBudget: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+                placeholder="e.g., 300000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Preferred Installation Date
+              </label>
+              <input
+                type="date"
+                value={formData.preferredInstallationDate}
+                onChange={(e) => setFormData({ ...formData, preferredInstallationDate: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Roof Type
+              </label>
+              <select
+                value={formData.roofType}
+                onChange={(e) => setFormData({ ...formData, roofType: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+              >
+                <option value="rcc">RCC</option>
+                <option value="metal">Metal Sheet</option>
+                <option value="asbestos">Asbestos</option>
+                <option value="tile">Tile</option>
+                <option value="ground">Ground Mounted</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Monthly Electricity Bill (₹)
+              </label>
+              <input
+                type="number"
+                value={formData.electricityBill}
+                onChange={(e) => setFormData({ ...formData, electricityBill: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+                placeholder="e.g., 5000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-900 mb-2">
+                Special Requirements / Notes
+              </label>
+              <textarea
+                rows={3}
+                value={formData.specialRequirements}
+                onChange={(e) => setFormData({ ...formData, specialRequirements: e.target.value })}
+                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+                placeholder="Any special requirements or notes..."
+              />
+            </div>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
             <p className="text-sm font-medium text-gray-900">
-              ⚠️ This will create a new enquiry and mark the lead as converted.
+              ℹ️ This will create a new enquiry with survey-pending status. The lead will be marked as converted.
             </p>
           </div>
         </div>
+
         <div className="p-6 border-t-2 border-gray-200 flex gap-3">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="flex-1 border-2 border-gray-300 text-gray-900 font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 touch-manipulation"
           >
             Cancel
           </button>
           <button
             onClick={handleConvert}
-            disabled={processing || isDemoMode}
+            disabled={processing || isDemoMode || !formData.systemCapacity}
             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
           >
             {processing ? 'Converting...' : 'Convert to Enquiry'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QualifyLeadModal({
+  lead,
+  onClose,
+  isDemoMode,
+}: {
+  lead: Lead;
+  onClose: () => void;
+  isDemoMode: boolean;
+}) {
+  const [processing, setProcessing] = useState(false);
+  const [formData, setFormData] = useState({
+    budget: lead.estimatedBudget || '',
+    timeline: '1-3-months',
+    decisionMaker: 'self',
+    decisionMakerName: lead.customerName,
+    electricityBill: '',
+    roofAvailable: 'yes',
+    purchaseIntent: 'high',
+    qualificationNotes: '',
+  });
+
+  const handleQualify = async () => {
+    if (isDemoMode) return;
+
+    if (!formData.budget || !formData.electricityBill) {
+      alert('Budget and electricity bill are required');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const response = await fetch('/api/leads/qualify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          qualificationData: formData,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to qualify lead');
+
+      alert('Lead qualified successfully!');
+      window.location.reload();
+    } catch (error) {
+      alert('Failed to qualify lead. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-lg max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b-2 border-gray-200">
+          <h2 className="text-xl font-bold text-gray-900">Qualify Lead</h2>
+          <p className="text-sm text-gray-600 mt-1">{lead.customerName} - {lead.phone}</p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Budget (₹) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              required
+              value={formData.budget}
+              onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+              placeholder="e.g., 300000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Purchase Timeline <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.timeline}
+              onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+            >
+              <option value="immediate">Immediate (Within 1 month)</option>
+              <option value="1-3-months">1-3 Months</option>
+              <option value="3-6-months">3-6 Months</option>
+              <option value="6-12-months">6-12 Months</option>
+              <option value="exploratory">Just Exploring</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Monthly Electricity Bill (₹) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number"
+              required
+              value={formData.electricityBill}
+              onChange={(e) => setFormData({ ...formData, electricityBill: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+              placeholder="e.g., 5000"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Decision Maker
+            </label>
+            <select
+              value={formData.decisionMaker}
+              onChange={(e) => setFormData({ ...formData, decisionMaker: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+            >
+              <option value="self">Self</option>
+              <option value="spouse">Spouse</option>
+              <option value="parent">Parent</option>
+              <option value="business-partner">Business Partner</option>
+              <option value="board">Board/Committee</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Roof Available?
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={formData.roofAvailable === 'yes'}
+                  onChange={() => setFormData({ ...formData, roofAvailable: 'yes' })}
+                  className="w-4 h-4"
+                />
+                <span className="font-semibold">Yes</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={formData.roofAvailable === 'no'}
+                  onChange={() => setFormData({ ...formData, roofAvailable: 'no' })}
+                  className="w-4 h-4"
+                />
+                <span className="font-semibold">No</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={formData.roofAvailable === 'partial'}
+                  onChange={() => setFormData({ ...formData, roofAvailable: 'partial' })}
+                  className="w-4 h-4"
+                />
+                <span className="font-semibold">Partial</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Purchase Intent
+            </label>
+            <select
+              value={formData.purchaseIntent}
+              onChange={(e) => setFormData({ ...formData, purchaseIntent: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+            >
+              <option value="high">High (Ready to buy)</option>
+              <option value="medium">Medium (Needs convincing)</option>
+              <option value="low">Low (Comparing options)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Qualification Notes
+            </label>
+            <textarea
+              rows={3}
+              value={formData.qualificationNotes}
+              onChange={(e) => setFormData({ ...formData, qualificationNotes: e.target.value })}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+              placeholder="Additional notes about the qualification..."
+            />
+          </div>
+        </div>
+
+        <div className="p-6 border-t-2 border-gray-200 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 border-2 border-gray-300 text-gray-900 font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleQualify}
+            disabled={processing || isDemoMode}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2.5 rounded-lg disabled:opacity-50"
+          >
+            {processing ? 'Qualifying...' : 'Mark as Qualified'}
           </button>
         </div>
       </div>

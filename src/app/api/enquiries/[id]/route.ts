@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiry, deleteEnquiry, fetchEnquiries } from '@/lib/googleSheets';
 import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
+import { validateStatusTransition, getRequiredFieldsForStatus, validateRequiredFields } from '@/lib/statusValidation';
+import { invalidateEnquiryCache } from '@/lib/cacheInvalidation';
+
 
 // GET single enquiry
 export async function GET(
