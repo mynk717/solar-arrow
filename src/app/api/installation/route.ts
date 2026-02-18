@@ -34,21 +34,42 @@ export async function GET(request: NextRequest) {
     console.log('📊 Cache miss, fetching from Google Sheets');
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch ENQUIRIES tab - columns related to installation
-    const response = await sheets.spreadsheets.values.get({
+    // STEP 1: Fetch BOM tab to check delivery status
+    const bomResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'BOM!A2:AB1000',
+    });
+
+    const bomRows = bomResponse.data.values || [];
+    
+    // Create a map of enquiryId -> dispatchStatus
+    const deliveredEnquiries = new Set<string>();
+    bomRows.forEach((row: any) => {
+      const enquiryId = row[1]; // Column B: enquiryId
+      const dispatchStatus = row[7]; // Column H: dispatchStatus
+      
+      if (dispatchStatus === 'delivered') {
+        deliveredEnquiries.add(enquiryId);
+      }
+    });
+
+    console.log(`✅ Found ${deliveredEnquiries.size} enquiries with delivered materials`);
+
+    // STEP 2: Fetch ENQUIRIES tab
+    const enqResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'ENQUIRIES!A2:CZ1000',
     });
 
-    const rows = response.data.values || [];
+    const rows = enqResponse.data.values || [];
     
-    // Map to installation objects - filter only those ready for installation
+    // Map to installation objects - ONLY show enquiries with delivered BOM
     const installations = rows
       .filter((row: any) => {
-        const status = row[7] || ''; // Column H: status
-        const dispatchStatus = row[7] || ''; // Check if materials are dispatched/delivered
-        // Show only enquiries where payment is received or materials are delivered
-        return status.includes('payment') || status.includes('installation') || status.includes('delivered');
+        const enquiryId = row[0] || ''; // Column A: id
+        
+        // ONLY include if BOM is delivered
+        return deliveredEnquiries.has(enquiryId);
       })
       .map((row: any) => {
         return {
@@ -105,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Cache for 5 minutes
     await redis.setex(cacheKey, 300, JSON.stringify(installations));
 
-    console.log(`✅ Fetched ${installations.length} installations from Google Sheets`);
+    console.log(`✅ Fetched ${installations.length} installations (with delivered BOM) from Google Sheets`);
 
     return NextResponse.json({ 
       installations, 
