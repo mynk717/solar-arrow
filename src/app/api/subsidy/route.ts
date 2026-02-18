@@ -1,4 +1,4 @@
-// src/app/api/liaison/route.ts
+// src/app/api/subsidy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
@@ -6,7 +6,7 @@ import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
 const SHEET_NAME = 'ENQUIRIES';
-const CACHE_KEY = 'liaisons:all';
+const CACHE_KEY = 'subsidies:all';
 const CACHE_TTL = 300; // 5 minutes
 
 export async function GET(request: NextRequest) {
@@ -22,10 +22,10 @@ export async function GET(request: NextRequest) {
 
     // Try cache first (unless force refresh)
     if (!forceRefresh) {
-      const cached = await redis.get(CACHE_KEY) as string | null;
-if (cached) {
-  return NextResponse.json({ liaisons: JSON.parse(cached) });
-}
+      const cached = (await redis.get(CACHE_KEY)) as string | null;
+      if (cached) {
+        return NextResponse.json({ subsidies: JSON.parse(cached) });
+      }
     }
 
     const sheets = await getGoogleSheetsClient();
@@ -36,7 +36,7 @@ if (cached) {
 
     const rows = response.data.values || [];
     if (rows.length === 0) {
-      return NextResponse.json({ liaisons: [] });
+      return NextResponse.json({ subsidies: [] });
     }
 
     const headers = rows[0];
@@ -51,31 +51,31 @@ if (cached) {
     const capacityIndex = headers.indexOf('capacity');
     const statusIndex = headers.indexOf('status');
     const systemCapacityIndex = headers.indexOf('systemCapacity');
-    const panelMakeIndex = headers.indexOf('panelMake');
-    const inverterMakeIndex = headers.indexOf('inverterMake');
-    const meterNumberIndex = headers.indexOf('meterNumber');
-    
-    // Installation fields
-    const installationCompletedDateIndex = headers.indexOf('installationCompletedDate');
-    const installationTeamIndex = headers.indexOf('installationTeam');
     
     // Inspection fields
-    const inspectionScheduledDateIndex = headers.indexOf('inspectionScheduledDate');
-    const inspectionDateIndex = headers.indexOf('inspectionDate');
-    const inspectionOfficerIndex = headers.indexOf('inspectionOfficer');
-    const inspectionStatusIndex = headers.indexOf('inspectionStatus');
     const inspectionApprovedIndex = headers.indexOf('inspectionApproved');
-    const inspectionRejectedReasonIndex = headers.indexOf('inspectionRejectedReason');
-    const inspectionReportPathIndex = headers.indexOf('inspectionReportPath');
+    const inspectionDateIndex = headers.indexOf('inspectionDate');
+    
+    // Subsidy fields
+    const subsidyAmountIndex = headers.indexOf('subsidyAmount');
+    const subsidyStatusIndex = headers.indexOf('subsidyStatus');
+    const subsidyAppliedDateIndex = headers.indexOf('subsidyAppliedDate');
+    const subsidyApprovedDateIndex = headers.indexOf('subsidyApprovedDate');
+    const subsidyDisbursedDateIndex = headers.indexOf('subsidyDisbursedDate');
+    const subsidyRejectedDateIndex = headers.indexOf('subsidyRejectedDate');
+    const subsidyRejectionReasonIndex = headers.indexOf('subsidyRejectionReason');
+    const subsidyBankAccountIndex = headers.indexOf('subsidyBankAccount');
+    const subsidyUTRIndex = headers.indexOf('subsidyUTR');
+    const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');
     
     const createdAtIndex = headers.indexOf('createdAt');
     const updatedAtIndex = headers.indexOf('updatedAt');
 
-    // Filter: Only show enquiries with installation completed
-    const liaisons = dataRows
+    // Filter: Only show enquiries with inspection approved
+    const subsidies = dataRows
       .filter((row) => {
-        const installationCompletedDate = row[installationCompletedDateIndex] || '';
-        return installationCompletedDate.trim() !== '';
+        const inspectionApproved = row[inspectionApprovedIndex] || '';
+        return inspectionApproved.toUpperCase() === 'TRUE';
       })
       .map((row) => ({
         enquiryId: row[idIndex] || '',
@@ -86,30 +86,30 @@ if (cached) {
         capacity: row[capacityIndex] || '',
         status: row[statusIndex] || '',
         systemCapacity: row[systemCapacityIndex] || '',
-        panelMake: row[panelMakeIndex] || '',
-        inverterMake: row[inverterMakeIndex] || '',
-        meterNumber: row[meterNumberIndex] || '',
-        installationCompletedDate: row[installationCompletedDateIndex] || '',
-        installationTeam: row[installationTeamIndex] || '',
-        inspectionScheduledDate: row[inspectionScheduledDateIndex] || '',
-        inspectionDate: row[inspectionDateIndex] || '',
-        inspectionOfficer: row[inspectionOfficerIndex] || '',
-        inspectionStatus: row[inspectionStatusIndex] || '',
         inspectionApproved: row[inspectionApprovedIndex] || '',
-        inspectionRejectedReason: row[inspectionRejectedReasonIndex] || '',
-        inspectionReportPath: row[inspectionReportPathIndex] || '',
+        inspectionDate: row[inspectionDateIndex] || '',
+        subsidyAmount: row[subsidyAmountIndex] || '',
+        subsidyStatus: row[subsidyStatusIndex] || 'pending',
+        subsidyAppliedDate: row[subsidyAppliedDateIndex] || '',
+        subsidyApprovedDate: row[subsidyApprovedDateIndex] || '',
+        subsidyDisbursedDate: row[subsidyDisbursedDateIndex] || '',
+        subsidyRejectedDate: row[subsidyRejectedDateIndex] || '',
+        subsidyRejectionReason: row[subsidyRejectionReasonIndex] || '',
+        subsidyBankAccount: row[subsidyBankAccountIndex] || '',
+        subsidyUTR: row[subsidyUTRIndex] || '',
+        subsidyDocumentPath: row[subsidyDocumentPathIndex] || '',
         createdAt: row[createdAtIndex] || '',
         updatedAt: row[updatedAtIndex] || '',
       }));
 
     // Cache the results
-    await redis.setex(CACHE_KEY, CACHE_TTL, JSON.stringify(liaisons));
+    await redis.setex(CACHE_KEY, CACHE_TTL, JSON.stringify(subsidies));
 
-    return NextResponse.json({ liaisons });
+    return NextResponse.json({ subsidies });
   } catch (error: any) {
-    console.error('Error fetching liaisons:', error);
+    console.error('Error fetching subsidies:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch liaisons' },
+      { error: error.message || 'Failed to fetch subsidies' },
       { status: 500 }
     );
   }

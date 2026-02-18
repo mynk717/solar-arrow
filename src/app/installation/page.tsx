@@ -266,9 +266,13 @@ function StatCard({ icon, label, value, color }: any) {
 function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, onComplete }: any) {
   const getStatusBadge = () => {
     // Check if completed (must have actual date value, not just empty string)
-    if (installation.installationCompletedDate && installation.installationCompletedDate.trim() !== '') {
-      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">COMPLETED</span>;
-    }
+    // Strict check for actual completion date
+if (installation.installationCompletedDate && 
+  installation.installationCompletedDate.trim() !== '' &&
+  installation.installationCompletedDate !== 'undefined') {
+return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">COMPLETED</span>;
+}
+
     // Check if started
     if (installation.installationStartDate && installation.installationStartDate.trim() !== '') {
       return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">IN PROGRESS</span>;
