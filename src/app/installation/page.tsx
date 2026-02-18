@@ -1,790 +1,745 @@
-// src/app/installation/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Enquiry } from '@/lib/types';
-import StatusBadge from '@/components/StatusBadge';
-import { Truck, Wrench, ClipboardCheck, Package, Loader2, RefreshCcw, Search, Filter } from 'lucide-react';
-import DemoBanner from '@/components/DemoBanner';
-import { demoEnquiries } from '@/lib/demoData';
-import { useDemoMode } from '@/contexts/DemoContext';
+import {
+  Wrench,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Plus,
+  Calendar,
+  Users,
+  Zap,
+  MapPin,
+  Phone,
+  Eye,
+  Edit,
+  Camera,
+  Download,
+} from 'lucide-react';
 
-const installationTeams = ['Tech Team A', 'Tech Team B', 'Tech Team C'];
+interface Installation {
+  enquiryId: string;
+  customerName: string;
+  phone: string;
+  email: string;
+  address: string;
+  area: string;
+  capacity: string;
+  status: string;
+  systemCapacity: string;
+  panelMake: string;
+  panelWattage: string;
+  panelQuantity: string;
+  inverterMake: string;
+  inverterCapacity: string;
+  structureType: string;
+  installationScheduledDate?: string;
+  installationStartDate?: string;
+  installationCompletedDate?: string;
+  installationTeam?: string;
+  installationSupervisor?: string;
+  installationNotes?: string;
+  pvModuleSerialNumbers?: string;
+  inverterSerialNumber?: string;
+  meterNumber?: string;
+  meterInstalledDate?: string;
+  meterReadingInitial?: string;
+  earthingDone: string;
+  earthingResistance?: string;
+  installationPhotos?: string;
+  inspectionScheduledDate?: string;
+  inspectionDate?: string;
+  inspectionStatus?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function InstallationPage() {
-  const { data: session, status } = useSession();
-  const { isDemoMode } = useDemoMode();
-  const [enquiries, setEnquiries] = useState<Enquiry[]>(demoEnquiries);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [installations, setInstallations] = useState<Installation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [stageFilter, setStageFilter] = useState<'all' | 'dispatch' | 'installation' | 'inspection' | 'completed'>('all');
-  
-  // Sorting & Pagination
-  const [sortField, setSortField] = useState<'createdAt' | 'customerName' | 'dispatchDate'>('dispatchDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedInstallation, setSelectedInstallation] = useState<Installation | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  // Fetch enquiries from API or use demo data
   useEffect(() => {
-    fetchData();
-  }, [status]);
+    fetchInstallations();
+  }, []);
 
-  const fetchData = async () => {
-    if (status === 'unauthenticated') {
-      setEnquiries(demoEnquiries);
+  const fetchInstallations = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/installation');
+      if (!response.ok) throw new Error('Failed to fetch installations');
+      const data = await response.json();
+      setInstallations(data.installations || []);
+    } catch (error) {
+      console.error('Error fetching installations:', error);
+      alert('Failed to load installations');
+    } finally {
       setLoading(false);
-      return;
-    }
-
-    if (status === 'authenticated') {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/enquiries');
-        if (!response.ok) throw new Error('Failed to fetch enquiries');
-        const data = await response.json();
-
-        const enquiriesWithDates = data.map((e: any) => ({
-          ...e,
-          createdAt: new Date(e.createdAt),
-          updatedAt: new Date(e.updatedAt),
-          surveyDate: e.surveyDate ? new Date(e.surveyDate) : undefined,
-          registrationDate: e.registrationDate ? new Date(e.registrationDate) : undefined,
-          paymentDate: e.paymentDate ? new Date(e.paymentDate) : undefined,
-          dispatchDate: e.dispatchDate ? new Date(e.dispatchDate) : undefined,
-          installationDate: e.installationDate ? new Date(e.installationDate) : undefined,
-          inspectionDate: e.inspectionDate ? new Date(e.inspectionDate) : undefined,
-          activationDate: e.activationDate ? new Date(e.activationDate) : undefined,
-        }));
-
-        setEnquiries(enquiriesWithDates);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
     }
   };
 
-  const handleRefresh = async () => {
-    if (isDemoMode) {
-      return;
-    }
-    await fetchData();
-  };
-
-  // Filter by stage and search
-  const getFilteredEnquiries = () => {
-    let filtered = enquiries.filter(e => {
-      const matchesSearch = 
-        e.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.area.toLowerCase().includes(searchTerm.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      switch (stageFilter) {
-        case 'dispatch':
-          return e.status === 'payment-received';
-        case 'installation':
-          return e.status === 'dispatched' || e.status === 'dispatch-pending' || 
-                 e.status === 'installation-pending' || (e.dispatchDate && !e.installationDate);
-        case 'inspection':
-          return e.installationDate && !e.inspectionDate;
-        case 'completed':
-          return e.status === 'installation-completed' || e.status === 'active';
-        default:
-          return true;
-      }
-    });
-
-    return filtered;
-  };
-
-  const filteredEnquiries = getFilteredEnquiries();
-
-  // Sort enquiries
-  const sortedEnquiries = [...filteredEnquiries].sort((a, b) => {
-    let comparison = 0;
+  // Filter installations
+  const filteredInstallations = installations.filter((inst) => {
+    const matchesSearch = !searchQuery || 
+      inst.enquiryId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inst.customerName.toLowerCase().includes(searchQuery.toLowerCase());
     
-    if (sortField === 'createdAt') {
-      comparison = a.createdAt.getTime() - b.createdAt.getTime();
-    } else if (sortField === 'customerName') {
-      comparison = a.customerName.localeCompare(b.customerName);
-    } else if (sortField === 'dispatchDate') {
-      const aDate = a.dispatchDate?.getTime() || 0;
-      const bDate = b.dispatchDate?.getTime() || 0;
-      comparison = aDate - bDate;
-    }
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'scheduled' && inst.installationScheduledDate && !inst.installationStartDate) ||
+      (filterStatus === 'in-progress' && inst.installationStartDate && !inst.installationCompletedDate) ||
+      (filterStatus === 'completed' && inst.installationCompletedDate);
     
-    return sortOrder === 'desc' ? -comparison : comparison;
+    return matchesSearch && matchesStatus;
   });
 
-  // Paginate
-  const totalPages = Math.ceil(sortedEnquiries.length / itemsPerPage);
-  const paginatedEnquiries = sortedEnquiries.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // Stats
+  const scheduled = installations.filter(i => i.installationScheduledDate && !i.installationStartDate).length;
+  const inProgress = installations.filter(i => i.installationStartDate && !i.installationCompletedDate).length;
+  const completed = installations.filter(i => i.installationCompletedDate).length;
+  const pending = installations.filter(i => !i.installationScheduledDate).length;
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, stageFilter]);
+  const handleSchedule = (installation: Installation) => {
+    setSelectedInstallation(installation);
+    setShowScheduleModal(true);
+  };
 
-  const readyForDispatch = enquiries.filter(e => e.status === 'payment-received');
-  const dispatched = enquiries.filter(e => e.status === 'dispatched' || e.status === 'dispatch-pending');
-  const inInstallation = enquiries.filter(e => 
-    e.status === 'installation-pending' || (e.dispatchDate && !e.installationDate)
-  );
-  const installationCompleted = enquiries.filter(e => 
-    e.status === 'installation-completed' && e.installationDate
-  );
-  const awaitingInspection = enquiries.filter(e => e.installationDate && !e.inspectionDate);
+  const handleComplete = (installation: Installation) => {
+    setSelectedInstallation(installation);
+    setShowCompleteModal(true);
+  };
 
-  const handleDispatch = async (enquiryId: string, trackingNumber: string, transportCompany: string) => {
-    if (isDemoMode) {
-      return;
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Installation Management</h1>
+            <p className="text-slate-700 mt-1 text-sm md:text-base">
+              Schedule, track, and complete solar installations
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <StatCard icon={<Clock size={24} />} label="Pending" value={pending} color="yellow" />
+        <StatCard icon={<Calendar size={24} />} label="Scheduled" value={scheduled} color="blue" />
+        <StatCard icon={<Wrench size={24} />} label="In Progress" value={inProgress} color="orange" />
+        <StatCard icon={<CheckCircle size={24} />} label="Completed" value={completed} color="green" />
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <input
+            type="text"
+            placeholder="Search by Enquiry ID or Customer..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 text-sm md:text-base"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900 text-sm md:text-base"
+          >
+            <option value="all">All Status</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+          <button className="flex items-center justify-center gap-2 bg-slate-100 text-slate-800 px-4 py-2.5 rounded-lg hover:bg-slate-200 font-medium text-sm md:text-base">
+            <Download size={18} />
+            Export
+          </button>
+        </div>
+      </div>
+
+      {/* Installation List */}
+      <div className="space-y-4">
+        {loading ? (
+          <div className="text-center py-16 text-slate-600 bg-white rounded-xl">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="font-medium">Loading installations...</p>
+          </div>
+        ) : filteredInstallations.length === 0 ? (
+          <div className="text-center py-16 text-slate-600 bg-white rounded-xl">
+            <Wrench size={48} className="mx-auto mb-4 text-slate-300" />
+            <p className="font-medium text-lg">No installations found</p>
+            <p className="text-slate-500 text-sm mt-2">Check BOM dispatch status for pending installations</p>
+          </div>
+        ) : (
+          filteredInstallations.map((installation) => (
+            <InstallationCard
+              key={installation.enquiryId}
+              installation={installation}
+              expanded={expanded === installation.enquiryId}
+              onToggleExpand={() => setExpanded(expanded === installation.enquiryId ? null : installation.enquiryId)}
+              onSchedule={() => handleSchedule(installation)}
+              onComplete={() => handleComplete(installation)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* Schedule Modal */}
+      {showScheduleModal && selectedInstallation && (
+        <ScheduleModal
+          installation={selectedInstallation}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setSelectedInstallation(null);
+          }}
+          onSuccess={() => {
+            setShowScheduleModal(false);
+            setSelectedInstallation(null);
+            fetchInstallations();
+          }}
+        />
+      )}
+
+      {/* Complete Modal */}
+      {showCompleteModal && selectedInstallation && (
+        <CompleteModal
+          installation={selectedInstallation}
+          onClose={() => {
+            setShowCompleteModal(false);
+            setSelectedInstallation(null);
+          }}
+          onSuccess={() => {
+            setShowCompleteModal(false);
+            setSelectedInstallation(null);
+            fetchInstallations();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, color }: any) {
+  const colorClasses = {
+    blue: 'text-blue-600 bg-blue-50',
+    yellow: 'text-yellow-600 bg-yellow-50',
+    orange: 'text-orange-600 bg-orange-50',
+    green: 'text-green-600 bg-green-50',
+  };
+
+  const bgClass = colorClasses[color as keyof typeof colorClasses] || 'text-slate-600 bg-slate-50';
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
+      <div className="flex items-center justify-between mb-2 md:mb-4">
+        <div className={`p-2 rounded-lg ${bgClass}`}>{icon}</div>
+        <span className={`text-xl md:text-2xl font-bold ${bgClass.split(' ')[0]}`}>{value}</span>
+      </div>
+      <div className="text-slate-700 text-xs md:text-sm font-medium">{label}</div>
+    </div>
+  );
+}
+
+function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, onComplete }: any) {
+  const getStatusBadge = () => {
+    if (installation.installationCompletedDate) {
+      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">COMPLETED</span>;
     }
+    if (installation.installationStartDate) {
+      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">IN PROGRESS</span>;
+    }
+    if (installation.installationScheduledDate) {
+      return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">SCHEDULED</span>;
+    }
+    return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">PENDING</span>;
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="flex-1">
+          <h3 className="text-lg md:text-xl font-bold text-slate-900">{installation.enquiryId}</h3>
+          <p className="text-sm md:text-base text-slate-700 font-medium mt-1">{installation.customerName}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-medium flex items-center gap-1">
+              <Zap size={12} />
+              {installation.systemCapacity || installation.capacity}
+            </span>
+            {installation.area && (
+              <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-medium flex items-center gap-1">
+                <MapPin size={12} />
+                {installation.area}
+              </span>
+            )}
+            {installation.phone && (
+              <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-medium flex items-center gap-1">
+                <Phone size={12} />
+                {installation.phone}
+              </span>
+            )}
+          </div>
+        </div>
+        {getStatusBadge()}
+      </div>
+
+      {/* Installation Info - Show if scheduled/started */}
+      {(installation.installationScheduledDate || installation.installationStartDate) && (
+        <div className="mb-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+          <p className="text-xs font-semibold text-blue-900 mb-2 flex items-center gap-1">
+            <Calendar size={14} />
+            Installation Schedule
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {installation.installationScheduledDate && (
+              <div>
+                <span className="text-blue-700">Scheduled:</span>
+                <span className="text-blue-900 font-medium ml-1">
+                  {new Date(installation.installationScheduledDate).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+            )}
+            {installation.installationStartDate && (
+              <div>
+                <span className="text-blue-700">Started:</span>
+                <span className="text-blue-900 font-medium ml-1">
+                  {new Date(installation.installationStartDate).toLocaleDateString('en-IN')}
+                </span>
+              </div>
+            )}
+            {installation.installationTeam && (
+              <div className="col-span-2">
+                <span className="text-blue-700">Team:</span>
+                <span className="text-blue-900 font-medium ml-1">{installation.installationTeam}</span>
+              </div>
+            )}
+            {installation.installationSupervisor && (
+              <div className="col-span-2">
+                <span className="text-blue-700">Supervisor:</span>
+                <span className="text-blue-900 font-medium ml-1">{installation.installationSupervisor}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Completion Info - Show if completed */}
+      {installation.installationCompletedDate && (
+        <div className="mb-4 bg-green-50 rounded-lg p-3 border border-green-200">
+          <p className="text-xs font-semibold text-green-900 mb-2 flex items-center gap-1">
+            <CheckCircle size={14} />
+            Installation Completed
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div>
+              <span className="text-green-700">Completed:</span>
+              <span className="text-green-900 font-medium ml-1">
+                {new Date(installation.installationCompletedDate).toLocaleDateString('en-IN')}
+              </span>
+            </div>
+            {installation.meterNumber && (
+              <div>
+                <span className="text-green-700">Meter:</span>
+                <span className="text-green-900 font-medium ml-1">{installation.meterNumber}</span>
+              </div>
+            )}
+            {installation.earthingDone === 'TRUE' && (
+              <div className="col-span-2">
+                <span className="text-green-700">✅ Earthing Done</span>
+                {installation.earthingResistance && (
+                  <span className="text-green-900 font-medium ml-1">({installation.earthingResistance} Ω)</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200">
+        <p className="text-slate-800 font-medium text-sm md:text-base">
+          <strong className="text-slate-900">{installation.panelQuantity || 0}</strong> panels • 
+          <strong className="text-slate-900 ml-2">{installation.inverterMake}</strong> inverter
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onToggleExpand}
+            className="flex-1 sm:flex-initial px-4 py-2 bg-slate-100 text-slate-800 rounded-lg hover:bg-slate-200 font-medium text-sm transition-colors"
+          >
+            <Eye size={16} className="inline mr-1" />
+            {expanded ? 'Hide' : 'View'} Details
+          </button>
+          
+          {!installation.installationScheduledDate && (
+            <button
+              onClick={onSchedule}
+              className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+            >
+              <Calendar size={16} className="inline mr-1" />
+              Schedule
+            </button>
+          )}
+          
+          {installation.installationStartDate && !installation.installationCompletedDate && (
+            <button
+              onClick={onComplete}
+              className="flex-1 sm:flex-initial px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm transition-colors"
+            >
+              <CheckCircle size={16} className="inline mr-1" />
+              Mark Complete
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div className="mt-4 pt-4 border-t border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-2">System Details</h4>
+              <div className="space-y-1 text-slate-700">
+                <p><strong>Panels:</strong> {installation.panelQuantity}x {installation.panelMake} {installation.panelWattage}W</p>
+                <p><strong>Inverter:</strong> {installation.inverterMake} {installation.inverterCapacity}</p>
+                <p><strong>Structure:</strong> {installation.structureType || 'N/A'}</p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-2">Site Details</h4>
+              <div className="space-y-1 text-slate-700">
+                <p><strong>Address:</strong> {installation.address}</p>
+                <p><strong>Phone:</strong> {installation.phone}</p>
+                <p><strong>Email:</strong> {installation.email}</p>
+              </div>
+            </div>
+          </div>
+          {installation.installationNotes && (
+            <div className="mt-4">
+              <h4 className="font-semibold text-slate-900 mb-2">Installation Notes</h4>
+              <p className="text-slate-700 text-sm bg-slate-50 p-3 rounded-lg">{installation.installationNotes}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScheduleModal({ installation, onClose, onSuccess }: any) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    installationScheduledDate: '',
+    installationTeam: '',
+    installationSupervisor: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
-      const response = await fetch('/api/installation/dispatch', {
+      const response = await fetch('/api/installation/schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          enquiryId, 
-          trackingNumber, 
-          transportCompany 
+        body: JSON.stringify({
+          enquiryId: installation.enquiryId,
+          ...formData,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to mark as dispatched');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to schedule installation');
+      }
 
-      setEnquiries(prev => prev.map(e => 
-        e.id === enquiryId 
-          ? { 
-              ...e, 
-              dispatchDate: new Date(), 
-              status: 'dispatched' as any,
-              updatedAt: new Date()
-            }
-          : e
-      ));
-
-      alert('✅ Dispatched successfully! Telegram notification sent.');
-    } catch (error) {
-      console.error('Error dispatching:', error);
-      alert('❌ Failed to dispatch. Please try again.');
+      alert('✅ Installation scheduled successfully!');
+      onSuccess();
+    } catch (error: any) {
+      console.error('Schedule error:', error);
+      alert('❌ ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleInstallation = async (enquiryId: string, team: string, notes: string) => {
-    if (isDemoMode) {
-      return;
-    }
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">Schedule Installation</h2>
+          <p className="text-slate-600 text-sm mt-1">{installation.enquiryId} - {installation.customerName}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Scheduled Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={formData.installationScheduledDate}
+              onChange={(e) => setFormData({ ...formData, installationScheduledDate: e.target.value })}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Installation Team <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.installationTeam}
+              onChange={(e) => setFormData({ ...formData, installationTeam: e.target.value })}
+              placeholder="e.g., Tech Team A"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Supervisor <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.installationSupervisor}
+              onChange={(e) => setFormData({ ...formData, installationSupervisor: e.target.value })}
+              placeholder="Enter supervisor name"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 disabled:bg-slate-400 font-semibold transition-colors"
+            >
+              {loading ? 'Scheduling...' : 'Schedule Installation'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 bg-slate-200 text-slate-800 py-3 rounded-xl hover:bg-slate-300 font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function CompleteModal({ installation, onClose, onSuccess }: any) {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    installationCompletedDate: new Date().toISOString().split('T')[0],
+    pvModuleSerialNumbers: '',
+    inverterSerialNumber: '',
+    meterNumber: '',
+    meterInstalledDate: new Date().toISOString().split('T')[0],
+    meterReadingInitial: '0',
+    earthingDone: true,
+    earthingResistance: '',
+    installationNotes: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
     try {
       const response = await fetch('/api/installation/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          enquiryId, 
-          installedBy: team,
-          installationNotes: notes
+        body: JSON.stringify({
+          enquiryId: installation.enquiryId,
+          installationTeam: installation.installationTeam,
+          installationSupervisor: installation.installationSupervisor,
+          ...formData,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to mark installation as complete');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to complete installation');
+      }
 
-      setEnquiries(prev => prev.map(e => 
-        e.id === enquiryId 
-          ? { 
-              ...e, 
-              installationDate: new Date(), 
-              installedBy: team,
-              status: 'installation-completed' as any,
-              updatedAt: new Date()
-            }
-          : e
-      ));
-
-      alert('✅ Installation completed! Telegram notification sent.');
-    } catch (error) {
-      console.error('Error completing installation:', error);
-      alert('❌ Failed to complete installation. Please try again.');
+      alert('✅ Installation marked as completed successfully!');
+      onSuccess();
+    } catch (error: any) {
+      console.error('Complete error:', error);
+      alert('❌ ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const handleInspection = async (enquiryId: string, approved: boolean, officer: string, notes: string) => {
-    if (isDemoMode) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/installation/inspection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          enquiryId, 
-          approved,
-          inspectionOfficer: officer,
-          inspectionNotes: notes
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to record inspection');
-
-      setEnquiries(prev => prev.map(e => 
-        e.id === enquiryId 
-          ? { 
-              ...e, 
-              inspectionDate: new Date(), 
-              inspectionOfficer: officer,
-              inspectionApproved: approved,
-              activationDate: approved ? new Date() : undefined,
-              status: (approved ? 'active' : 'installation-completed') as any,
-              updatedAt: new Date()
-            }
-          : e
-      ));
-
-      alert(`✅ Inspection ${approved ? 'approved' : 'rejected'}! Telegram notification sent.`);
-    } catch (error) {
-      console.error('Error recording inspection:', error);
-      alert('❌ Failed to record inspection. Please try again.');
-    }
-  };
-
-  // Loading state
-  if (loading && status === 'loading') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading installation data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error && !isDemoMode) {
-    return (
-      <div>
-        <DemoBanner />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center bg-red-50 border border-red-200 rounded-lg p-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
-            <p className="text-red-600">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div>
-      <DemoBanner />
-      <div className="p-8">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Installation Management {isDemoMode && <span className="text-blue-600">(Demo)</span>}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              {isDemoMode 
-                ? 'Viewing sample installation data - Sign in to manage real installations'
-                : 'Manage dispatch, installation, and inspection process'
-              }
-            </p>
-          </div>
-          
-          <button 
-            onClick={handleRefresh}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <RefreshCcw size={20} />
-            Refresh
-          </button>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">Complete Installation</h2>
+          <p className="text-slate-600 text-sm mt-1">{installation.enquiryId} - {installation.customerName}</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <StatCard 
-            title="Ready for Dispatch" 
-            value={readyForDispatch.length} 
-            icon={Package} 
-            color="bg-blue-500"
-            isDemoMode={isDemoMode}
-          />
-          <StatCard 
-            title="Dispatched" 
-            value={dispatched.length} 
-            icon={Truck} 
-            color="bg-purple-500"
-            isDemoMode={isDemoMode}
-          />
-          <StatCard 
-            title="In Installation" 
-            value={inInstallation.length} 
-            icon={Wrench} 
-            color="bg-orange-500"
-            isDemoMode={isDemoMode}
-          />
-          <StatCard 
-            title="Awaiting Inspection" 
-            value={awaitingInspection.length} 
-            icon={ClipboardCheck} 
-            color="bg-yellow-500"
-            isDemoMode={isDemoMode}
-          />
-          <StatCard 
-            title="Completed" 
-            value={installationCompleted.filter(e => e.status === 'active').length} 
-            icon={ClipboardCheck} 
-            color="bg-green-500"
-            isDemoMode={isDemoMode}
-          />
-        </div>
-
-        {/* Filters & Search */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Completion Date <span className="text-red-500">*</span>
+              </label>
               <input
-                type="text"
-                placeholder="Search by customer name, ID, or area..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                type="date"
+                required
+                value={formData.installationCompletedDate}
+                onChange={(e) => setFormData({ ...formData, installationCompletedDate: e.target.value })}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
               />
             </div>
-            
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <select
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none text-gray-900"
-                value={stageFilter}
-                onChange={(e) => setStageFilter(e.target.value as any)}
-              >
-                <option value="all">All Stages</option>
-                <option value="dispatch">Ready for Dispatch</option>
-                <option value="installation">In Installation</option>
-                <option value="inspection">Awaiting Inspection</option>
-                <option value="completed">Completed</option>
-              </select>
+
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Meter Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.meterNumber}
+                onChange={(e) => setFormData({ ...formData, meterNumber: e.target.value })}
+                placeholder="Enter meter number"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
+              />
             </div>
           </div>
 
-          {/* Sort Controls */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <label className="text-sm font-medium text-gray-700">Sort by:</label>
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
-              value={sortField}
-              onChange={(e) => setSortField(e.target.value as any)}
-            >
-              <option value="dispatchDate">Dispatch Date</option>
-              <option value="customerName">Customer Name</option>
-              <option value="createdAt">Date Created</option>
-            </select>
-            
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
-            >
-              {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
-            </button>
-            
-            <span className="text-sm text-gray-600 ml-auto">
-              Showing {paginatedEnquiries.length} of {sortedEnquiries.length} installations
-            </span>
-          </div>
-        </div>
-
-        {/* Installation Cards */}
-        <div className="space-y-6">
-          {paginatedEnquiries.map((enquiry) => {
-            // Determine which card to show
-            if (enquiry.status === 'payment-received') {
-              return <DispatchCard key={enquiry.id} enquiry={enquiry} onDispatch={handleDispatch} isDemoMode={isDemoMode} />;
-            } else if (enquiry.status === 'dispatched' || enquiry.status === 'dispatch-pending' || 
-                       enquiry.status === 'installation-pending' || (enquiry.dispatchDate && !enquiry.installationDate)) {
-              return <InstallationCard key={enquiry.id} enquiry={enquiry} onComplete={handleInstallation} isDemoMode={isDemoMode} />;
-            } else if (enquiry.installationDate && !enquiry.inspectionDate) {
-              return <InspectionCard key={enquiry.id} enquiry={enquiry} onInspect={handleInspection} isDemoMode={isDemoMode} />;
-            } else if (enquiry.status === 'installation-completed' || enquiry.status === 'active') {
-              return <CompletedCard key={enquiry.id} enquiry={enquiry} />;
-            }
-            return null;
-          })}
-        </div>
-
-        {sortedEnquiries.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-gray-600">No installations found matching your criteria</p>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 bg-white rounded-lg shadow-md px-6 py-4 flex items-center justify-between">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
-            >
-              Previous
-            </button>
-            
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, icon: Icon, color, isDemoMode }: any) {
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 relative">
-      {isDemoMode && (
-        <div className="absolute top-2 right-2 bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
-          Demo
-        </div>
-      )}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        </div>
-        <div className={`${color} text-white p-3 rounded-lg`}>
-          <Icon size={24} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DispatchCard({ enquiry, onDispatch, isDemoMode }: any) {
-  const [isDispatching, setIsDispatching] = useState(false);
-  const [trackingNumber, setTrackingNumber] = useState('');
-  const [transportCompany, setTransportCompany] = useState('');
-
-  return (
-    <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Payment Received: {enquiry.paymentDate?.toLocaleDateString()}
-          </p>
-        </div>
-        <StatusBadge status={enquiry.status} />
-      </div>
-
-      <div className="bg-white rounded-lg p-4 mb-4">
-        <h4 className="font-semibold text-gray-900 mb-3">Materials to Dispatch</h4>
-        <ul className="space-y-2 text-sm text-gray-700">
-          <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            Solar Panels: {Math.ceil(enquiry.capacity * 3)} units (330W each)
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            Inverter: 1 unit ({enquiry.capacity}kW)
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            Mounting Structure: Complete set
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            Wiring & Accessories: Complete kit
-          </li>
-        </ul>
-      </div>
-
-      {!isDispatching ? (
-        <button 
-          onClick={() => setIsDispatching(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Truck size={20} />
-          Mark as Dispatched
-        </button>
-      ) : (
-        <div className="bg-white rounded-lg p-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tracking Number *
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              PV Module Serial Numbers <span className="text-red-500">*</span>
             </label>
-            <input 
-              type="text" 
-              placeholder="Enter shipment tracking number"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              value={trackingNumber}
-              onChange={(e) => setTrackingNumber(e.target.value)}
+            <input
+              type="text"
+              required
+              value={formData.pvModuleSerialNumbers}
+              onChange={(e) => setFormData({ ...formData, pvModuleSerialNumbers: e.target.value })}
+              placeholder="e.g., PV1234-5678, PV2345-6789"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Transport Company *
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
+              Inverter Serial Number <span className="text-red-500">*</span>
             </label>
-            <input 
-              type="text" 
-              placeholder="e.g., Transport Co. Ltd"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              value={transportCompany}
-              onChange={(e) => setTransportCompany(e.target.value)}
+            <input
+              type="text"
+              required
+              value={formData.inverterSerialNumber}
+              onChange={(e) => setFormData({ ...formData, inverterSerialNumber: e.target.value })}
+              placeholder="Enter inverter serial number"
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
             />
           </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => {
-                if (!trackingNumber || !transportCompany) {
-                  alert('Please fill in all required fields');
-                  return;
-                }
-                onDispatch(enquiry.id, trackingNumber, transportCompany);
-                setIsDispatching(false);
-                setTrackingNumber('');
-                setTransportCompany('');
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              Confirm Dispatch
-            </button>
-            <button 
-              onClick={() => setIsDispatching(false)}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-            >
-              Cancel
-            </button>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Meter Installed Date
+              </label>
+              <input
+                type="date"
+                value={formData.meterInstalledDate}
+                onChange={(e) => setFormData({ ...formData, meterInstalledDate: e.target.value })}
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Initial Meter Reading
+              </label>
+              <input
+                type="text"
+                value={formData.meterReadingInitial}
+                onChange={(e) => setFormData({ ...formData, meterReadingInitial: e.target.value })}
+                placeholder="0"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function InstallationCard({ enquiry, onComplete, isDemoMode }: any) {
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState(installationTeams[0]);
-  const [notes, setNotes] = useState('');
-
-  return (
-    <div className="border border-orange-200 bg-orange-50 rounded-lg p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}
-          </p>
-          <p className="text-sm font-medium text-gray-700 mt-2">{enquiry.address}</p>
-        </div>
-        <StatusBadge status={enquiry.status} />
-      </div>
-
-      {!isCompleting ? (
-        <button 
-          onClick={() => setIsCompleting(true)}
-          className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 flex items-center gap-2"
-        >
-          <Wrench size={20} />
-          Mark Installation Complete
-        </button>
-      ) : (
-        <div className="bg-white rounded-lg p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Installation Team *
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="earthingDone"
+              checked={formData.earthingDone}
+              onChange={(e) => setFormData({ ...formData, earthingDone: e.target.checked })}
+              className="w-5 h-5 text-green-600 border-slate-300 rounded focus:ring-green-500"
+            />
+            <label htmlFor="earthingDone" className="text-slate-800 font-medium text-sm">
+              Earthing Completed
             </label>
-            <select 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-            >
-              {installationTeams.map(team => (
-                <option key={team} value={team}>{team}</option>
-              ))}
-            </select>
           </div>
+
+          {formData.earthingDone && (
+            <div>
+              <label className="block text-slate-800 font-medium mb-2 text-sm">
+                Earthing Resistance (Ω)
+              </label>
+              <input
+                type="text"
+                value={formData.earthingResistance}
+                onChange={(e) => setFormData({ ...formData, earthingResistance: e.target.value })}
+                placeholder="e.g., 2.5"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
+              />
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-slate-800 font-medium mb-2 text-sm">
               Installation Notes
             </label>
-            <textarea 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              rows={3}
-              placeholder="Enter installation details, any issues, etc."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+            <textarea
+              value={formData.installationNotes}
+              onChange={(e) => setFormData({ ...formData, installationNotes: e.target.value })}
+              placeholder="Any notes about the installation..."
+              rows={4}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900"
             />
           </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => {
-                onComplete(enquiry.id, selectedTeam, notes);
-                setIsCompleting(false);
-                setNotes('');
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-green-600 text-white py-3 rounded-xl hover:bg-green-700 disabled:bg-slate-400 font-semibold transition-colors"
             >
-              Complete Installation
+              {loading ? 'Processing...' : 'Mark as Completed'}
             </button>
-            <button 
-              onClick={() => setIsCompleting(false)}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 bg-slate-200 text-slate-800 py-3 rounded-xl hover:bg-slate-300 font-semibold transition-colors"
             >
               Cancel
             </button>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InspectionCard({ enquiry, onInspect, isDemoMode }: any) {
-  const [isInspecting, setIsInspecting] = useState(false);
-  const [officer, setOfficer] = useState('');
-  const [notes, setNotes] = useState('');
-
-  return (
-    <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
-          <p className="text-sm text-gray-600 mt-1">
-            Installation Completed: {enquiry.installationDate?.toLocaleDateString()}
-          </p>
-          <p className="text-sm text-gray-600">
-            Installed by: {enquiry.installedBy}
-          </p>
-        </div>
-        <StatusBadge status={enquiry.status} />
-      </div>
-
-      {!isInspecting ? (
-        <button 
-          onClick={() => setIsInspecting(true)}
-          className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 flex items-center gap-2"
-        >
-          <ClipboardCheck size={20} />
-          Record Inspection
-        </button>
-      ) : (
-        <div className="bg-white rounded-lg p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Inspection Officer *
-            </label>
-            <input 
-              type="text" 
-              placeholder="Officer name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              value={officer}
-              onChange={(e) => setOfficer(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Inspection Notes
-            </label>
-            <textarea 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-              rows={2}
-              placeholder="Inspection findings..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => {
-                if (!officer) {
-                  alert('Please enter inspector name');
-                  return;
-                }
-                onInspect(enquiry.id, true, officer, notes);
-                setIsInspecting(false);
-                setOfficer('');
-                setNotes('');
-              }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              ✓ Approve
-            </button>
-            <button 
-              onClick={() => {
-                if (!officer) {
-                  alert('Please enter inspector name');
-                  return;
-                }
-                onInspect(enquiry.id, false, officer, notes);
-                setIsInspecting(false);
-                setOfficer('');
-                setNotes('');
-              }}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-            >
-              ✗ Reject
-            </button>
-            <button 
-              onClick={() => setIsInspecting(false)}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CompletedCard({ enquiry }: any) {
-  return (
-    <div className="border border-green-200 bg-green-50 rounded-lg p-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-bold text-gray-900 text-lg">{enquiry.id} - {enquiry.customerName}</h3>
-          <p className="text-sm text-gray-600">{enquiry.area} • {enquiry.capacity} kW</p>
-          <div className="mt-3 space-y-1 text-sm text-gray-700">
-            <p>✓ Dispatched: {enquiry.dispatchDate?.toLocaleDateString()}</p>
-            <p>✓ Installed: {enquiry.installationDate?.toLocaleDateString()} by {enquiry.installedBy}</p>
-            {enquiry.inspectionDate && (
-              <p>
-                {enquiry.inspectionApproved ? '✓' : '✗'} Inspection: {enquiry.inspectionDate.toLocaleDateString()}
-                {enquiry.inspectionApproved && ' - Approved'}
-              </p>
-            )}
-            {enquiry.activationDate && (
-              <p>✓ Activated: {enquiry.activationDate.toLocaleDateString()}</p>
-            )}
-          </div>
-        </div>
-        <StatusBadge status={enquiry.status} />
+        </form>
       </div>
     </div>
   );
