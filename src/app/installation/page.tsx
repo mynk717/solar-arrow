@@ -252,17 +252,22 @@ function StatCard({ icon, label, value, color }: any) {
 
 function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, onComplete }: any) {
   const getStatusBadge = () => {
-    if (installation.installationCompletedDate) {
+    // Check if completed (must have actual date value, not just empty string)
+    if (installation.installationCompletedDate && installation.installationCompletedDate.trim() !== '') {
       return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">COMPLETED</span>;
     }
-    if (installation.installationStartDate) {
+    // Check if started
+    if (installation.installationStartDate && installation.installationStartDate.trim() !== '') {
       return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">IN PROGRESS</span>;
     }
-    if (installation.installationScheduledDate) {
+    // Check if scheduled
+    if (installation.installationScheduledDate && installation.installationScheduledDate.trim() !== '') {
       return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">SCHEDULED</span>;
     }
+    // Default
     return <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">PENDING</span>;
   };
+  
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
@@ -334,7 +339,8 @@ function InstallationCard({ installation, expanded, onToggleExpand, onSchedule, 
       )}
 
       {/* Completion Info - Show if completed */}
-      {installation.installationCompletedDate && (
+      {installation.installationCompletedDate && 
+      installation.installationCompletedDate.trim() !== '' &&(
         <div className="mb-4 bg-green-50 rounded-lg p-3 border border-green-200">
           <p className="text-xs font-semibold text-green-900 mb-2 flex items-center gap-1">
             <CheckCircle size={14} />
