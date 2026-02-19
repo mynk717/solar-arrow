@@ -12,114 +12,98 @@ export async function GET(request: NextRequest) {
     }
 
     const sheetId = (session.user as any).sheetId;
-    const orgId = (session.user as any).organizationId || 'default-org';
-
     if (!sheetId) {
-      return NextResponse.json({ 
-        error: 'Sheet not configured for this user',
-        debug: { user: session.user.email }
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
     const sheets = await getGoogleSheetsClient();
 
-    const response = await sheets.spreadsheets.values.get({
+    // 1. ENQUIRIES - Main payment data
+    const enquiriesRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:AZ1000',
+      range: 'ENQUIRIES!A2:DR',
     });
+    const enquiryRows = enquiriesRes.data.values || [];
 
-    // ✅ FIX: Handle empty/undefined values
-    const rows = response.data.values || [];
-
-    if (rows.length === 0) {
-      console.log(`No data in ENQUIRIES sheet: ${sheetId}`);
-      return NextResponse.json({ payments: [] });
+    // 2. QUOTATIONS - Optional quotation lookup (by quotationId)
+    let quotationsMap: Record<string, number> = {};
+    try {
+      const quotesRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: 'QUOTATIONS!A2:Z100',
+      });
+      const quoteRows = quotesRes.data.values || [];
+      
+      quoteRows.forEach((row: any) => {
+        const quotationId = row[0]?.toString(); // quotationId col 0?
+        const amount = parseFloat(row[12]?.toString() ?? '0'); // Adjust index
+        if (quotationId && amount > 0) {
+          quotationsMap[quotationId] = amount;
+        }
+      });
+    } catch (quoteError: any) {
+      console.log('QUOTATIONS tab unavailable, using ENQUIRIES only:', quoteError.message);
     }
 
-    const payments = rows
-    .filter((row: any) => {
-      // ✅ EXACT: estimatedCost (your quotationAmount) is index 75
-      const quotationAmount = parseFloat(row[75]?.toString() ?? '0');
-      return quotationAmount > 0;
-    })
-    .map((row: any) => {
-      const quotationAmount = parseFloat(row[75]?.toString() ?? '0') || 0; // estimatedCost
-  
-      const payment1Amount = Math.round(quotationAmount * 0.7);
-      const payment2Amount = Math.round(quotationAmount * 0.3);
-  
-      // ✅ EXACT INDICES from rowToEnquiry:
-      const paymentStatus = (row[80] as string)?.toLowerCase() || 'pending'; // paymentStatus
-      const paymentDate = row[77]?.toString() || ''; // paymentDate  
-      const paymentMethod = row[78]?.toString() || ''; // paymentMethod
-      const paymentVerifiedBy = row[82]?.toString() || ''; // paymentVerifiedBy
-      const paymentUTR = row[84]?.toString() || ''; // paymentUTR
-  
-      // Split single paymentStatus into 70%/30% logic for UI
-      const payment1Status = paymentStatus.includes('verified') || 
-                            paymentStatus.includes('complete') ? 'verified' : 'pending';
-      const payment2Status = paymentStatus.includes('complete') ? 'verified' : 'pending';
-  
-      const totalPaid =
-        (payment1Status === 'verified' ? payment1Amount : 0) +
-        (payment2Status === 'verified' ? payment2Amount : 0);
-  
-      const balanceAmount = Math.max(quotationAmount - totalPaid, 0);
-  
-      let uiStatus: 'unpaid' | 'partial' | 'full';
-      if (totalPaid === 0) uiStatus = 'unpaid';
-      else if (totalPaid < quotationAmount) uiStatus = 'partial';
-      else uiStatus = 'full';
-  
-      return {
-        enquiryId: row[0]?.toString() || '',
-        customerName: row[1]?.toString() || '',
-        phone: row[2]?.toString() || '',
-        capacity: row[6]?.toString() || '',
-        quotationAmount,
-      
-        // 70% Payment 1
-        payment1Amount,
-        payment1Status,
-        payment1Date: paymentDate,
-        payment1Method: paymentMethod,
-        payment1Reference: paymentUTR,
-        payment1VerifiedBy: paymentVerifiedBy,  // ✅ Fixed
-      
-        // 30% Payment 2  
-        payment2Amount,
-        payment2Status,
-        payment2Date: '',
-        payment2Method: paymentMethod,
-        payment2Reference: '',
-        payment2VerifiedBy: paymentVerifiedBy,  // ✅ Fixed
-      
-        totalPaid,
-        balanceAmount,
-        paymentStatus: uiStatus,
-        installationStatus: row[51]?.toString() || '',
-      };
-      
-    });
-  
+    const payments = enquiryRows
+      // Show enquiries with ANY payment activity OR quotation reference
+      .filter((row: any) => {
+        const paymentStatus = row[80]?.toString()?.toLowerCase();
+        const quotationId = row[85]?.toString(); // quotationId from ENQUIRIES
+        const hasQuotation = quotationsMap[quotationId || ''] > 0;
+        return paymentStatus && paymentStatus !== 'none' || hasQuotation;
+      })
+      .map((row: any) => {
+        const quotationId = row[85]?.toString() || '';
+        const quotationAmount = quotationsMap[quotationId] || 
+                               parseFloat(row[75]?.toString() ?? '0'); // Fallback to estimatedCost
 
-    // ✅ DEBUG LOG
-    console.log(`Payments API: ${payments.length} payments found in sheet ${sheetId.slice(-6)}`);
+        const paymentStatus = (row[80] as string)?.toLowerCase() || 'pending';
+        const paymentDate = row[77]?.toString() || '';
+        const paymentMethod = row[78]?.toString() || '';
+        const paymentVerifiedBy = row[82]?.toString() || '';
+        const paymentUTR = row[84]?.toString() || '';
 
+        // 70%/30% split logic
+        const payment1Amount = Math.round(quotationAmount * 0.7);
+        const payment2Amount = Math.round(quotationAmount * 0.3);
+        const payment1Status = paymentStatus.includes('verified') || paymentStatus.includes('complete') 
+                               ? 'verified' : 'pending';
+        const payment2Status = paymentStatus.includes('complete') ? 'verified' : 'pending';
+
+        const totalPaid = (payment1Status === 'verified' ? payment1Amount : 0) +
+                         (payment2Status === 'verified' ? payment2Amount : 0);
+        const balanceAmount = Math.max(quotationAmount - totalPaid, 0);
+
+        let uiStatus: 'unpaid' | 'partial' | 'full';
+        if (totalPaid === 0) uiStatus = 'unpaid';
+        else if (totalPaid < quotationAmount) uiStatus = 'partial';
+        else uiStatus = 'full';
+
+        return {
+          enquiryId: row[0]?.toString() || '',
+          customerName: row[1]?.toString() || '',
+          phone: row[2]?.toString() || '',
+          capacity: row[6]?.toString() || '',
+          quotationId,
+          quotationAmount,
+          paymentStatus: uiStatus,
+          paymentDate,
+          paymentMethod,
+          paymentVerifiedBy,
+          paymentUTR,
+          totalPaid,
+          balanceAmount,
+          installationStatus: row[51]?.toString() || '',
+        };
+      });
+
+    console.log(`Payments API: ${payments.length} found (QUOTES: ${Object.keys(quotationsMap).length})`);
     return NextResponse.json({ payments });
   } catch (error: any) {
-    console.error('Error fetching payments:', error);
-    console.error('Stack:', error.stack);
-    return NextResponse.json(
-      { 
-        error: error?.message || 'Failed to fetch payments',
-        debug: {
-          sheetId: (await getServerSession(authOptions))?.user?.sheetId,
-          timestamp: new Date().toISOString()
-        }
-      },
-      { status: 500 }
-    );
+    console.error('Payments API error:', error);
+    return NextResponse.json({ error: error.message, payments: [] }, { status: 500 });
   }
 }
+
 
