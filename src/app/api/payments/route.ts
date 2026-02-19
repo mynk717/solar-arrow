@@ -15,75 +15,68 @@ export async function GET(request: NextRequest) {
     const orgId = (session.user as any).organizationId || 'default-org';
 
     if (!sheetId) {
-      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
-    }
-
-    // Check cache
-    const cacheKey = `org:${orgId}:payments`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return NextResponse.json({ payments: JSON.parse(cached as string), cached: true });
+      return NextResponse.json({ 
+        error: 'Sheet not configured for this user',
+        debug: { user: session.user.email }
+      }, { status: 400 });
     }
 
     const sheets = await getGoogleSheetsClient();
 
-    // Fetch enquiries with payment and quotation data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:AZ1000', // Adjust range as needed
+      range: 'ENQUIRIES!A2:AZ1000',
     });
 
+    // ✅ FIX: Handle empty/undefined values
     const rows = response.data.values || [];
+
+    if (rows.length === 0) {
+      console.log(`No data in ENQUIRIES sheet: ${sheetId}`);
+      return NextResponse.json({ payments: [] });
+    }
 
     const payments = rows
       .filter((row: any) => {
-        // Only include enquiries with quotations
-        const quotationAmount = parseFloat(row[19] || '0'); // Column T (quotationAmount)
+        // ✅ FIX: Safe column access
+        const quotationAmount = parseFloat(row[19]?.toString() ?? '0');
         return quotationAmount > 0;
       })
       .map((row: any) => {
-        const quotationAmount = parseFloat(row[19] || '0'); // Column T
-        
-        // Calculate 70/30 split
-        const payment1Amount = Math.round(quotationAmount * 0.70);
-        const payment2Amount = Math.round(quotationAmount * 0.30);
+        const quotationAmount = parseFloat(row[19]?.toString() ?? '0') || 0;
 
-        // Payment 1 fields (columns could be U, V, W, X, Y)
-        const payment1Status = row[20] || 'pending'; // Column U
-        const payment1Date = row[21] || ''; // Column V
-        const payment1Method = row[22] || ''; // Column W
-        const payment1Reference = row[23] || ''; // Column X
-        const payment1VerifiedBy = row[24] || ''; // Column Y
+        // ✅ FIX: Safe parsing for all columns
+        const payment1Amount = Math.round(quotationAmount * 0.7);
+        const payment2Amount = Math.round(quotationAmount * 0.3);
 
-        // Payment 2 fields (columns Z, AA, AB, AC, AD)
-        const payment2Status = row[25] || 'pending'; // Column Z
-        const payment2Date = row[26] || ''; // Column AA
-        const payment2Method = row[27] || ''; // Column AB
-        const payment2Reference = row[28] || ''; // Column AC
-        const payment2VerifiedBy = row[29] || ''; // Column AD
+        const payment1Status = (row[20] as string)?.toLowerCase() || 'pending';
+        const payment1Date = row[21]?.toString() || '';
+        const payment1Method = row[22]?.toString() || '';
+        const payment1Reference = row[23]?.toString() || '';
+        const payment1VerifiedBy = row[24]?.toString() || '';
 
-        // Calculate totals
+        const payment2Status = (row[25] as string)?.toLowerCase() || 'pending';
+        const payment2Date = row[26]?.toString() || '';
+        const payment2Method = row[27]?.toString() || '';
+        const payment2Reference = row[28]?.toString() || '';
+        const payment2VerifiedBy = row[29]?.toString() || '';
+
         const totalPaid =
           (payment1Status === 'verified' ? payment1Amount : 0) +
           (payment2Status === 'verified' ? payment2Amount : 0);
 
-        const balanceAmount = quotationAmount - totalPaid;
+        const balanceAmount = Math.max(quotationAmount - totalPaid, 0);
 
-        // Determine overall payment status
         let paymentStatus: 'unpaid' | 'partial' | 'full';
-        if (totalPaid === 0) {
-          paymentStatus = 'unpaid';
-        } else if (totalPaid < quotationAmount) {
-          paymentStatus = 'partial';
-        } else {
-          paymentStatus = 'full';
-        }
+        if (totalPaid === 0) paymentStatus = 'unpaid';
+        else if (totalPaid < quotationAmount) paymentStatus = 'partial';
+        else paymentStatus = 'full';
 
         return {
-          enquiryId: row[0],
-          customerName: row[1],
-          phone: row[2],
-          capacity: row[4] || 'N/A',
+          enquiryId: row[0]?.toString() || '',
+          customerName: row[1]?.toString() || '',
+          phone: row[2]?.toString() || '',
+          capacity: row[4]?.toString() || '',
           quotationAmount,
 
           payment1Amount,
@@ -103,19 +96,27 @@ export async function GET(request: NextRequest) {
           totalPaid,
           balanceAmount,
           paymentStatus,
-          installationStatus: row[15] || '', // Column P (installation status)
+          installationStatus: row[15]?.toString() || '',
         };
       });
 
-    // Cache for 2 minutes
-    await redis.setex(cacheKey, 120, JSON.stringify(payments));
+    // ✅ DEBUG LOG
+    console.log(`Payments API: ${payments.length} payments found in sheet ${sheetId.slice(-6)}`);
 
-    return NextResponse.json({ payments, cached: false });
+    return NextResponse.json({ payments });
   } catch (error: any) {
     console.error('Error fetching payments:', error);
+    console.error('Stack:', error.stack);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch payments' },
+      { 
+        error: error?.message || 'Failed to fetch payments',
+        debug: {
+          sheetId: (await getServerSession(authOptions))?.user?.sheetId,
+          timestamp: new Date().toISOString()
+        }
+      },
       { status: 500 }
     );
   }
 }
+
