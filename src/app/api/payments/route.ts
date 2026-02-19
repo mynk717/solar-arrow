@@ -37,70 +37,71 @@ export async function GET(request: NextRequest) {
     }
 
     const payments = rows
-  .filter((row: any) => {
-    // ✅ CORRECT: quotationAmount is column 62 (0-indexed)
-    const quotationAmount = parseFloat(row[62]?.toString() ?? '0');
-    return quotationAmount > 0;
-  })
-  .map((row: any) => {
-    const quotationAmount = parseFloat(row[62]?.toString() ?? '0') || 0; // Col 62
-
-    const payment1Amount = Math.round(quotationAmount * 0.7);
-    const payment2Amount = Math.round(quotationAmount * 0.3);
-
-    // ✅ CORRECT: Payment columns start around col 69+
-    // Adjust these based on your exact sheet - check CSV for "paymentStatus"
-    const payment1Status = (row[70] as string)?.toLowerCase() || 'pending'; // Adjust index
-    const payment1Date = row[69]?.toString() || ''; // paymentDate col 69?
-    const payment1Method = row[71]?.toString() || '';
-    const payment1Reference = row[72]?.toString() || '';
-    const payment1VerifiedBy = row[73]?.toString() || '';
-
-    const payment2Status = (row[75] as string)?.toLowerCase() || 'pending';
-    const payment2Date = row[76]?.toString() || '';
-    const payment2Method = row[77]?.toString() || '';
-    const payment2Reference = row[78]?.toString() || '';
-    const payment2VerifiedBy = row[79]?.toString() || '';
-
-    const totalPaid =
-      (payment1Status === 'verified' ? payment1Amount : 0) +
-      (payment2Status === 'verified' ? payment2Amount : 0);
-
-    const balanceAmount = Math.max(quotationAmount - totalPaid, 0);
-
-    let paymentStatus: 'unpaid' | 'partial' | 'full';
-    if (totalPaid === 0) paymentStatus = 'unpaid';
-    else if (totalPaid < quotationAmount) paymentStatus = 'partial';
-    else paymentStatus = 'full';
-
-    return {
-      enquiryId: row[0]?.toString() || '',
-      customerName: row[1]?.toString() || '',
-      phone: row[2]?.toString() || '',
-      capacity: row[5]?.toString() || '', // ✅ capacity is col 5
-      quotationAmount,
-
-      payment1Amount,
-      payment1Status,
-      payment1Date,
-      payment1Method,
-      payment1Reference,
-      payment1VerifiedBy,
-
-      payment2Amount,
-      payment2Status,
-      payment2Date,
-      payment2Method,
-      payment2Reference,
-      payment2VerifiedBy,
-
-      totalPaid,
-      balanceAmount,
-      paymentStatus,
-      installationStatus: row[50]?.toString() || '', // Guess - adjust
-    };
-  });
-
+    .filter((row: any) => {
+      // ✅ EXACT: estimatedCost (your quotationAmount) is index 75
+      const quotationAmount = parseFloat(row[75]?.toString() ?? '0');
+      return quotationAmount > 0;
+    })
+    .map((row: any) => {
+      const quotationAmount = parseFloat(row[75]?.toString() ?? '0') || 0; // estimatedCost
+  
+      const payment1Amount = Math.round(quotationAmount * 0.7);
+      const payment2Amount = Math.round(quotationAmount * 0.3);
+  
+      // ✅ EXACT INDICES from rowToEnquiry:
+      const paymentStatus = (row[80] as string)?.toLowerCase() || 'pending'; // paymentStatus
+      const paymentDate = row[77]?.toString() || ''; // paymentDate  
+      const paymentMethod = row[78]?.toString() || ''; // paymentMethod
+      const paymentVerifiedBy = row[82]?.toString() || ''; // paymentVerifiedBy
+      const paymentUTR = row[84]?.toString() || ''; // paymentUTR
+  
+      // Split single paymentStatus into 70%/30% logic for UI
+      const payment1Status = paymentStatus.includes('verified') || 
+                            paymentStatus.includes('complete') ? 'verified' : 'pending';
+      const payment2Status = paymentStatus.includes('complete') ? 'verified' : 'pending';
+  
+      const totalPaid =
+        (payment1Status === 'verified' ? payment1Amount : 0) +
+        (payment2Status === 'verified' ? payment2Amount : 0);
+  
+      const balanceAmount = Math.max(quotationAmount - totalPaid, 0);
+  
+      let uiStatus: 'unpaid' | 'partial' | 'full';
+      if (totalPaid === 0) uiStatus = 'unpaid';
+      else if (totalPaid < quotationAmount) uiStatus = 'partial';
+      else uiStatus = 'full';
+  
+      return {
+        enquiryId: row[0]?.toString() || '',
+        customerName: row[1]?.toString() || '',
+        phone: row[2]?.toString() || '',
+        capacity: row[6]?.toString() || '',
+        quotationAmount,
+      
+        // 70% Payment 1
+        payment1Amount,
+        payment1Status,
+        payment1Date: paymentDate,
+        payment1Method: paymentMethod,
+        payment1Reference: paymentUTR,
+        payment1VerifiedBy: paymentVerifiedBy,  // ✅ Fixed
+      
+        // 30% Payment 2  
+        payment2Amount,
+        payment2Status,
+        payment2Date: '',
+        payment2Method: paymentMethod,
+        payment2Reference: '',
+        payment2VerifiedBy: paymentVerifiedBy,  // ✅ Fixed
+      
+        totalPaid,
+        balanceAmount,
+        paymentStatus: uiStatus,
+        installationStatus: row[51]?.toString() || '',
+      };
+      
+    });
+  
 
     // ✅ DEBUG LOG
     console.log(`Payments API: ${payments.length} payments found in sheet ${sheetId.slice(-6)}`);
