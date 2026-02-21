@@ -84,22 +84,7 @@ export default function ScheduleSurveyPage() {
       }
 
      // Telegram group notification
-try {
-  await fetch('/api/notifications/telegram', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message:
-        `📋 *Survey Scheduled*\n\n` +
-        `🆔 Enquiry: \`${formData.enquiryId}\`\n` +
-        `📅 Date: ${new Date(formData.surveyDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}\n` +
-        `👷 Surveyor: ${formData.assignedToName}\n` +
-        `🗓️ Scheduled By: ${session?.user?.name || session?.user?.email}`,
-    }),
-  });
-} catch (err) {
-  console.error('Telegram notification failed silently:', err);
-}
+
 
 alert('✅ Survey scheduled successfully!');
 router.push('/survey');

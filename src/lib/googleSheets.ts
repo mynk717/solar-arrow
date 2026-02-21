@@ -643,7 +643,7 @@ export async function updateEnquiryInSheet(
     const updates = Object.entries(updateData).map(([key, value]) => {
       const columnLetter = getColumnLetterForField(key);
       return {
-        range: `ENQUIRIES!${columnLetter}${rowIndex + 2}`, // +2 for header row
+        range: `ENQUIRIES!${columnLetter}${rowIndex + 1}`,
         values: [[value]],
       };
     });
