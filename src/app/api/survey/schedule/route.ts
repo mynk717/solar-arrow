@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
+import { invalidateEnquiriesCache } from '@/lib/redis';
 
 async function sendTelegramNotification(enquiry: any, surveyDate: string, assignedTo: string, orgId: string) {
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -84,6 +85,8 @@ export async function POST(request: Request) {
       status: 'survey-scheduled',
     });
     console.log('✅ Enquiry updated');
+    await invalidateEnquiriesCache(session.user.organizationId || 'default-org');
+
 
     // Send notification
     console.log('📝 Sending telegram notification...');

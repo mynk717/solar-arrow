@@ -668,6 +668,11 @@ function getColumnLetterForField(fieldName: string): string {
     'transportCompany': 'AJ',
     'deliveredDate': 'AK',
     'materialReturnDate': 'AL',
+    'status': 'H',
+'updatedAt': 'J',
+'surveyedBy': 'T',
+'surveyScheduledDate': 'W',
+
     // Add more mappings based on your sheet structure
   };
   

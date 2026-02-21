@@ -33,7 +33,9 @@ export async function GET(request: NextRequest) {
       console.log('📋 [API] Sample enquiry:', enquiries[0]);
     }
 
-    return NextResponse.json(enquiries);
+    return NextResponse.json(enquiries, {
+      headers: { 'Cache-Control': 'no-store' }
+    });
   } catch (error: any) {
     console.error('💥 [API] Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
