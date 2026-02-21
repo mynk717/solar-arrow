@@ -251,13 +251,14 @@ export default function EnquiriesPage() {
                 onChange={(e) => setStatusFilter(e.target.value as any)}
               >
                 <option value="all">All Status</option>
-                <option value="new">New</option>
-                <option value="survey_pending">Survey Pending</option>
-                <option value="survey_completed">Survey Completed</option>
-                <option value="payment_pending">Payment Pending</option>
-                <option value="payment_received">Payment Received</option>
-                <option value="installation_completed">Installation Completed</option>
-                <option value="active">Active</option>
+<option value="new">New</option>
+<option value="survey-pending">Survey Pending</option>
+<option value="survey-completed">Survey Completed</option>
+<option value="payment-pending">Payment Pending</option>
+<option value="payment-received">Payment Received</option>
+<option value="installation-completed">Installation Completed</option>
+<option value="active">Active</option>
+
               </select>
             </div>
           </div>
@@ -328,14 +329,24 @@ export default function EnquiriesPage() {
                       {enquiry.createdAt.toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6">
-                      <button
-                        onClick={() => setSelectedEnquiry(enquiry)}
-                        className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                      >
-                        <Eye size={16} />
-                        View
-                      </button>
-                    </td>
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => setSelectedEnquiry(enquiry)}
+      className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
+    >
+      <Eye size={16} />
+      View
+    </button>
+    {enquiry.status === 'survey-pending' && (
+      <button
+        onClick={() => window.location.href = '/survey'}
+        className="text-orange-600 hover:text-orange-700 flex items-center gap-1 border border-orange-300 px-2 py-1 rounded-lg hover:bg-orange-50 text-sm font-medium"
+      >
+        📅 Schedule Survey
+      </button>
+    )}
+  </div>
+</td>
                   </tr>
                 ))}
               </tbody>
@@ -391,12 +402,22 @@ function EnquiryModal({ enquiry, onClose }: { enquiry: Enquiry; onClose: () => v
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">Enquiry Details - {enquiry.id}</h2>
-          <button onClick={onClose} className="text-gray-600 hover:text-gray-900 text-2xl">
-            ✕
-          </button>
-        </div>
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+  <h2 className="text-xl font-bold text-gray-900">Enquiry Details - {enquiry.id}</h2>
+  <div className="flex items-center gap-3">
+    {enquiry.status === 'survey-pending' && (
+      <button
+        onClick={() => window.location.href = '/survey'}
+        className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1"
+      >
+        📅 Schedule Survey
+      </button>
+    )}
+    <button onClick={onClose} className="text-gray-600 hover:text-gray-900 text-2xl">
+      ✕
+    </button>
+  </div>
+</div>
         
         <div className="p-6 space-y-6">
           <Section title="Customer Information">
