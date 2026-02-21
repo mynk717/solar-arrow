@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useSurveys } from '@/lib/useSurveys';
@@ -43,6 +43,22 @@ export default function SurveyPage() {
   // ✅ Admin/Owner can schedule surveys
   const canSchedule = ['admin', 'owner'].includes(session?.user?.role || '');
   const isAdminOrOwner = ['admin', 'owner'].includes(session?.user?.role || '');
+
+  const [scheduledEnquiries, setScheduledEnquiries] = useState<any[]>([]);
+const [loadingScheduled, setLoadingScheduled] = useState(true);
+
+useEffect(() => {
+  fetch('/api/enquiries')
+    .then(r => r.json())
+    .then(data => {
+      setScheduledEnquiries(
+        data.filter((e: any) => e.status === 'survey-scheduled')
+      );
+    })
+    .catch(console.error)
+    .finally(() => setLoadingScheduled(false));
+}, []);
+
 
   // ✅ ROLE-BASED FILTERING
   const filteredSurveys = surveys.filter(survey => {
@@ -173,6 +189,64 @@ export default function SurveyPage() {
           </div>
         </div>
       </div>
+
+{/* Scheduled But Not Yet Submitted */}
+{scheduledEnquiries.length > 0 && (
+  <div className="p-4 pt-4 space-y-3">
+    <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+      <Clock size={18} className="text-orange-500" />
+      Awaiting Survey Visit ({scheduledEnquiries.length})
+    </h2>
+    {scheduledEnquiries
+      .filter(e =>
+        isAdminOrOwner || e.surveyedBy === session?.user?.email
+      )
+      .map((enq) => (
+        <div key={enq.id} className="bg-white rounded-2xl border-2 border-orange-200 shadow-sm overflow-hidden">
+          <div className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <div>
+                <span className="text-sm font-mono font-bold text-blue-600">{enq.id}</span>
+                <p className="font-bold text-gray-900 mt-0.5">{enq.customerName}</p>
+                <p className="text-sm text-gray-600">{enq.phone}</p>
+              </div>
+              <span className="bg-orange-100 text-orange-800 text-xs font-bold px-3 py-1 rounded-full border border-orange-300 whitespace-nowrap">
+                📅 Scheduled
+              </span>
+            </div>
+            <div className="text-sm text-gray-700 space-y-1 mt-2">
+              <p className="flex items-center gap-2">
+                <MapPin size={14} />
+                {enq.area} — {enq.address}
+              </p>
+              <p className="flex items-center gap-2">
+                <Calendar size={14} />
+                {enq.surveyScheduledDate
+                  ? new Date(enq.surveyScheduledDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                  : 'Date not set'}
+              </p>
+              <p className="flex items-center gap-2">
+                <User size={14} />
+                Surveyor: <strong>{enq.surveyedBy || '—'}</strong>
+              </p>
+            </div>
+          </div>
+          {/* Action — only assigned surveyor or admin can submit */}
+          {(isAdminOrOwner || enq.surveyedBy === session?.user?.email) && (
+            <div className="px-4 pb-4">
+              <button
+                onClick={() => router.push(`/survey/submit/${enq.id}`)}
+                className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition shadow-md"
+              >
+                <Edit size={16} />
+                Submit Survey Report
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+  </div>
+)}
 
       {/* Survey Cards */}
       <div className="p-4 pt-6 space-y-3">

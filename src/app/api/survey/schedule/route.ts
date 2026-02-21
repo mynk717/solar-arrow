@@ -5,14 +5,13 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
-async function sendTelegramNotification(enquiry: any, surveyDate: string, assignedTo: string) {
+async function sendTelegramNotification(enquiry: any, surveyDate: string, assignedTo: string, orgId: string) {
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
   
   if (!telegramBotToken) return;
 
   try {
-    const orgId = enquiry.organizationId || 'default-org';
-    const chatId = await redis.get(`org:${orgId}:telegram:surveyteam`);
+    const chatId = await redis.get(`org:${orgId}:telegram:survey_team`);
     
     if (!chatId) return;
 
@@ -88,7 +87,7 @@ export async function POST(request: Request) {
 
     // Send notification
     console.log('📝 Sending telegram notification...');
-    await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo);
+    await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo, session.user.organizationId || 'default-org');
     console.log('✅ Telegram sent (or skipped if not configured)');
 
     return NextResponse.json({ 
