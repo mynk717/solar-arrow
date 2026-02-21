@@ -703,29 +703,40 @@ function LeadListView({
                       <Eye size={18} />
                     </button>
                     {lead.status !== 'converted' && (
-                      <>
-                        <button
-                          onClick={() => onCallLog(lead)}
-                          disabled={isDemoMode}
-                          className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 disabled:opacity-50 touch-manipulation"
-                          title="Log Call"
-                          aria-label="Log Call"
-                        >
-                          <Phone size={18} />
-                        </button>
-                        {lead.status === 'qualified' && (
-                          <button
-                            onClick={() => onConvert(lead)}
-                            disabled={isDemoMode}
-                            className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50 disabled:opacity-50 touch-manipulation"
-                            title="Convert to Enquiry"
-                            aria-label="Convert to Enquiry"
-                          >
-                            <ArrowRight size={18} />
-                          </button>
-                        )}
-                      </>
-                    )}
+  <>
+    <button
+      onClick={() => onCallLog(lead)}
+      disabled={isDemoMode}
+      className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 disabled:opacity-50 touch-manipulation"
+      title="Log Call"
+      aria-label="Log Call"
+    >
+      <Phone size={18} />
+    </button>
+    {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
+      <button
+        onClick={() => onViewLead(lead)}
+        disabled={isDemoMode}
+        className="text-emerald-600 hover:text-emerald-800 p-2 rounded-lg hover:bg-emerald-50 disabled:opacity-50 touch-manipulation"
+        title="Qualify Lead"
+        aria-label="Qualify Lead"
+      >
+        <CheckCircle size={18} />
+      </button>
+    )}
+    {lead.status === 'qualified' && (
+      <button
+        onClick={() => onConvert(lead)}
+        disabled={isDemoMode}
+        className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50 disabled:opacity-50 touch-manipulation"
+        title="Convert to Enquiry"
+        aria-label="Convert to Enquiry"
+      >
+        <ArrowRight size={18} />
+      </button>
+    )}
+  </>
+)}
                   </div>
                 </td>
               </tr>
@@ -776,15 +787,35 @@ function LeadListView({
                   <Eye size={18} />
                 </button>
                 {lead.status !== 'converted' && (
-                  <button
-                    onClick={() => onCallLog(lead)}
-                    disabled={isDemoMode}
-                    className="text-green-600 p-2 rounded-lg bg-green-50 disabled:opacity-50 touch-manipulation"
-                    aria-label="Call"
-                  >
-                    <Phone size={18} />
-                  </button>
-                )}
+  <button
+    onClick={() => onCallLog(lead)}
+    disabled={isDemoMode}
+    className="text-green-600 p-2 rounded-lg bg-green-50 disabled:opacity-50 touch-manipulation"
+    aria-label="Call"
+  >
+    <Phone size={18} />
+  </button>
+)}
+{(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
+  <button
+    onClick={() => onViewLead(lead)}
+    disabled={isDemoMode}
+    className="text-emerald-600 p-2 rounded-lg bg-emerald-50 disabled:opacity-50 touch-manipulation"
+    aria-label="Qualify"
+  >
+    <CheckCircle size={18} />
+  </button>
+)}
+{lead.status === 'qualified' && (
+  <button
+    onClick={() => onConvert(lead)}
+    disabled={isDemoMode}
+    className="text-purple-600 p-2 rounded-lg bg-purple-50 disabled:opacity-50 touch-manipulation"
+    aria-label="Convert"
+  >
+    <ArrowRight size={18} />
+  </button>
+)}
               </div>
             </div>
           </div>
@@ -1008,19 +1039,18 @@ function LeadDetailsModal({
 
         <div className="p-6 border-t-2 border-gray-200 bg-gray-50 space-y-3">
   {/* Show Qualify button if lead is contacted but not qualified */}
-  {(lead.status === 'contacted' || lead.status === 'callback') && !lead.qualified && (
-    <button
+  {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && !lead.qualified && (
+  <button
     onClick={() => {
       onQualify(lead);
       onClose();
     }}
-  
-      disabled={isDemoMode}
-      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 touch-manipulation"
-    >
-      ✅ Mark as Qualified
-    </button>
-  )}
+    disabled={isDemoMode}
+    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 touch-manipulation"
+  >
+    ✅ Mark as Qualified
+  </button>
+)}
   
   {/* Show qualified badge if already qualified */}
   {lead.qualified && (
@@ -1052,6 +1082,8 @@ function CallLogModal({
   const [callOutcome, setCallOutcome] = useState<CallOutcome>('interested');
   const [callNotes, setCallNotes] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState('');
+
 
   const handleSubmit = async () => {
     if (isDemoMode) return;
@@ -1060,7 +1092,7 @@ function CallLogModal({
       const response = await fetch('/api/leads/log-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, callOutcome, notes: callNotes }),
+        body: JSON.stringify({ leadId: lead.id, callOutcome, notes: callNotes, followUpDate }),
       });
       if (!response.ok) throw new Error('Failed');
       alert('Call logged successfully!');
@@ -1106,6 +1138,18 @@ function CallLogModal({
               placeholder="Add call notes here..."
             />
           </div>
+          <div>
+  <label className="block text-sm font-bold text-gray-900 mb-2">
+    Follow Up Date <span className="text-gray-500 font-medium">(optional)</span>
+  </label>
+  <input
+    type="date"
+    value={followUpDate}
+    onChange={(e) => setFollowUpDate(e.target.value)}
+    min={new Date().toISOString().split('T')[0]}
+    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+  />
+</div>
         </div>
         <div className="p-6 border-t-2 border-gray-200 flex gap-3">
           <button 
