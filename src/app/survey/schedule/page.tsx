@@ -40,7 +40,7 @@ export default function ScheduleSurveyPage() {
       const enquiriesRes = await fetch('/api/enquiries');
       const enquiriesData = await enquiriesRes.json();
       const needsSurvey = enquiriesData.filter((e: any) =>
-        ['new', 'contacted', 'qualified'].includes(e.status)
+        ['new', 'contacted', 'qualified', 'survey-pending'].includes(e.status)
       );
       setEnquiries(needsSurvey);
 

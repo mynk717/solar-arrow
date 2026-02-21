@@ -254,6 +254,7 @@ export default function EnquiriesPage() {
 <option value="new">New</option>
 <option value="survey-pending">Survey Pending</option>
 <option value="survey-completed">Survey Completed</option>
+<option value="survey-scheduled">Survey Scheduled</option>
 <option value="payment-pending">Payment Pending</option>
 <option value="payment-received">Payment Received</option>
 <option value="installation-completed">Installation Completed</option>
