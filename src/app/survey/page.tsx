@@ -37,7 +37,7 @@ export default function SurveyPage() {
   const router = useRouter();
   const { surveys, loading, error } = useSurveys();
   const { data: session } = useSession();
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [filter, setFilter] = useState<'all' | 'scheduled' | 'submitted' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   // ✅ Admin/Owner can schedule surveys
@@ -69,10 +69,10 @@ useEffect(() => {
 
     // Status filter
     const matchesStatus = (() => {
-      if (filter === 'all') return true;
-      if (filter === 'pending') return !survey.surveyApproved;
+      if (filter === 'all' || filter === 'scheduled') return true;
+      if (filter === 'submitted') return !survey.surveyApproved && !survey.surveyNotes?.includes('Reject');
       if (filter === 'approved') return survey.surveyApproved === true;
-      if (filter === 'rejected') return survey.surveyApproved === false && survey.surveyNotes?.includes('Reject');
+      if (filter === 'rejected') return survey.surveyNotes?.includes('Reject');
       return true;
     })();
 
@@ -88,10 +88,11 @@ useEffect(() => {
   );
 
   const stats = {
-    total: visibleSurveys.length,
-    pending: visibleSurveys.filter(s => !s.surveyApproved).length,
+    total: scheduledEnquiries.length + visibleSurveys.length,
+    scheduled: scheduledEnquiries.filter(e => isAdminOrOwner || e.surveyedBy === session?.user?.email).length,
+    submitted: visibleSurveys.filter(s => !s.surveyApproved && !s.surveyNotes?.includes('Reject')).length,
     approved: visibleSurveys.filter(s => s.surveyApproved === true).length,
-    rejected: visibleSurveys.filter(s => s.surveyApproved === false && s.surveyNotes?.includes('Reject')).length,
+    rejected: visibleSurveys.filter(s => s.surveyNotes?.includes('Reject')).length,
   };
 
   if (loading) {
@@ -154,44 +155,17 @@ useEffect(() => {
 
           {/* Stats */}
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            <StatCard
-              title="All"
-              value={stats.total}
-              Icon={ClipboardCheck}
-              color="blue"
-              active={filter === 'all'}
-              onClick={() => setFilter('all')}
-            />
-            <StatCard
-              title="Pending"
-              value={stats.pending}
-              Icon={Clock}
-              color="yellow"
-              active={filter === 'pending'}
-              onClick={() => setFilter('pending')}
-            />
-            <StatCard
-              title="Approved"
-              value={stats.approved}
-              Icon={CheckCircle}
-              color="green"
-              active={filter === 'approved'}
-              onClick={() => setFilter('approved')}
-            />
-            <StatCard
-              title="Rejected"
-              value={stats.rejected}
-              Icon={XCircle}
-              color="red"
-              active={filter === 'rejected'}
-              onClick={() => setFilter('rejected')}
-            />
+          <StatCard title="All" value={stats.total} Icon={ClipboardCheck} color="blue" active={filter === 'all'} onClick={() => setFilter('all')} />
+<StatCard title="Scheduled" value={stats.scheduled} Icon={Calendar} color="orange" active={filter === 'scheduled'} onClick={() => setFilter('scheduled')} />
+<StatCard title="Submitted" value={stats.submitted} Icon={Clock} color="yellow" active={filter === 'submitted'} onClick={() => setFilter('submitted')} />
+<StatCard title="Approved" value={stats.approved} Icon={CheckCircle} color="green" active={filter === 'approved'} onClick={() => setFilter('approved')} />
+<StatCard title="Rejected" value={stats.rejected} Icon={XCircle} color="red" active={filter === 'rejected'} onClick={() => setFilter('rejected')} />
           </div>
         </div>
       </div>
 
 {/* Scheduled But Not Yet Submitted */}
-{scheduledEnquiries.length > 0 && (
+{scheduledEnquiries.length > 0 && (filter === 'all' || filter === 'scheduled') && (
   <div className="p-4 pt-4 space-y-3">
     <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
       <Clock size={18} className="text-orange-500" />
@@ -249,13 +223,13 @@ useEffect(() => {
 )}
 
       {/* Survey Cards */}
-      <div className="p-4 pt-6 space-y-3">
+      {filter !== 'scheduled' && (
+        <div className="p-4 pt-6 space-y-3">
         {filteredSurveys.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
             <p className="text-gray-900 font-bold text-lg mb-2">No surveys found</p>
             <p className="text-gray-700 text-sm mb-6 px-4 font-medium">
-              {filter === 'pending' && 'No pending surveys found'}
               {filter === 'approved' && 'No approved surveys found'}
               {filter === 'rejected' && 'No rejected surveys found'}
               {filter === 'all' && searchTerm && 'No surveys match your search'}
@@ -274,6 +248,7 @@ useEffect(() => {
           ))
         )}
       </div>
+      )}
     </div>
   );
 }
@@ -286,6 +261,7 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
     yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     green: 'bg-green-50 border-green-200 text-green-800',
     red: 'bg-red-50 border-red-200 text-red-800',
+    orange: 'bg-orange-50 border-orange-200 text-orange-800', 
   };
 
   return (
