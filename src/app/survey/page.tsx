@@ -29,7 +29,7 @@ interface Survey {
   consumerCategory: string;
   installationSurface: string;
   sanctionedLoad: number;
-  surveyApproved: boolean;
+  surveyApproved: boolean | string;
   surveyNotes: string;
 }
 
@@ -39,6 +39,12 @@ export default function SurveyPage() {
   const { data: session } = useSession();
   const [filter, setFilter] = useState<'all' | 'scheduled' | 'submitted' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const isApproved = (s: Survey) => s.surveyApproved === true || s.surveyApproved === 'TRUE';
+
+const isRejected = (s: Survey) =>
+  (s.surveyNotes || '').toLowerCase().startsWith('rejected:') ||
+  (s.surveyNotes || '').toLowerCase().includes('rejected');
+
 
   // ✅ Admin/Owner can schedule surveys
   const canSchedule = ['admin', 'owner'].includes(session?.user?.role || '');
@@ -69,12 +75,14 @@ useEffect(() => {
 
     // Status filter
     const matchesStatus = (() => {
-      if (filter === 'all' || filter === 'scheduled') return true;
-      if (filter === 'submitted') return !survey.surveyApproved && !survey.surveyNotes?.includes('Reject');
-      if (filter === 'approved') return survey.surveyApproved === true;
-      if (filter === 'rejected') return survey.surveyNotes?.includes('Reject');
+      if (filter === 'all') return true;
+      if (filter === 'scheduled') return true; // scheduled cards are shown in separate section
+      if (filter === 'submitted') return !isApproved(survey) && !isRejected(survey);
+      if (filter === 'approved') return isApproved(survey);
+      if (filter === 'rejected') return isRejected(survey);
       return true;
     })();
+    
 
     // ✅ User filter - Admin/Owner see all, Surveyors see only assigned
     const matchesUser = isAdminOrOwner || survey.surveyorEmail === session?.user?.email;
@@ -90,10 +98,11 @@ useEffect(() => {
   const stats = {
     total: scheduledEnquiries.length + visibleSurveys.length,
     scheduled: scheduledEnquiries.filter(e => isAdminOrOwner || e.surveyedBy === session?.user?.email).length,
-    submitted: visibleSurveys.filter(s => !s.surveyApproved && !s.surveyNotes?.includes('Reject')).length,
-    approved: visibleSurveys.filter(s => s.surveyApproved === true).length,
-    rejected: visibleSurveys.filter(s => s.surveyNotes?.includes('Reject')).length,
-  };
+    submitted: visibleSurveys.filter(s => !isApproved(s) && !isRejected(s)).length,
+    approved: visibleSurveys.filter(s => isApproved(s)).length,
+rejected: visibleSurveys.filter(s => isRejected(s)).length,
+ };
+  
 
   if (loading) {
     return (
@@ -230,12 +239,14 @@ useEffect(() => {
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
             <p className="text-gray-900 font-bold text-lg mb-2">No surveys found</p>
             <p className="text-gray-700 text-sm mb-6 px-4 font-medium">
-              {filter === 'approved' && 'No approved surveys found'}
-              {filter === 'rejected' && 'No rejected surveys found'}
-              {filter === 'all' && searchTerm && 'No surveys match your search'}
-              {filter === 'all' && !searchTerm && (
-                isAdminOrOwner ? 'No surveys available' : 'No surveys assigned to you'
-              )}
+            {filter === 'approved' && 'No approved surveys found'}
+{filter === 'rejected' && 'No rejected surveys found'}
+{filter === 'submitted' && 'No surveys pending review'}
+{filter === 'all' && searchTerm && 'No surveys match your search'}
+{filter === 'all' && !searchTerm && (
+  isAdminOrOwner ? 'No surveys available' : 'No surveys assigned to you'
+)}
+
             </p>
           </div>
         ) : (
@@ -289,12 +300,13 @@ function SurveyCard({ survey, onView }: any) {
   const isSurveyor = survey.surveyorEmail === session?.user?.email;
   
   // ✅ Can submit if: not approved, not rejected, and is assigned surveyor
-  const canSubmit = !survey.surveyApproved && 
-                    !survey.surveyNotes?.includes('Reject') && 
-                    isSurveyor;
+  const approved = survey.surveyApproved === true || survey.surveyApproved === 'TRUE';
+  const rejected = (survey.surveyNotes || '').toLowerCase().startsWith('rejected:') ||
+                   (survey.surveyNotes || '').toLowerCase().includes('rejected');
+  const canSubmit = !approved && !rejected && isSurveyor;
   
   const getStatusBadge = () => {
-    if (survey.surveyApproved === true) {
+    if (approved) {
       return (
         <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300 flex items-center gap-1 whitespace-nowrap">
           <CheckCircle size={14} />
@@ -302,7 +314,7 @@ function SurveyCard({ survey, onView }: any) {
         </span>
       );
     }
-    if (survey.surveyNotes?.includes('Reject')) {
+    if (rejected) {
       return (
         <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border-2 border-red-300 flex items-center gap-1 whitespace-nowrap">
           <XCircle size={14} />
