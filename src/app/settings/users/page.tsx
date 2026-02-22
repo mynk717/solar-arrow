@@ -215,7 +215,7 @@ export default function UsersPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-6 py-4 text-gray-700">
                   <RoleBadge role={user.role} />
                 </td>
                 <td className="px-6 py-4">
