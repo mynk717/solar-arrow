@@ -34,16 +34,17 @@ export default function DashboardPage() {
 
     const fetches: Promise<any>[] = [fetch('/api/enquiries').then(r => r.json())];
 
-    // Only fetch surveys for roles that need it
-    if (['owner', 'admin', 'surveyor'].includes(role)) {
-      fetches.push(fetch('/api/surveys').then(r => r.json()));
-    }
+    // surveys come from enquiries — filter locally, no separate API needed
+
 
     Promise.all(fetches)
-      .then(([enqData, surveyData]) => {
-        setEnquiries(Array.isArray(enqData) ? enqData : []);
-        if (surveyData) setSurveys(Array.isArray(surveyData) ? surveyData : []);
-      })
+  .then(([enqData]) => {
+    const enqs = Array.isArray(enqData) ? enqData : [];
+    setEnquiries(enqs);
+    // derive surveys from enquiries — no separate API call
+    const surveyRows = enqs.filter((e: any) => e.surveyedBy || e.surveyDate);
+    setSurveys(surveyRows);
+  })
       .catch(console.error)
       .finally(() => setLoading(false));
 
