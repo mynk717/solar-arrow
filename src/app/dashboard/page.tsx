@@ -28,32 +28,45 @@ export default function DashboardPage() {
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [surveys, setSurveys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeline, setTimeline] = useState<any[]>([]);
+const [followups, setFollowups] = useState<any[]>([]);
 
   useEffect(() => {
     if (status !== 'authenticated') return;
 
     const fetches: Promise<any>[] = [fetch('/api/enquiries').then(r => r.json())];
 
+    fetches.push(
+      fetch(`/api/enquiries/${session.user.email}/timeline`).then(r => r.json()),
+      fetch('/api/followups').then(r => r.json())
+    );
+
     // surveys come from enquiries — filter locally, no separate API needed
 
 
     Promise.all(fetches)
-  .then(([enqData]) => {
-    const enqs = Array.isArray(enqData) ? enqData : [];
-    setEnquiries(enqs);
-    // derive surveys from enquiries — no separate API call
-    const surveyRows = enqs.filter((e: any) => e.surveyedBy || e.surveyDate);
-    setSurveys(surveyRows);
-  })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    .then(([enqData, timelineData, followupsData]) => {  // ✅ Destructure ALL 3
+      const enqs = Array.isArray(enqData) ? enqData : [];
+      setEnquiries(enqs);
+      
+      // ✅ Set timeline and followups
+      setTimeline(timelineData?.timeline || []);
+      setFollowups(Array.isArray(followupsData) ? followupsData : []);
+      
+      // derive surveys from enquiries
+      const surveyRows = enqs.filter((e: any) => e.surveyedBy || e.surveyDate);
+      setSurveys(surveyRows);
+    })
+    .catch(console.error)
+    .finally(() => setLoading(false));
+  
 
     // Poll every 60s so tasks auto-disappear when status changes
     const interval = setInterval(() => {
       fetch('/api/enquiries').then(r => r.json()).then(d => setEnquiries(Array.isArray(d) ? d : []));
     }, 60_000);
     return () => clearInterval(interval);
-  }, [status, role]);
+  }, [status, role, session?.user?.email]);
 
   if (status === 'loading' || loading) {
     return (
@@ -108,6 +121,19 @@ export default function DashboardPage() {
     blocked: enquiries.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
   };
 
+  // ✅ My pending tasks (FOLLOWUPS assigned to me)
+const myPendingFollowups = followups.filter((f: any) => 
+  f.userId === email && 
+  f.status === 'pending' && 
+  new Date(f.nextFollowupDate || '1970-01-01') <= new Date()
+);
+
+// ✅ My recent activity (ACTIVITY_LOG where I acted)
+const myRecentActivity = timeline.filter((a: any) => 
+  a.userId === email && 
+  new Date(a.timestamp) > new Date(Date.now() - 7*24*60*60*1000)
+);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -135,24 +161,36 @@ export default function DashboardPage() {
               <StatBox label="My Surveys" value={surveys.filter(s => s.surveyorEmail === email).length} color="blue" icon={ClipboardCheck} />
             </div>
 
-            {/* Task List */}
-            <Section title="Pending Survey Visits" icon={Clock} iconColor="text-orange-500">
-              {myPendingSurveys.length === 0 ? (
-                <EmptyState icon={CheckCircle} message="No pending visits. You're all caught up!" />
-              ) : (
-                myPendingSurveys.map(task => (
-                  <TaskCard
-                    key={task.id}
-                    id={task.id}
-                    title={task.customerName}
-                    subtitle={`${task.area} — ${task.address}`}
-                    date={task.surveyScheduledDate}
-                    onAction={() => router.push(`/survey/submit/${task.id}`)}
-                    actionLabel="Submit Report"
-                  />
-                ))
-              )}
-            </Section>
+           {/* Task List */}
+<Section title={`My Tasks (${myPendingFollowups.length})`} icon={Clock} iconColor="text-orange-500">
+  {myPendingFollowups.length === 0 ? (
+    <EmptyState icon={CheckCircle} message="No pending tasks!" />
+  ) : (
+    myPendingFollowups.slice(0, 5).map((task: any) => (
+      <TaskCard
+        key={task.followupId}
+        id={task.enquiryId}
+        title={enquiries.find(e => e.id === task.enquiryId)?.customerName || 'Customer'}
+        subtitle={`${task.followupType} • ${task.followupNotes?.slice(0, 50)}...`}
+        date={task.followupDate}
+        onAction={() => router.push(`/enquiries/${task.enquiryId}`)}
+        actionLabel="View Enquiry"
+      />
+    ))
+  )}
+</Section>
+
+{/* Recent Activity */}
+<Section title={`Recent Activity (${myRecentActivity.length})`} icon={TrendingUp} iconColor="text-blue-500">
+  {myRecentActivity.slice(0, 3).map((activity: any, i: number) => (
+    <div key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
+      <div className="font-medium">{activity.action}</div>
+      <div className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</div>
+    </div>
+  ))}
+</Section>
+
+
 
             <QuickLink label="View All Surveys" href="/survey" icon={ClipboardCheck} />
           </>
