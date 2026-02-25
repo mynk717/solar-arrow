@@ -223,16 +223,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Process Flowchart - Collapsible on Mobile */}
-        <details className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md mb-6 sm:mb-8 group" open>
-          <summary className="p-4 sm:p-6 cursor-pointer list-none">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">Complete Solar Installation Workflow</h2>
-              <ArrowRight className="transform group-open:rotate-90 transition-transform text-blue-600" size={20} />
-            </div>
-          </summary>
-        </details>
-
+       
         {/* Quick Actions - Mobile Optimized */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* NEW: Add Lead quick action */}

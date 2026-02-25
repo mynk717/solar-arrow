@@ -1,606 +1,747 @@
 // src/app/dashboard/page.tsx
 'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
-  LayoutDashboard, ClipboardCheck, ClipboardList, Users,
-  Wrench, FileText, CreditCard, Clock, CheckCircle,
-  XCircle, MapPin, Calendar, Edit, Loader2, TrendingUp,
-  AlertCircle, Zap
+  Users, FileText, ClipboardCheck, DollarSign, Wrench, Zap,
+  TrendingUp, ArrowRight, Loader2, FileCheck, Package, Truck,
+  Scale, CheckSquare, IndianRupee, Kanban, PhoneCall,
+  AlertTriangle, Bell, BellRing, CheckCircle2, Clock,
+  ShieldAlert, UserCheck, Send, X, ChevronRight,
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
+import { useDemoMode } from '@/contexts/DemoContext';
 
-type Role = 'owner' | 'admin' | 'sales' | 'surveyor' | 'installation' | 'accounts';
+// ─── Types ────────────────────────────────────────────────────────────────────
+type Enquiry = {
+  id: string;
+  customerName: string;
+  area: string;
+  capacity: string;
+  status: string;
+  isBlocked: boolean | string;
+  allottedUser: string;
+  surveyedBy: string;
+  surveyApproved: boolean | string;
+  surveyCompletedDate: string;
+  quotationAmount: string;
+  quotationDate: string;
+  paymentDate: string;
+  initialPayment: string;
+  installationCompletedDate: string;
+  applicationNumber: string;
+  consumerRegistrationNumber: string;
+  inspectionDate: string;
+  wcrSubmitted: boolean | string;
+  subsidy: string;
+  subsidyStatus: string;
+  nextActionDate: string;
+  priority: string;
+  blockedReason: string;
+  bomCreated: boolean | string;
+  dispatchDate: string;
+  gridSyncDate: string;
+};
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
+type Poke = {
+  id: string;
+  from: string;
+  fromName: string;
+  to: string;
+  enquiryId: string;
+  customerName: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+};
 
+// ─── Demo Data ────────────────────────────────────────────────────────────────
+const demoStats = {
+  leads: 12,
+  new: 8,
+  surveyPending: 5,
+  surveyCompleted: 4,
+  paymentReceived: 3,
+  installations: 2,
+  active: 1,
+  blocked: 1,
+  totalQuotedValue: 2800000,
+  overdue: 3,
+};
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const role = session?.user?.role as Role;
+  const { isDemoMode } = useDemoMode();
 
-  const [enquiries, setEnquiries] = useState<any[]>([]);
-  const [surveys, setSurveys] = useState<any[]>([]);
+  const role = session?.user?.role;
+  const email = session?.user?.email || '';
+  const name = session?.user?.name || '';
+
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [pokes, setPokes] = useState<Poke[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [stats, setStats] = useState(demoStats);
   const [loading, setLoading] = useState(true);
-  const [timeline, setTimeline] = useState<any[]>([]);
-const [followups, setFollowups] = useState<any[]>([]);
+  const [showPokeModal, setShowPokeModal] = useState(false);
+  const [pokeTarget, setPokeTarget] = useState<{ enquiryId: string; to: string; customerName: string } | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  useEffect(() => {
-    if (status !== 'authenticated') return;
+  const today = new Date().toISOString().split('T')[0];
 
-    const fetches: Promise<any>[] = [fetch('/api/enquiries').then(r => r.json())];
+  // ── Fetch all data ──
+  const fetchData = useCallback(async () => {
+    if (status !== 'authenticated') { setLoading(false); return; }
+    try {
+      const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads')];
+      if (role === 'admin' || role === 'owner') {
+        fetches.push(fetch('/api/users'));
+      }
+      fetches.push(fetch('/api/pokes'));
 
-    fetches.push(
-      fetch(`/api/enquiries/${session.user.email}/timeline`).then(r => r.json()),
-      fetch('/api/followups').then(r => r.json())
-    );
+      const results = await Promise.allSettled(fetches);
 
-    // surveys come from enquiries — filter locally, no separate API needed
+      let enqs: Enquiry[] = [];
+      let ldsArr: any[] = [];
+      let usersArr: any[] = [];
+      let pokesArr: Poke[] = [];
 
+      if (results[0].status === 'fulfilled' && results[0].value.ok) {
+        enqs = await results[0].value.json();
+      }
+      if (results[1].status === 'fulfilled' && results[1].value.ok) {
+        ldsArr = await results[1].value.json();
+      }
+      if ((role === 'admin' || role === 'owner') && results[2].status === 'fulfilled' && results[2].value.ok) {
+        usersArr = await results[2].value.json();
+      }
+      const pokesIdx = (role === 'admin' || role === 'owner') ? 3 : 2;
+      if (results[pokesIdx]?.status === 'fulfilled' && (results[pokesIdx] as any).value.ok) {
+        pokesArr = await (results[pokesIdx] as any).value.json();
+      }
 
-    Promise.all(fetches)
-    .then(([enqData, timelineData, followupsData]) => {  // ✅ Destructure ALL 3
-      const enqs = Array.isArray(enqData) ? enqData : [];
       setEnquiries(enqs);
-      
-      // ✅ Set timeline and followups
-      setTimeline(timelineData?.timeline || []);
-      setFollowups(Array.isArray(followupsData) ? followupsData : []);
-      
-      // derive surveys from enquiries
-      const surveyRows = enqs.filter((e: any) => e.surveyedBy || e.surveyDate);
-      setSurveys(surveyRows);
-    })
-    .catch(console.error)
-    .finally(() => setLoading(false));
-  
+      setLeads(ldsArr);
+      setUsers(usersArr);
+      setPokes(pokesArr);
 
-    // Poll every 60s so tasks auto-disappear when status changes
-    const interval = setInterval(() => {
-      fetch('/api/enquiries').then(r => r.json()).then(d => setEnquiries(Array.isArray(d) ? d : []));
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, [status, role, session?.user?.email]);
+      // ── CORRECT pipeline counts — mutually exclusive status field ──
+      const realStats = {
+        leads: ldsArr.length,
+        new: enqs.filter(e => e.status === 'new').length,
+        surveyPending: enqs.filter(e => e.status === 'survey-pending').length,
+        surveyCompleted: enqs.filter(e => e.status === 'survey-completed').length,
+        paymentReceived: enqs.filter(e => e.status === 'payment-received').length,
+        installations: enqs.filter(e => e.status === 'installation-completed').length,
+        active: enqs.filter(e => e.status === 'active').length,
+        blocked: enqs.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
+        totalQuotedValue: enqs.reduce((s, e) => s + (parseFloat(e.quotationAmount) || 0), 0),
+        overdue: enqs.filter(e =>
+          e.nextActionDate && e.nextActionDate < today && e.status !== 'active'
+        ).length,
+      };
+      setStats(realStats);
+    } catch (err) {
+      console.error('[Dashboard] fetch error', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [status, role, today]);
 
-  if (status === 'loading' || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <Loader2 className="animate-spin h-10 w-10 text-blue-600" />
-      </div>
-    );
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Poke send ──
+  async function sendPoke(enquiryId: string, to: string, customerName: string, message: string) {
+    try {
+      await fetch('/api/pokes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, enquiryId, customerName, message }),
+      });
+      setShowPokeModal(false);
+      setPokeTarget(null);
+      fetchData();
+    } catch { /* silent */ }
   }
 
-  const email = session?.user?.email || '';
-  const name = session?.user?.name?.split(' ')[0] || 'there';
+  // ── Mark pokes read ──
+  async function markPokesRead() {
+    await fetch('/api/pokes', { method: 'PATCH' });
+    setPokes(prev => prev.map(p => ({ ...p, read: true })));
+  }
 
-  // ── Derived data per role ──────────────────────────────────────────────────
+  const unreadPokes = pokes.filter(p => p.to === email && !p.read).length;
 
-  // SURVEYOR: tasks assigned to them still in survey-scheduled
-  const myPendingSurveys = enquiries.filter(
-    e => e.surveyedBy === email && e.status === 'survey-scheduled'
-  );
+  // ── Priority tasks for admin/owner ──
+  const priorityEnquiries = enquiries
+    .filter(e =>
+      (e.priority === 'urgent' || e.priority === 'high' ||
+        e.isBlocked === true || e.isBlocked === 'TRUE' ||
+        (e.nextActionDate && e.nextActionDate < today && e.status !== 'active') ||
+        (e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE'))
+      )
+    )
+    .slice(0, 10);
 
-  // SALES: enquiries assigned to them
-  const myEnquiries = enquiries.filter(e => e.leadAssignedTo === email);
-  const myActiveEnquiries = myEnquiries.filter(e =>
-    ['new', 'active', 'survey-pending'].includes(e.status)
-  );
-  const myFollowups = myEnquiries.filter(e => {
-    if (!e.nextActionDate) return false;
-    const d = new Date(e.nextActionDate);
-    const today = new Date();
-    return d <= today;
-  });
+  // ── My tasks (for any role) ──
+  const myTasks = enquiries
+    .filter(e =>
+      (e.allottedUser === email || e.surveyedBy === email) &&
+      e.status !== 'active'
+    )
+    .sort((a, b) => {
+      if (!a.nextActionDate) return 1;
+      if (!b.nextActionDate) return -1;
+      return a.nextActionDate.localeCompare(b.nextActionDate);
+    })
+    .slice(0, 8);
 
-  // INSTALLATION: jobs assigned to them
-  const myInstallJobs = enquiries.filter(e =>
-    e.installationSupervisor === email &&
-    ['survey-completed', 'payment-received'].includes(e.status)
-  );
-  const myActiveJobs = myInstallJobs.filter(e => e.status !== 'installation-completed');
+  if (status === 'loading' || loading) return <DashboardSkeleton />;
 
-  // ACCOUNTS: payment pending records
-  const paymentPending = enquiries.filter(e => e.paymentStatus === 'pending');
-  const paymentVerified = enquiries.filter(e => e.paymentStatus === 'verified');
-
-  // ADMIN/OWNER: full stats
-  const adminStats = {
-    totalEnquiries: enquiries.length,
-    active: enquiries.filter(e => ['new', 'active'].includes(e.status)).length,
-    surveyScheduled: enquiries.filter(e => e.status === 'survey-scheduled').length,
-    surveyCompleted: enquiries.filter(e => e.status === 'survey-completed').length,
-    paymentReceived: enquiries.filter(e => e.status === 'payment-received').length,
-    installCompleted: enquiries.filter(e => e.status === 'installation-completed').length,
-    pendingApprovals: surveys.filter(s => !s.surveyApproved && !(s.surveyNotes || '').toLowerCase().includes('rejected')).length,
-    blocked: enquiries.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
-  };
-
-  // ✅ My pending tasks (FOLLOWUPS assigned to me)
-const myPendingFollowups = followups.filter((f: any) => 
-  f.userId === email && 
-  f.status === 'pending' && 
-  new Date(f.nextFollowupDate || '1970-01-01') <= new Date()
-);
-
-// ✅ My recent activity (ACTIVITY_LOG where I acted)
-const myRecentActivity = timeline.filter((a: any) => 
-  a.userId === email && 
-  new Date(a.timestamp) > new Date(Date.now() - 7*24*60*60*1000)
-);
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const isAdminOrOwner = role === 'admin' || role === 'owner';
 
   return (
     <div className="min-h-screen bg-gray-50">
       <DemoBanner />
 
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-4 py-5">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {getGreeting()}, {name} 👋
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5 capitalize">{role} · {email}</p>
-      </div>
+      {/* ── Notification Bell (fixed top-right) ── */}
+      <div className="fixed top-4 right-4 z-40">
+        <button
+          onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markPokesRead(); }}
+          className="relative bg-white border border-gray-200 shadow-md p-2.5 rounded-xl hover:bg-gray-50 transition"
+        >
+          {unreadPokes > 0
+            ? <BellRing size={20} className="text-orange-500 animate-bounce" />
+            : <Bell size={20} className="text-gray-500" />
+          }
+          {unreadPokes > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {unreadPokes}
+            </span>
+          )}
+        </button>
 
-      <div className="p-4 space-y-6">
-
-        {/* ════════════════════════════════════════════
-            SURVEYOR DASHBOARD
-        ════════════════════════════════════════════ */}
-        {role === 'surveyor' && (
-          <>
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <StatBox label="Pending Visits" value={myPendingSurveys.length} color="orange" icon={Clock} />
-              <StatBox label="My Surveys" value={surveys.filter(s => s.surveyorEmail === email).length} color="blue" icon={ClipboardCheck} />
+        {/* Notification dropdown */}
+        {showNotifications && (
+          <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <span className="font-bold text-gray-900 text-sm">Notifications</span>
+              <button onClick={() => setShowNotifications(false)}><X size={16} className="text-gray-400" /></button>
             </div>
-
-           {/* Task List */}
-<Section title={`My Tasks (${myPendingFollowups.length})`} icon={Clock} iconColor="text-orange-500">
-  {myPendingFollowups.length === 0 ? (
-    <EmptyState icon={CheckCircle} message="No pending tasks!" />
-  ) : (
-    myPendingFollowups.slice(0, 5).map((task: any) => (
-      <TaskCard
-        key={task.followupId}
-        id={task.enquiryId}
-        title={enquiries.find(e => e.id === task.enquiryId)?.customerName || 'Customer'}
-        subtitle={`${task.followupType} • ${task.followupNotes?.slice(0, 50)}...`}
-        date={task.followupDate}
-        onAction={() => router.push(`/enquiries/${task.enquiryId}`)}
-        actionLabel="View Enquiry"
-      />
-    ))
-  )}
-</Section>
-
-{/* Recent Activity */}
-<Section title={`Recent Activity (${myRecentActivity.length})`} icon={TrendingUp} iconColor="text-blue-500">
-  {myRecentActivity.slice(0, 3).map((activity: any, i: number) => (
-    <div key={i} className="p-3 bg-gray-50 rounded-xl text-sm">
-      <div className="font-medium">{activity.action}</div>
-      <div className="text-xs text-gray-500">{new Date(activity.timestamp).toLocaleString()}</div>
-    </div>
-  ))}
-</Section>
-
-
-
-            <QuickLink label="View All Surveys" href="/survey" icon={ClipboardCheck} />
-          </>
-        )}
-
-        {/* ════════════════════════════════════════════
-            SALES DASHBOARD
-        ════════════════════════════════════════════ */}
-        {role === 'sales' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <StatBox label="My Enquiries" value={myEnquiries.length} color="blue" icon={ClipboardList} />
-              <StatBox label="Active" value={myActiveEnquiries.length} color="green" icon={TrendingUp} />
-              <StatBox label="Follow-ups Due" value={myFollowups.length} color="red" icon={AlertCircle} />
-              <StatBox label="Total Pipeline" value={enquiries.length} color="purple" icon={Users} />
-            </div>
-
-            <Section title="Follow-ups Due Today" icon={AlertCircle} iconColor="text-red-500">
-              {myFollowups.length === 0 ? (
-                <EmptyState icon={CheckCircle} message="No follow-ups due. Good work!" />
+            <div className="max-h-80 overflow-y-auto">
+              {pokes.filter(p => p.to === email).length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-8">No notifications yet</p>
               ) : (
-                myFollowups.slice(0, 5).map(enq => (
-                  <TaskCard
-                    key={enq.id}
-                    id={enq.id}
-                    title={enq.customerName}
-                    subtitle={`${enq.area} · ${enq.status}`}
-                    date={enq.nextActionDate}
-                    onAction={() => router.push(`/enquiries/${enq.id}`)}
-                    actionLabel="View Enquiry"
-                    actionColor="bg-green-600"
-                  />
+                pokes.filter(p => p.to === email).map(poke => (
+                  <div key={poke.id}
+                    className={`px-4 py-3 border-b border-gray-50 ${!poke.read ? 'bg-orange-50' : ''}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs flex-shrink-0 mt-0.5">
+                        {poke.fromName?.[0] || '?'}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-900">{poke.fromName} poked you</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{poke.message}</p>
+                        <button
+                          onClick={() => router.push(`/enquiries/${poke.enquiryId}`)}
+                          className="text-xs text-blue-600 font-semibold mt-1"
+                        >
+                          {poke.customerName} ({poke.enquiryId}) →
+                        </button>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {new Date(poke.timestamp).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ))
               )}
-            </Section>
+            </div>
+            {/* Activity feed — who poked whom (admin sees all) */}
+            {isAdminOrOwner && pokes.length > 0 && (
+              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+                <p className="text-xs font-bold text-gray-500 mb-1">Activity</p>
+                {pokes.slice(0, 5).map(p => (
+                  <p key={p.id + 'feed'} className="text-xs text-gray-500 mb-0.5">
+                    {p.fromName} → {p.to.split('@')[0]} re: {p.enquiryId}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-            <QuickLink label="View All Enquiries" href="/enquiries" icon={ClipboardList} />
-          </>
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto pt-16 sm:pt-6">
+
+        {/* ── Header ── */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {name.split(' ')[0]} 👋
+          </h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            {session?.user?.role?.charAt(0).toUpperCase() + (session?.user?.role?.slice(1) || '')} · {session?.user?.email}
+            {stats.overdue > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 text-red-600 font-semibold">
+                <AlertTriangle size={13} /> {stats.overdue} overdue
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* ── KPI Cards ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <MetricCard
+            title="New Leads"
+            value={stats.leads}
+            icon={PhoneCall}
+            color="blue"
+            href="/leads"
+          />
+          <MetricCard
+            title="Active Enquiries"
+            value={stats.new + stats.surveyPending + stats.surveyCompleted}
+            icon={FileText}
+            color="indigo"
+            href="/enquiries"
+          />
+          <MetricCard
+            title="Live Systems"
+            value={stats.active}
+            icon={Zap}
+            color="green"
+            href="/liaison"
+          />
+          <MetricCard
+            title="Pipeline Value"
+            value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`}
+            icon={TrendingUp}
+            color="emerald"
+          />
+        </div>
+
+        {/* ── Blocked Warning Banner ── */}
+        {stats.blocked > 0 && (
+          <div
+            className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 cursor-pointer hover:bg-red-100 transition"
+            onClick={() => router.push('/enquiries?filter=blocked')}
+          >
+            <ShieldAlert size={18} className="text-red-600 flex-shrink-0" />
+            <p className="text-sm font-semibold text-red-700">
+              {stats.blocked} enquir{stats.blocked > 1 ? 'ies are' : 'y is'} blocked and need immediate attention
+            </p>
+            <ChevronRight size={16} className="text-red-400 ml-auto" />
+          </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            INSTALLATION DASHBOARD
-        ════════════════════════════════════════════ */}
-        {role === 'installation' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <StatBox label="Active Jobs" value={myActiveJobs.length} color="blue" icon={Wrench} />
-              <StatBox label="Total Assigned" value={myInstallJobs.length} color="green" icon={Zap} />
+        {/* ── Installation Pipeline ── */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+          <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <TrendingUp size={16} className="text-blue-500" />
+            Installation Pipeline
+            <span className="ml-auto text-xs font-normal text-gray-400">Each stage is mutually exclusive</span>
+          </h2>
+
+          {/* Row 1 — Pre-installation (7 stages) */}
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-2">
+            <PipelineStage name="Leads"       count={stats.leads}           icon={PhoneCall}     color="blue"   href="/leads" />
+            <PipelineStage name="New"         count={stats.new}             icon={FileText}      color="indigo" href="/enquiries" />
+            <PipelineStage name="Survey ⏳"   count={stats.surveyPending}   icon={ClipboardCheck} color="purple" href="/survey" />
+            <PipelineStage name="Survey ✅"   count={stats.surveyCompleted} icon={FileCheck}     color="pink"   href="/survey" />
+            <PipelineStage name="Payment"     count={stats.paymentReceived} icon={DollarSign}    color="orange" href="/payment" />
+            <PipelineStage name="Installed"   count={stats.installations}   icon={Wrench}        color="teal"   href="/installation" />
+            <PipelineStage name="Active ⚡"   count={stats.active}          icon={Zap}           color="green"  href="/liaison" />
+          </div>
+
+          {/* Row 2 — Supporting stages */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <PipelineStage name="Quotation"    count={enquiries.filter(e => e.quotationDate).length}                                               icon={FileCheck}   color="pink"    href="/quotation" />
+            <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}           icon={Scale}       color="yellow"  href="/registration" />
+            <PipelineStage name="BOM"          count={enquiries.filter(e => e.bomCreated === true || e.bomCreated === 'TRUE').length}              icon={Package}     color="cyan"    href="/bom" />
+            <PipelineStage name="Dispatch"     count={enquiries.filter(e => e.dispatchDate).length}                                                icon={Truck}       color="violet"  href="/dispatch" />
+            <PipelineStage name="WCR"          count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}          icon={CheckSquare} color="rose"    href="/wcr" />
+            <PipelineStage name="Subsidy"      count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
+          </div>
+        </div>
+
+        {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
+        {isAdminOrOwner && priorityEnquiries.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-amber-500" />
+              Priority Actions
+              <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                {priorityEnquiries.length}
+              </span>
+            </h2>
+            <div className="space-y-2">
+              {priorityEnquiries.map(e => {
+                const isOverdue = e.nextActionDate && e.nextActionDate < today;
+                const isBlocked = e.isBlocked === true || e.isBlocked === 'TRUE';
+                const needsSurveyApproval = e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE');
+                const assignedUser = users.find(u => u.email === e.allottedUser);
+
+                let badge = '';
+                let badgeColor = '';
+                if (isBlocked) { badge = '🔴 Blocked'; badgeColor = 'bg-red-100 text-red-700'; }
+                else if (needsSurveyApproval) { badge = '🟡 Survey Review'; badgeColor = 'bg-yellow-100 text-yellow-700'; }
+                else if (isOverdue) { badge = '🔶 Overdue'; badgeColor = 'bg-orange-100 text-orange-700'; }
+                else if (e.priority === 'urgent') { badge = '⚡ Urgent'; badgeColor = 'bg-purple-100 text-purple-700'; }
+                else { badge = '🔺 High'; badgeColor = 'bg-blue-100 text-blue-700'; }
+
+                return (
+                  <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-gray-900 text-sm truncate">{e.customerName}</span>
+                        <span className="text-xs text-gray-400">{e.id}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
+                        {e.priority === 'urgent' && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">urgent</span>}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
+                        {isBlocked && <span className="text-xs text-red-600">{e.blockedReason}</span>}
+                        {isOverdue && e.nextActionDate && (
+                          <span className="text-xs text-orange-600">
+                            Due {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                        {/* Assigned user */}
+                        {e.allottedUser && (
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <UserCheck size={11} />
+                            {assignedUser?.name || e.allottedUser.split('@')[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Poke button */}
+                      {e.allottedUser && e.allottedUser !== email && (
+                        <button
+                          onClick={() => {
+                            setPokeTarget({ enquiryId: e.id, to: e.allottedUser, customerName: e.customerName });
+                            setShowPokeModal(true);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-xs font-semibold transition border border-orange-200"
+                          title={`Poke ${assignedUser?.name || e.allottedUser.split('@')[0]}`}
+                        >
+                          <Send size={11} /> Poke
+                        </button>
+                      )}
+                      <button
+                        onClick={() => router.push(`/enquiries/${e.id}`)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition border border-blue-200"
+                      >
+                        View <ChevronRight size={11} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <Section title="Pending Installation Jobs" icon={Wrench} iconColor="text-blue-500">
-              {myActiveJobs.length === 0 ? (
-                <EmptyState icon={CheckCircle} message="No active installation jobs." />
-              ) : (
-                myActiveJobs.map(job => (
-                  <TaskCard
-                    key={job.id}
-                    id={job.id}
-                    title={job.customerName}
-                    subtitle={`${job.area} · ${job.capacity}kW · ${job.status}`}
-                    date={job.installationScheduledDate}
-                    onAction={() => router.push(`/installation/${job.id}`)}
-                    actionLabel="View Job"
-                    actionColor="bg-indigo-600"
-                  />
-                ))
-              )}
-            </Section>
-
-            <QuickLink label="View All Jobs" href="/installation" icon={Wrench} />
-          </>
+          </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            ACCOUNTS DASHBOARD
-        ════════════════════════════════════════════ */}
-        {role === 'accounts' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <StatBox label="Pending Payments" value={paymentPending.length} color="red" icon={CreditCard} />
-              <StatBox label="Verified" value={paymentVerified.length} color="green" icon={CheckCircle} />
+        {/* ── MY TASKS (all roles) ── */}
+        {myTasks.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <Clock size={16} className="text-blue-500" />
+              My Tasks
+              <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+                {myTasks.length}
+              </span>
+            </h2>
+            <div className="space-y-2">
+              {myTasks.map(e => {
+                const isOverdue = e.nextActionDate && e.nextActionDate < today;
+                return (
+                  <div key={e.id}
+                    className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer hover:shadow-sm ${
+                      isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-transparent hover:border-gray-200'
+                    }`}
+                    onClick={() => router.push(`/enquiries/${e.id}`)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900 text-sm truncate">{e.customerName}</span>
+                        <span className="text-xs text-gray-400">{e.id}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${
+                          e.status === 'survey-pending' ? 'bg-purple-100 text-purple-700' :
+                          e.status === 'survey-completed' ? 'bg-pink-100 text-pink-700' :
+                          e.status === 'payment-received' ? 'bg-orange-100 text-orange-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>{e.status.replace(/-/g, ' ')}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
+                        {e.nextActionDate && (
+                          <span className={`text-xs font-semibold ${isOverdue ? 'text-red-600' : 'text-gray-400'}`}>
+                            {isOverdue ? '⚠ Overdue · ' : '📅 '}
+                            {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+                  </div>
+                );
+              })}
             </div>
-
-            <Section title="Pending Payment Verification" icon={CreditCard} iconColor="text-red-500">
-              {paymentPending.length === 0 ? (
-                <EmptyState icon={CheckCircle} message="All payments verified!" />
-              ) : (
-                paymentPending.slice(0, 5).map(enq => (
-                  <TaskCard
-                    key={enq.id}
-                    id={enq.id}
-                    title={enq.customerName}
-                    subtitle={`₹${enq.initialPayment?.toLocaleString('en-IN') || '—'} · ${enq.paymentMethod || '—'}`}
-                    date={enq.paymentDate}
-                    onAction={() => router.push(`/payment/${enq.id}`)}
-                    actionLabel="Verify Payment"
-                    actionColor="bg-emerald-600"
-                  />
-                ))
-              )}
-            </Section>
-
-            <QuickLink label="View All Payments" href="/payment" icon={CreditCard} />
-          </>
+          </div>
         )}
 
-        {/* ════════════════════════════════════════════
-            ADMIN / OWNER DASHBOARD
-        ════════════════════════════════════════════ */}
-        {(role === 'admin' || role === 'owner') && (
-          <>
-            {/* Full Pipeline Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <StatBox label="Total Enquiries" value={adminStats.totalEnquiries} color="blue" icon={ClipboardList} />
-              <StatBox label="Active" value={adminStats.active} color="green" icon={TrendingUp} />
-              <StatBox label="Survey Scheduled" value={adminStats.surveyScheduled} color="orange" icon={Calendar} />
-              <StatBox label="Survey Completed" value={adminStats.surveyCompleted} color="teal" icon={ClipboardCheck} />
-              <StatBox label="Payment Received" value={adminStats.paymentReceived} color="purple" icon={CreditCard} />
-              <StatBox label="Installed" value={adminStats.installCompleted} color="green" icon={Wrench} />
-              <StatBox label="Pending Approvals" value={adminStats.pendingApprovals} color="yellow" icon={Clock} />
-              <StatBox label="Blocked" value={adminStats.blocked} color="red" icon={AlertCircle} />
+        {/* ── Surveys Awaiting Approval (admin/owner) ── */}
+        {isAdminOrOwner && (() => {
+          const pendingApprovals = enquiries.filter(e =>
+            e.surveyCompletedDate &&
+            (e.surveyApproved === false || e.surveyApproved === 'FALSE') &&
+            e.surveyedBy
+          );
+          if (pendingApprovals.length === 0) return null;
+          return (
+            <div className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-6">
+              <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <ClipboardCheck size={16} className="text-yellow-500" />
+                Surveys Awaiting Approval
+                <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">
+                  {pendingApprovals.length}
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {pendingApprovals.map(e => (
+                  <div key={e.id} className="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {e.customerName}
+                        <span className="ml-2 text-xs text-gray-400">{e.id}</span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {e.area} · {e.capacity}kW · surveyed by {e.surveyedBy.split('@')[0]}
+                        {e.surveyCompletedDate && ` on ${new Date(e.surveyCompletedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => router.push(`/survey?review=${e.id}`)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-xs font-bold transition flex-shrink-0"
+                    >
+                      <CheckCircle2 size={12} /> Review
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
+          );
+        })()}
 
-            {/* ── Pipeline Grid ── */}
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-      <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-        <TrendingUp size={18} className="text-blue-500" />
-        Installation Pipeline
-      </h2>
+        {/* ── Quick Actions ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <QuickActionCard title="Add New Lead"    description="Capture new prospect"       icon={PhoneCall} href="/leads"      color="blue" />
+          <QuickActionCard title="Create Enquiry"  description="Convert lead to enquiry"    icon={FileText}  href="/enquiries"  color="indigo" />
+          <QuickActionCard title="View Kanban"     description="Track all stages visually"  icon={Kanban}    href="/kanban"     color="green" />
+        </div>
 
-      {/* Row 1 — Pre-installation */}
-      <div className="grid grid-cols-4 gap-2 mb-2">
-        <PipelineBox
-          label="Leads"
-          value={enquiries.filter(e => ['lead', 'prospect'].includes(e.status)).length}
-          color="blue"
-          href="/leads"
-          router={router}
-        />
-        <PipelineBox
-          label="Enquiries"
-          value={adminStats.totalEnquiries}
-          color="indigo"
-          href="/enquiries"
-          router={router}
-        />
-        <PipelineBox
-          label="Survey"
-          value={adminStats.surveyScheduled + adminStats.surveyCompleted}
-          color="purple"
-          href="/survey"
-          router={router}
-        />
-        <PipelineBox
-          label="Quotation"
-          value={enquiries.filter(e => e.quotationAmount || e.quotationDate).length}
-          color="pink"
-          href="/quotation"
-          router={router}
-        />
-      </div>
-
-      {/* Row 2 — Installation */}
-      <div className="grid grid-cols-4 gap-2 mb-2">
-        <PipelineBox
-          label="Registration"
-          value={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}
-          color="yellow"
-          href="/registration"
-          router={router}
-        />
-        <PipelineBox
-          label="Payment"
-          value={adminStats.paymentReceived}
-          color="orange"
-          href="/payment"
-          router={router}
-        />
-        <PipelineBox
-          label="BOM"
-          value={enquiries.filter(e => e.bomCreated === true || e.bomCreated === 'TRUE').length}
-          color="teal"
-          href="/bom"
-          router={router}
-        />
-        <PipelineBox
-          label="Dispatch"
-          value={enquiries.filter(e => e.dispatchDate).length}
-          color="cyan"
-          href="/dispatch"
-          router={router}
-        />
-      </div>
-
-      {/* Row 3 — Post-installation */}
-      <div className="grid grid-cols-4 gap-2">
-        <PipelineBox
-          label="Installation"
-          value={adminStats.installCompleted}
-          color="green"
-          href="/installation"
-          router={router}
-        />
-        <PipelineBox
-          label="Liaison"
-          value={enquiries.filter(e => e.inspectionDate || e.gridSyncDate).length}
-          color="violet"
-          href="/liaison"
-          router={router}
-        />
-        <PipelineBox
-          label="WCR"
-          value={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}
-          color="rose"
-          href="/wcr"
-          router={router}
-        />
-        <PipelineBox
-          label="Active"
-          value={enquiries.filter(e => e.status === 'active').length}
-          color="emerald"
-          href="/liaison"
-          router={router}
-        />
-      </div>
-    </div>
-
-            {/* Pending Survey Approvals */}
-            <Section title="Surveys Awaiting Approval" icon={Clock} iconColor="text-yellow-500">
-              {surveys.filter(s => !s.surveyApproved && !(s.surveyNotes || '').toLowerCase().includes('rejected')).length === 0 ? (
-                <EmptyState icon={CheckCircle} message="No surveys pending approval." />
-              ) : (
-                surveys
-                  .filter(s => !s.surveyApproved && !(s.surveyNotes || '').toLowerCase().includes('rejected'))
-                  .slice(0, 5)
-                  .map(s => (
-                    <TaskCard
-                      key={s.enquiryId}
-                      id={s.enquiryId}
-                      title={`Survey by ${s.surveyorName}`}
-                      subtitle={`${s.projectType} · ${s.installationSurface} · ${s.sanctionedLoad}kW`}
-                      date={s.surveyDate}
-                      onAction={() => router.push(`/survey/${s.enquiryId}`)}
-                      actionLabel="Review"
-                      actionColor="bg-yellow-600"
-                    />
-                  ))
-              )}
-            </Section>
-
-            {/* Quick Nav */}
-            <div className="grid grid-cols-2 gap-3">
-              <QuickLink label="Enquiries" href="/enquiries" icon={ClipboardList} />
-              <QuickLink label="Surveys" href="/survey" icon={ClipboardCheck} />
-              <QuickLink label="Installation" href="/installation" icon={Wrench} />
-              <QuickLink label="Payments" href="/payment" icon={CreditCard} />
-              {role === 'owner' && <QuickLink label="Users" href="/users" icon={Users} />}
-            </div>
-
-            {/* ── MY TASKS (Admin/Owner) ─────────── */}
-{followups.filter((f: any) =>
-  f.userId === email && f.status === 'pending'
-).length > 0 && (
-  <Section title="My Pending Tasks" icon={AlertCircle} iconColor="text-red-500">
-    {followups
-      .filter((f: any) => f.userId === email && f.status === 'pending')
-      .slice(0, 5)
-      .map((f: any) => (
-        <TaskCard
-          key={f.followupId || f.enquiryId}
-          id={f.enquiryId}
-          title={enquiries.find(e => e.id === f.enquiryId)?.customerName || f.enquiryId}
-          subtitle={`${f.followupType} · ${(f.followupNotes || '').slice(0, 50)}`}
-          date={f.nextFollowupDate || f.followupDate}
-          onAction={() => router.push(`/enquiries/${f.enquiryId}`)}
-          actionLabel="View Enquiry"
-          actionColor="bg-red-600"
-        />
-      ))}
-  </Section>
-)}
-          </>
+        {/* ── Admin Quick Nav ── */}
+        {isAdminOrOwner && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Enquiries', href: '/enquiries', icon: FileText },
+              { label: 'Surveys',   href: '/survey',    icon: ClipboardCheck },
+              { label: 'Installation', href: '/installation', icon: Wrench },
+              { label: 'Payments',  href: '/payment',   icon: IndianRupee },
+              { label: 'Users',     href: '/admin/users', icon: Users },
+              { label: 'Kanban',    href: '/kanban',    icon: Kanban },
+              { label: 'WCR',       href: '/wcr',       icon: CheckSquare },
+              { label: 'Subsidy',   href: '/subsidy',   icon: IndianRupee },
+            ].map(item => (
+              <Link key={item.href} href={item.href}>
+                <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition text-sm font-semibold text-gray-700">
+                  <item.icon size={15} className="text-blue-500 flex-shrink-0" />
+                  {item.label}
+                  <ChevronRight size={13} className="ml-auto text-gray-300" />
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
-
       </div>
-    </div>
-  );
-}
 
-// ── Shared UI Components ───────────────────────────────────────────────────────
-
-const colorMap: Record<string, string> = {
-  blue:   'bg-blue-50 border-blue-200 text-blue-800',
-  green:  'bg-green-50 border-green-200 text-green-800',
-  orange: 'bg-orange-50 border-orange-200 text-orange-800',
-  red:    'bg-red-50 border-red-200 text-red-800',
-  yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-  purple: 'bg-purple-50 border-purple-200 text-purple-800',
-  teal:   'bg-teal-50 border-teal-200 text-teal-800',
-};
-
-function StatBox({ label, value, color, icon: Icon }: { label: string; value: number; color: string; icon: any }) {
-  return (
-    <div className={`${colorMap[color]} border-2 rounded-2xl p-4`}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon size={16} />
-        <p className="text-xs font-bold opacity-80">{label}</p>
-      </div>
-      <p className="text-3xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-function Section({ title, icon: Icon, iconColor, children }: { title: string; icon: any; iconColor: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h2 className="text-base font-bold text-gray-900 flex items-center gap-2 mb-3">
-        <Icon size={18} className={iconColor} />
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
-    </div>
-  );
-}
-
-function TaskCard({ id, title, subtitle, date, onAction, actionLabel, actionColor = 'bg-blue-600' }: {
-  id: string; title: string; subtitle: string; date?: string;
-  onAction: () => void; actionLabel: string; actionColor?: string;
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
-      <div className="flex items-start justify-between mb-1">
-        <span className="text-xs font-mono font-bold text-blue-600">{id}</span>
-      </div>
-      <p className="font-bold text-gray-900">{title}</p>
-      <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-        <MapPin size={12} /> {subtitle}
-      </p>
-      {date && (
-        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-          <Calendar size={12} />
-          {new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </p>
+      {/* ── Poke Modal ── */}
+      {showPokeModal && pokeTarget && (
+        <PokeModal
+          target={pokeTarget}
+          senderName={name}
+          onSend={(msg) => sendPoke(pokeTarget.enquiryId, pokeTarget.to, pokeTarget.customerName, msg)}
+          onClose={() => { setShowPokeModal(false); setPokeTarget(null); }}
+        />
       )}
-      <button
-        onClick={onAction}
-        className={`mt-3 w-full ${actionColor} text-white py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition`}
-      >
-        <Edit size={14} />
-        {actionLabel}
-      </button>
     </div>
   );
 }
 
-function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-      <Icon className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-      <p className="text-sm font-medium text-gray-500">{message}</p>
-    </div>
-  );
-}
-
-function QuickLink({ label, href, icon: Icon }: { label: string; href: string; icon: any }) {
-  const router = useRouter();
-  return (
-    <button
-      onClick={() => router.push(href)}
-      className="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center gap-3 w-full font-bold text-gray-800 active:scale-95 transition hover:border-blue-300"
-    >
-      <Icon size={20} className="text-blue-600" />
-      {label}
-    </button>
-  );
-}
-// Add alongside StatBox, TaskCard etc. at the bottom
-
-const pipelineColorMap: Record<string, string> = {
-  blue:    'bg-blue-50 border-blue-200 text-blue-700',
-  indigo:  'bg-indigo-50 border-indigo-200 text-indigo-700',
-  purple:  'bg-purple-50 border-purple-200 text-purple-700',
-  pink:    'bg-pink-50 border-pink-200 text-pink-700',
-  yellow:  'bg-yellow-50 border-yellow-200 text-yellow-700',
-  orange:  'bg-orange-50 border-orange-200 text-orange-700',
-  teal:    'bg-teal-50 border-teal-200 text-teal-700',
-  cyan:    'bg-cyan-50 border-cyan-200 text-cyan-700',
-  green:   'bg-green-50 border-green-200 text-green-700',
-  violet:  'bg-violet-50 border-violet-200 text-violet-700',
-  rose:    'bg-rose-50 border-rose-200 text-rose-700',
-  emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-};
-
-function PipelineBox({
-  label, value, color, href, router
-}: {
-  label: string;
-  value: number;
-  color: string;
-  href: string;
-  router: ReturnType<typeof useRouter>;
+// ─── Poke Modal ───────────────────────────────────────────────────────────────
+function PokeModal({ target, senderName, onSend, onClose }: {
+  target: { enquiryId: string; to: string; customerName: string };
+  senderName: string;
+  onSend: (msg: string) => void;
+  onClose: () => void;
 }) {
+  const [msg, setMsg] = useState('');
+  const quickMessages = [
+    'Please update the status on this enquiry',
+    'Survey approval is pending — please review',
+    'Payment follow-up needed',
+    'Customer is waiting for a response',
+    'Action overdue — please take immediate action',
+  ];
   return (
-    <button
-      onClick={() => router.push(href)}
-      className={`${pipelineColorMap[color]} border-2 rounded-xl p-3 text-left w-full active:scale-95 transition hover:shadow-sm`}
-    >
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-xs font-semibold opacity-80 mt-0.5 truncate">{label}</p>
-    </button>
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-gray-900">👉 Poke {target.to.split('@')[0]}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{target.customerName} · {target.enquiryId}</p>
+            </div>
+            <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
+          </div>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-semibold text-gray-500 mb-2">Quick message:</p>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {quickMessages.map(qm => (
+              <button key={qm} onClick={() => setMsg(qm)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                  msg === qm ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-300'
+                }`}>
+                {qm}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={msg}
+            onChange={e => setMsg(e.target.value)}
+            placeholder="Or write a custom message..."
+            rows={2}
+            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-400 focus:outline-none resize-none"
+          />
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => msg.trim() && onSend(msg.trim())}
+              disabled={!msg.trim()}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 text-white py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition"
+            >
+              <Send size={14} /> Send Poke
+            </button>
+            <button onClick={onClose}
+              className="px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold text-sm transition">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-gray-50 animate-pulse p-4 max-w-7xl mx-auto pt-16">
+      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
+      <div className="h-4 bg-gray-100 rounded w-1/3 mb-6" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {[1,2,3,4].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100" />)}
+      </div>
+      <div className="h-48 bg-white rounded-2xl border border-gray-100 mb-4" />
+      <div className="h-40 bg-white rounded-2xl border border-gray-100" />
+    </div>
+  );
+}
+
+// ─── Metric Card ──────────────────────────────────────────────────────────────
+type MetricColor = 'blue' | 'indigo' | 'green' | 'emerald';
+function MetricCard({ title, value, icon: Icon, color, href }: {
+  title: string; value: string | number; icon: any; color: MetricColor; href?: string;
+}) {
+  const colors: Record<MetricColor, string> = {
+    blue: 'from-blue-500 to-blue-600',
+    indigo: 'from-indigo-500 to-indigo-600',
+    green: 'from-green-500 to-green-600',
+    emerald: 'from-emerald-500 to-emerald-600',
+  };
+  return (
+    <Link href={href || '#'}>
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition cursor-pointer">
+        <div className={`bg-gradient-to-br ${colors[color]} text-white p-2.5 rounded-xl inline-flex mb-3`}>
+          <Icon size={18} />
+        </div>
+        <p className="text-gray-500 text-xs font-medium">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Pipeline Stage ───────────────────────────────────────────────────────────
+type PipelineColor = 'gray'|'blue'|'purple'|'indigo'|'pink'|'yellow'|'orange'|'teal'|'cyan'|'violet'|'fuchsia'|'rose'|'green';
+function PipelineStage({ name, count, icon: Icon, color, href }: {
+  name: string; count: number; icon: any; color: PipelineColor; href: string;
+}) {
+  const colors: Record<PipelineColor, string> = {
+    gray: 'bg-gray-50 text-gray-700 border-gray-200',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    purple: 'bg-purple-50 text-purple-700 border-purple-200',
+    indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    pink: 'bg-pink-50 text-pink-700 border-pink-200',
+    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    orange: 'bg-orange-50 text-orange-700 border-orange-200',
+    teal: 'bg-teal-50 text-teal-700 border-teal-200',
+    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    violet: 'bg-violet-50 text-violet-700 border-violet-200',
+    fuchsia: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+    rose: 'bg-rose-50 text-rose-700 border-rose-200',
+    green: 'bg-green-50 text-green-700 border-green-200',
+  };
+  return (
+    <Link href={href}>
+      <div className={`${colors[color]} border rounded-xl p-2.5 sm:p-3 hover:shadow-sm transition cursor-pointer`}>
+        <div className="flex items-center justify-between mb-1">
+          <Icon size={14} className="flex-shrink-0" />
+          <span className="text-lg sm:text-xl font-bold">{count}</span>
+        </div>
+        <p className="text-xs font-medium truncate leading-tight">{name}</p>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Quick Action Card ────────────────────────────────────────────────────────
+type QuickActionColor = 'blue' | 'indigo' | 'green';
+function QuickActionCard({ title, description, icon: Icon, href, color }: {
+  title: string; description: string; icon: any; href: string; color: QuickActionColor;
+}) {
+  const colors: Record<QuickActionColor, string> = {
+    blue: 'from-blue-500 to-blue-600',
+    indigo: 'from-indigo-500 to-indigo-600',
+    green: 'from-green-500 to-green-600',
+  };
+  return (
+    <Link href={href}>
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition cursor-pointer">
+        <div className={`bg-gradient-to-br ${colors[color]} text-white p-2.5 rounded-xl inline-flex mb-3`}>
+          <Icon size={18} />
+        </div>
+        <h3 className="font-bold text-gray-900 text-sm mb-1">{title}</h3>
+        <p className="text-xs text-gray-500">{description}</p>
+      </div>
+    </Link>
+  );
+}
