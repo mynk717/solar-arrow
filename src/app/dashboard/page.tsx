@@ -314,6 +314,110 @@ const myRecentActivity = timeline.filter((a: any) =>
               <StatBox label="Blocked" value={adminStats.blocked} color="red" icon={AlertCircle} />
             </div>
 
+            {/* ── Pipeline Grid ── */}
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+      <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <TrendingUp size={18} className="text-blue-500" />
+        Installation Pipeline
+      </h2>
+
+      {/* Row 1 — Pre-installation */}
+      <div className="grid grid-cols-4 gap-2 mb-2">
+        <PipelineBox
+          label="Leads"
+          value={enquiries.filter(e => ['lead', 'prospect'].includes(e.status)).length}
+          color="blue"
+          href="/leads"
+          router={router}
+        />
+        <PipelineBox
+          label="Enquiries"
+          value={adminStats.totalEnquiries}
+          color="indigo"
+          href="/enquiries"
+          router={router}
+        />
+        <PipelineBox
+          label="Survey"
+          value={adminStats.surveyScheduled + adminStats.surveyCompleted}
+          color="purple"
+          href="/survey"
+          router={router}
+        />
+        <PipelineBox
+          label="Quotation"
+          value={enquiries.filter(e => e.quotationAmount || e.quotationDate).length}
+          color="pink"
+          href="/quotation"
+          router={router}
+        />
+      </div>
+
+      {/* Row 2 — Installation */}
+      <div className="grid grid-cols-4 gap-2 mb-2">
+        <PipelineBox
+          label="Registration"
+          value={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}
+          color="yellow"
+          href="/registration"
+          router={router}
+        />
+        <PipelineBox
+          label="Payment"
+          value={adminStats.paymentReceived}
+          color="orange"
+          href="/payment"
+          router={router}
+        />
+        <PipelineBox
+          label="BOM"
+          value={enquiries.filter(e => e.bomCreated === true || e.bomCreated === 'TRUE').length}
+          color="teal"
+          href="/bom"
+          router={router}
+        />
+        <PipelineBox
+          label="Dispatch"
+          value={enquiries.filter(e => e.dispatchDate).length}
+          color="cyan"
+          href="/dispatch"
+          router={router}
+        />
+      </div>
+
+      {/* Row 3 — Post-installation */}
+      <div className="grid grid-cols-4 gap-2">
+        <PipelineBox
+          label="Installation"
+          value={adminStats.installCompleted}
+          color="green"
+          href="/installation"
+          router={router}
+        />
+        <PipelineBox
+          label="Liaison"
+          value={enquiries.filter(e => e.inspectionDate || e.gridSyncDate).length}
+          color="violet"
+          href="/liaison"
+          router={router}
+        />
+        <PipelineBox
+          label="WCR"
+          value={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}
+          color="rose"
+          href="/wcr"
+          router={router}
+        />
+        <PipelineBox
+          label="Active"
+          value={enquiries.filter(e => e.status === 'active').length}
+          color="emerald"
+          href="/liaison"
+          router={router}
+        />
+      </div>
+    </div>
+
             {/* Pending Survey Approvals */}
             <Section title="Surveys Awaiting Approval" icon={Clock} iconColor="text-yellow-500">
               {surveys.filter(s => !s.surveyApproved && !(s.surveyNotes || '').toLowerCase().includes('rejected')).length === 0 ? (
@@ -345,6 +449,29 @@ const myRecentActivity = timeline.filter((a: any) =>
               <QuickLink label="Payments" href="/payment" icon={CreditCard} />
               {role === 'owner' && <QuickLink label="Users" href="/users" icon={Users} />}
             </div>
+
+            {/* ── MY TASKS (Admin/Owner) ─────────── */}
+{followups.filter((f: any) =>
+  f.userId === email && f.status === 'pending'
+).length > 0 && (
+  <Section title="My Pending Tasks" icon={AlertCircle} iconColor="text-red-500">
+    {followups
+      .filter((f: any) => f.userId === email && f.status === 'pending')
+      .slice(0, 5)
+      .map((f: any) => (
+        <TaskCard
+          key={f.followupId || f.enquiryId}
+          id={f.enquiryId}
+          title={enquiries.find(e => e.id === f.enquiryId)?.customerName || f.enquiryId}
+          subtitle={`${f.followupType} · ${(f.followupNotes || '').slice(0, 50)}`}
+          date={f.nextFollowupDate || f.followupDate}
+          onAction={() => router.push(`/enquiries/${f.enquiryId}`)}
+          actionLabel="View Enquiry"
+          actionColor="bg-red-600"
+        />
+      ))}
+  </Section>
+)}
           </>
         )}
 
@@ -440,3 +567,40 @@ function QuickLink({ label, href, icon: Icon }: { label: string; href: string; i
     </button>
   );
 }
+// Add alongside StatBox, TaskCard etc. at the bottom
+
+const pipelineColorMap: Record<string, string> = {
+  blue:    'bg-blue-50 border-blue-200 text-blue-700',
+  indigo:  'bg-indigo-50 border-indigo-200 text-indigo-700',
+  purple:  'bg-purple-50 border-purple-200 text-purple-700',
+  pink:    'bg-pink-50 border-pink-200 text-pink-700',
+  yellow:  'bg-yellow-50 border-yellow-200 text-yellow-700',
+  orange:  'bg-orange-50 border-orange-200 text-orange-700',
+  teal:    'bg-teal-50 border-teal-200 text-teal-700',
+  cyan:    'bg-cyan-50 border-cyan-200 text-cyan-700',
+  green:   'bg-green-50 border-green-200 text-green-700',
+  violet:  'bg-violet-50 border-violet-200 text-violet-700',
+  rose:    'bg-rose-50 border-rose-200 text-rose-700',
+  emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+};
+
+function PipelineBox({
+  label, value, color, href, router
+}: {
+  label: string;
+  value: number;
+  color: string;
+  href: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  return (
+    <button
+      onClick={() => router.push(href)}
+      className={`${pipelineColorMap[color]} border-2 rounded-xl p-3 text-left w-full active:scale-95 transition hover:shadow-sm`}
+    >
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs font-semibold opacity-80 mt-0.5 truncate">{label}</p>
+    </button>
+  );
+}
+
