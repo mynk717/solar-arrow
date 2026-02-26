@@ -10,25 +10,16 @@ const publicRoutes = [
   '/',
   '/login',
   '/onboard',
-  '/leads',
-  '/enquiries',
-  '/survey',
-  '/quotation',
-  '/registration',
-  '/payments',
-  '/bom',
-  '/dispatch',
-  '/installation',
-  '/liaison',
-  '/wcr',
-  '/subsidy',
-  '/kanban',
-  '/reports',
   '/unauthorized',
-  '/settings',
   '/privacy',
   '/terms',
+];
+
+const alwaysAllowedRoutes = [
   '/dashboard',
+  '/kanban',
+  '/settings',
+  '/reports',
 ];
 
 // Admin-only routes
@@ -48,6 +39,11 @@ function isPublicRoute(path: string): boolean {
 function isAdminOnlyRoute(path: string): boolean {
   return adminOnlyRoutes.some(route => path.startsWith(route));
 }
+// Check if route is always allowed for any logged-in user
+function isAlwaysAllowed(path: string): boolean {
+  return alwaysAllowedRoutes.some(route => path === route || path.startsWith(route + '/'));
+}
+
 
 export default withAuth(
   function middleware(req) {
@@ -58,7 +54,11 @@ export default withAuth(
     if (isPublicRoute(path)) {
       return NextResponse.next();
     }
-    
+    // Allow dashboard/kanban/settings for any logged-in user
+if (isAlwaysAllowed(path)) {
+  return NextResponse.next();
+}
+
     const userRole = (token?.role as UserRole) || 'sales';
     // ✅ FIXED: Proper type casting with fallback
     const accountType = (token?.accountType as AccountType) || 'user';
@@ -75,54 +75,48 @@ export default withAuth(
     if (accountType === 'owner' || accountType === 'admin' || userRole === 'admin') {
       return NextResponse.next();
     }
-    
-   // ✅ Check custom per-user page permissions first
-// Shape stored in Redis: { Leads: { view: true }, Survey: { view: true }, ... }
-const customPerms = token?.permissions as Record<string, { view?: boolean }> | null;
-if (customPerms && Object.keys(customPerms).length > 0) {
-  const PATH_TO_PERM_KEY: Record<string, string> = {
-    '/leads': 'Leads',
-    '/enquiries': 'Enquiries',
-    '/survey': 'Survey',
-    '/quotation': 'Quotation',
-    '/registration': 'Registration',
-    '/payments': 'Payments',
-    '/bom': 'BOM',
-    '/installation': 'Installation',
-    '/liaison': 'Liaison',
-    '/wcr': 'WCR',
-    '/subsidy': 'Subsidy',
-  };
-  const matchedKey = Object.entries(PATH_TO_PERM_KEY).find(
-    ([p]) => path === p || path.startsWith(p + '/')
-  )?.[1];
+   
+  // ✅ Check custom per-user page permissions
+  // Shape stored in Redis: { canView: ['/leads', '/survey'], canEdit: [...] }
+  const customPerms = token?.permissions as { canView?: string[] } | null | undefined;
 
-  if (matchedKey) {
-    if (!customPerms[matchedKey]?.view) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
+  // List of paths that require a page-level permission check
+  const PERMISSION_PATHS = [
+    '/leads', '/enquiries', '/survey', '/quotation',
+    '/registration', '/payments', '/bom', '/dispatch',
+    '/installation', '/liaison', '/wcr', '/subsidy',
+  ];
+
+  const matchedPath = PERMISSION_PATHS.find(
+    p => path === p || path.startsWith(p + '/')
+  );
+
+  if (matchedPath) {
+    // This path needs a permission — check canView array
+    if (customPerms && Array.isArray(customPerms.canView) && customPerms.canView.length > 0) {
+      // User has custom permissions set — enforce them
+      return customPerms.canView.includes(matchedPath)
+        ? NextResponse.next()
+        : NextResponse.redirect(new URL('/unauthorized', req.url));
     }
+    // No custom permissions set — fall back to role-based check
+    return canAccessPage(accountType, userRole, path)
+      ? NextResponse.next()
+      : NextResponse.redirect(new URL('/unauthorized', req.url));
   }
-  return NextResponse.next();
-}
 
-// ✅ Fallback: role-based permissions for users without custom permissions
-const hasAccess = canAccessPage(accountType, userRole, path);
-if (!hasAccess) {
-  return NextResponse.redirect(new URL('/unauthorized', req.url));
-}
-return NextResponse.next();
+  // Path not in permission map — allow
+  return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to public routes without token
-        if (isPublicRoute(req.nextUrl.pathname)) {
-          return true;
-        }
-        // Require token for protected routes
+        const path = req.nextUrl.pathname;
+        if (isPublicRoute(path)) return true;
+        if (isAlwaysAllowed(path)) return !!token;
         return !!token;
-      }
-    }
+      },
+    },    
   }
 );
 

@@ -112,12 +112,14 @@ export default function DashboardPage() {
   session?.user?.accountType === 'owner' ||
   role === 'admin' || role === 'owner';
 
+// Shape from admin panel: { canView: ['/leads', '/survey'], canEdit: [...] }
 const userPerms = isAdminOrOwner
   ? null
-  : (session?.user?.permissions as Record<string, { view?: boolean }> | null);
+  : (session?.user?.permissions as { canView?: string[] } | null);
 
-  const canSee = (key: string) =>
-    isAdminOrOwner || (userPerms?.[key]?.view === true);
+const canSee = (path: string) =>
+  isAdminOrOwner || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(path));
+
 
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
@@ -173,18 +175,17 @@ fetches.push(fetch('/api/followups'));
       setUsers(usersArr);
       setPokes(pokesArr);
 
+      // Filter enquiries visible to this user based on permissions
+const visibleEnqs: Enquiry[] = isAdminOrOwner
+? enqs
+: enqs.filter((e: Enquiry) => {
+    if (e.allottedUser !== email && e.surveyedBy !== email) return false;
+    const requiredPerm = statusToPermKey[e.status];
+    return !requiredPerm || canSee(requiredPerm);
+  });
+
      // Build visible enquiry ID set for permission filtering
-const visibleEnqIds = new Set<string>(
-  isAdminOrOwner
-    ? enqs.map((e: Enquiry) => e.id)
-    : enqs
-        .filter((e: Enquiry) => {
-          if (e.allottedUser !== email && e.surveyedBy !== email) return false;
-          const requiredPerm = statusToPermKey[e.status];
-          return !requiredPerm || canSee(requiredPerm);
-        })
-        .map((e: Enquiry) => e.id)
-);
+     const visibleEnqIds = new Set<string>(visibleEnqs.map((e: Enquiry) => e.id));
 
 // Activities
 const actIdx = isAdminOrOwner ? 4 : 3;
@@ -212,16 +213,16 @@ setFollowups(fusArr);
 
       // ── CORRECT pipeline counts — mutually exclusive status field ──
       const realStats = {
-        leads: ldsArr.length,
-        new: enqs.filter(e => e.status === 'new').length,
-        surveyPending: enqs.filter(e => e.status === 'survey-pending').length,
-        surveyCompleted: enqs.filter(e => e.status === 'survey-completed').length,
-        paymentReceived: enqs.filter(e => e.status === 'payment-received').length,
-        installations: enqs.filter(e => e.status === 'installation-completed').length,
-        active: enqs.filter(e => e.status === 'active').length,
-        blocked: enqs.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
-        totalQuotedValue: enqs.reduce((s, e) => s + (parseFloat(e.quotationAmount) || 0), 0),
-        overdue: enqs.filter(e =>
+        leads: isAdminOrOwner ? ldsArr.length : ldsArr.filter((l: any) => l.assignedTo === email).length,
+        new: visibleEnqs.filter(e => e.status === 'new').length,
+        surveyPending: visibleEnqs.filter(e => e.status === 'survey-pending').length,
+        surveyCompleted: visibleEnqs.filter(e => e.status === 'survey-completed').length,
+        paymentReceived: visibleEnqs.filter(e => e.status === 'payment-received').length,
+        installations: visibleEnqs.filter(e => e.status === 'installation-completed').length,
+        active: visibleEnqs.filter(e => e.status === 'active').length,
+        blocked: visibleEnqs.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
+        totalQuotedValue: visibleEnqs.reduce((s, e) => s + (parseFloat(e.quotationAmount) || 0), 0),
+        overdue: visibleEnqs.filter(e =>
           e.nextActionDate && e.nextActionDate < today && e.status !== 'active'
         ).length,
       };
@@ -273,16 +274,18 @@ setFollowups(fusArr);
     .slice(0, 10);
 
   // ── My tasks (filtered by permitted pages for regular users) ──
+// Maps enquiry status → the page path required to view it
 const statusToPermKey: Record<string, string> = {
-  'new': 'Enquiries', 'survey-pending': 'Survey', 'survey-completed': 'Survey',
-  'payment-received': 'Payments', 'payment-pending': 'Payments',
-  'quotation-pending': 'Quotation', 'quotation-approved': 'Quotation',
-  'registration-pending': 'Registration', 'registration-completed': 'Registration',
-  'installation-pending': 'Installation', 'installation-in-progress': 'Installation',
-  'installation-completed': 'Installation',
-  'wcr-pending': 'WCR', 'wcr-submitted': 'WCR',
-  'subsidy-pending': 'Subsidy',
+  'new': '/enquiries', 'survey-pending': '/survey', 'survey-completed': '/survey',
+  'payment-received': '/payments', 'payment-pending': '/payments',
+  'quotation-pending': '/quotation', 'quotation-approved': '/quotation',
+  'registration-pending': '/registration', 'registration-completed': '/registration',
+  'installation-pending': '/installation', 'installation-in-progress': '/installation',
+  'installation-completed': '/installation',
+  'wcr-pending': '/wcr', 'wcr-submitted': '/wcr',
+  'subsidy-pending': '/subsidy',
 };
+
 const myTasks = enquiries
   .filter(e => {
     if (e.status === 'active') return false;
@@ -401,10 +404,10 @@ const myTasks = enquiries
 
         {/* ── KPI Cards ── */}
 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-  {canSee('Leads') && (
+{canSee('/leads') && (
     <MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
   )}
-  {canSee('Enquiries') && (
+  {canSee('/enquiries') && (
     <MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" />
   )}
   {isAdminOrOwner && (
@@ -700,12 +703,13 @@ const myTasks = enquiries
 
         {/* ── Quick Actions ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-  {canSee('Leads') && (
+        {canSee('/leads') && (
     <QuickActionCard title="Add New Lead" description="Capture new prospect" icon={PhoneCall} href="/leads" color="blue" />
   )}
-  {canSee('Enquiries') && (
+  {canSee('/enquiries') && (
     <QuickActionCard title="Create Enquiry" description="Convert lead to enquiry" icon={FileText} href="/enquiries" color="indigo" />
   )}
+
   <QuickActionCard title="View Kanban" description="Track all stages visually" icon={Kanban} href="/kanban" color="green" />
 </div>
 

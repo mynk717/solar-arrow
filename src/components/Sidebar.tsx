@@ -31,19 +31,20 @@ import { useState, useEffect } from 'react';
 const ALL_NAV = [
   { name: 'Dashboard',    href: '/dashboard',    icon: LayoutDashboard, alwaysShow: true },
   { name: 'Kanban',       href: '/kanban',       icon: Kanban,          alwaysShow: true },
-  { name: 'Leads',        href: '/leads',        icon: Users,           permPath: 'Leads' },
-  { name: 'ConEnq',       href: '/enquiries',    icon: FileText,        permPath: 'Enquiries' },
-  { name: 'Survey',       href: '/survey',       icon: ClipboardCheck,  permPath: 'Survey' },
-  { name: 'Quotation',    href: '/quotation',    icon: FileCheck,       permPath: 'Quotation' },
-  { name: 'Registration', href: '/registration', icon: Scale,           permPath: 'Registration' },
-  { name: 'Payments',     href: '/payments',     icon: DollarSign,      permPath: 'Payments' },
-  { name: 'BOM',          href: '/bom',          icon: Package,         permPath: 'BOM' },
-  { name: 'Installation', href: '/installation', icon: Wrench,          permPath: 'Installation' },
-  { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: 'Liaison' },
-  { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: 'WCR' },
-  { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: 'Subsidy' },
+  { name: 'Leads',        href: '/leads',        icon: Users,           permPath: '/leads' },
+  { name: 'ConEnq',       href: '/enquiries',    icon: FileText,        permPath: '/enquiries' },
+  { name: 'Survey',       href: '/survey',       icon: ClipboardCheck,  permPath: '/survey' },
+  { name: 'Quotation',    href: '/quotation',    icon: FileCheck,       permPath: '/quotation' },
+  { name: 'Registration', href: '/registration', icon: Scale,           permPath: '/registration' },
+  { name: 'Payments',     href: '/payments',     icon: DollarSign,      permPath: '/payments' },
+  { name: 'BOM',          href: '/bom',          icon: Package,         permPath: '/bom' },
+  { name: 'Installation', href: '/installation', icon: Wrench,          permPath: '/installation' },
+  { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: '/liaison' },
+  { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: '/wcr' },
+  { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: '/subsidy' },
   { name: 'Settings',     href: '/settings',     icon: Settings,        alwaysShow: true },
 ];
+
 
 
 export default function Sidebar() {
@@ -58,22 +59,16 @@ session?.user?.accountType === 'owner' ||
 session?.user?.role === 'admin' ||
 session?.user?.role === 'owner';
 
-// Permissions shape from Redis: { Leads: { view: true }, Survey: { view: true }, ... }
-const userPerms = session?.user?.permissions as Record<string, { view?: boolean }> | null;
+// Permissions shape from Redis: { canView: ['/leads', '/survey'], canEdit: [...] }
+const userPerms = session?.user?.permissions as { canView?: string[] } | null;
 
 const navigation = ALL_NAV.filter(item => {
   if (item.alwaysShow) return true;        // dashboard, kanban, settings always show
   if (isAdminOrOwner) return true;         // admin/owner sees everything
-  if (!item.permPath) return true;
-  if (!userPerms) return false;            // no perms set → hide everything
-  return userPerms[item.permPath as string]?.view === true;  // ✅ correct shape
+  if (!item.permPath) return true;         // no permission required for this item
+  if (!userPerms || !Array.isArray(userPerms.canView)) return false; // no perms → hide
+  return userPerms.canView.includes(item.permPath);  // ✅ correct shape
 });
-
-
-const canSee = (key: string) =>
-  isAdminOrOwner || (userPerms?.[key]?.view === true);
-
-
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
