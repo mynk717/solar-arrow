@@ -94,7 +94,8 @@ export const authOptions: AuthOptions = {
           sheetId: org.sheetId,
           accountType: 'user', // Important: mark as user, not admin
           accessToken,
-          refreshToken
+          refreshToken,
+          permissions: user.permissions ?? null,
         } as any;
       }
     })
@@ -176,6 +177,8 @@ export const authOptions: AuthOptions = {
         token.accountType = user.accountType ?? 'admin'
         token.accessToken = user.accessToken
         token.refreshToken = user.refreshToken
+        token.permissions = (user as any).permissions ?? null
+        token.organizationName = (user as any).organizationName ?? null
       }
       
       if (account?.provider === 'google') {

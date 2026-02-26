@@ -27,27 +27,49 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Kanban', href: '/kanban', icon: Kanban },
-  { name: 'Leads', href: '/leads', icon: Users },
-  { name: 'ConEnq', href: '/enquiries', icon: FileText },
-  { name: 'Survey', href: '/survey', icon: ClipboardCheck },
-  { name: 'Quotation', href: '/quotation', icon: FileCheck },
-  { name: 'Registration', href: '/registration', icon: Scale },
-  { name: 'Payments', href: '/payments', icon: DollarSign },
-  { name: 'BOM', href: '/bom', icon: Package },
-  { name: 'Installation', href: '/installation', icon: Wrench },
-  { name: 'Liaison', href: '/liaison', icon: Scale },
-  { name: 'WCR', href: '/wcr', icon: CheckSquare },
-  { name: 'Subsidy', href: '/subsidy', icon: IndianRupee },
-  { name: 'Settings', href: '/settings', icon: Settings },
+// All nav items with their required permission path
+const ALL_NAV = [
+  { name: 'Dashboard',    href: '/dashboard',    icon: LayoutDashboard, alwaysShow: true },
+  { name: 'Kanban',       href: '/kanban',       icon: Kanban,          alwaysShow: true },
+  { name: 'Leads',        href: '/leads',        icon: Users,           permPath: '/leads' },
+  { name: 'ConEnq',       href: '/enquiries',    icon: FileText,        permPath: '/enquiries' },
+  { name: 'Survey',       href: '/survey',       icon: ClipboardCheck,  permPath: '/survey' },
+  { name: 'Quotation',    href: '/quotation',    icon: FileCheck,       permPath: '/quotation' },
+  { name: 'Registration', href: '/registration', icon: Scale,           permPath: '/registration' },
+  { name: 'Payments',     href: '/payments',     icon: DollarSign,      permPath: '/payments' },
+  { name: 'BOM',          href: '/bom',          icon: Package,         permPath: '/bom' },
+  { name: 'Installation', href: '/installation', icon: Wrench,          permPath: '/installation' },
+  { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: '/liaison' },
+  { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: '/wcr' },
+  { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: '/subsidy' },
+  { name: 'Settings',     href: '/settings',     icon: Settings,        alwaysShow: true },
 ];
+
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Build filtered navigation based on permissions
+const isAdminOrOwner =
+session?.user?.accountType === 'admin' ||
+session?.user?.accountType === 'owner' ||
+session?.user?.role === 'admin' ||
+session?.user?.role === 'owner';
+
+const customPerms = (session?.user?.permissions as any)?.canView as string[] | undefined;
+
+const navigation = ALL_NAV.filter(item => {
+if (item.alwaysShow) return true;           // dashboard, kanban, settings always visible
+if (isAdminOrOwner) return true;            // admin/owner sees everything
+if (!item.permPath) return true;
+if (customPerms && customPerms.length > 0) {
+  return customPerms.includes(item.permPath); // custom permissions take priority
+}
+return true; // no custom perms set → show all (middleware handles blocking)
+});
+
 
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);

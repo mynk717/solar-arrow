@@ -27,7 +27,8 @@ const publicRoutes = [
   '/unauthorized',
   '/settings',
   '/privacy',
-  '/terms'
+  '/terms',
+  '/dashboard',
 ];
 
 // Admin-only routes
@@ -75,12 +76,24 @@ export default withAuth(
       return NextResponse.next();
     }
     
-    // ✅ Use centralized permission system for regular users
-    const hasAccess = canAccessPage(accountType, userRole, path);
-    
-    if (!hasAccess) {
-      return NextResponse.redirect(new URL('/unauthorized', req.url));
-    }
+    // ✅ Check custom per-user permissions (set via admin panel) FIRST
+const customPerms = token?.permissions as any;
+if (customPerms?.canView && Array.isArray(customPerms.canView) && customPerms.canView.length > 0) {
+  const allowed = customPerms.canView.some(
+    (p: string) => path === p || path.startsWith(p + '/')
+  );
+  if (!allowed) {
+    return NextResponse.redirect(new URL('/unauthorized', req.url));
+  }
+  return NextResponse.next();
+}
+
+// ✅ Fallback: use role-based permissions from lib/permissions
+const hasAccess = canAccessPage(accountType, userRole, path);
+if (!hasAccess) {
+  return NextResponse.redirect(new URL('/unauthorized', req.url));
+}
+
     
     return NextResponse.next();
   },
