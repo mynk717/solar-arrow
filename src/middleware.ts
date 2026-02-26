@@ -83,7 +83,7 @@ if (isAlwaysAllowed(path)) {
   // List of paths that require a page-level permission check
   const PERMISSION_PATHS = [
     '/leads', '/enquiries', '/survey', '/quotation',
-    '/registration', '/payments', '/bom', '/dispatch',
+    '/registration', '/payments', '/payment','/bom', '/dispatch',
     '/installation', '/liaison', '/wcr', '/subsidy',
   ];
 

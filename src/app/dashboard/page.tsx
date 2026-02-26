@@ -284,41 +284,39 @@ fetches.push(fetch('/api/followups'));
     .slice(0, 10);
 
   // Complete map — every status in statusValidation.ts VALID_TRANSITIONS
-const statusToPermKey: Record<string, string> = {
-  // Enquiries base
-  'new': '/enquiries',
-  // Survey
-  'survey-pending': '/survey', 'survey-scheduled': '/survey',
-  'survey-completed': '/survey', 'survey-rejected': '/survey',
-  // Quotation
-  'quotation-sent': '/quotation', 'quotation-approved': '/quotation',
-  'quotation-rejected': '/quotation',
-  // Payments
-  'payment-pending': '/payments', 'payment-partial': '/payments',
-  'payment-complete': '/payments', 'payment-received': '/payments',
-  // Registration
-  'registration-pending': '/registration', 'registration-submitted': '/registration',
-  'registration-approved': '/registration', 'registration-rejected': '/registration',
-  // BOM + Dispatch
-  'bom-pending': '/bom', 'bom-created': '/bom',
-  'dispatch-pending': '/bom', 'dispatched': '/bom', 'delivered': '/bom',
-  // Installation
-  'installation-pending': '/installation', 'installation-scheduled': '/installation',
-  'installation-in-progress': '/installation', 'installation-completed': '/installation',
-  'installation-rework-required': '/installation',
-  // WCR
-  'wcr-pending': '/wcr', 'wcr-submitted': '/wcr',
-  'wcr-approved': '/wcr', 'wcr-rejected': '/wcr',
-  // Inspection + Meter + Grid (mapped to /liaison as that's the page)
-  'inspection-pending': '/liaison', 'inspection-scheduled': '/liaison',
-  'inspection-completed': '/liaison', 'inspection-approved': '/liaison',
-  'inspection-rejected': '/liaison',
-  'meter-installation-pending': '/liaison', 'meter-installed': '/liaison',
-  'grid-sync-pending': '/liaison', 'grid-synced': '/liaison',
-  // Subsidy
-  'subsidy-pending': '/subsidy', 'subsidy-applied': '/subsidy',
-  'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
-};
+  const statusToPermKey: Record<string, string> = {
+    // Enquiries base
+    new: '/enquiries',
+    // Survey
+    'survey-pending': '/survey', 'survey-scheduled': '/survey',
+    'survey-completed': '/survey', 'survey-rejected': '/survey',
+    // Quotation
+    'quotation-sent': '/quotation', 'quotation-approved': '/quotation', 'quotation-rejected': '/quotation',
+    // Payments
+    'payment-pending': '/payment', 'payment-partial': '/payment',
+    'payment-complete': '/payment', 'payment-received': '/payment',
+    // Registration
+    'registration-pending': '/registration', 'registration-submitted': '/registration',
+    'registration-approved': '/registration', 'registration-rejected': '/registration',
+    // BOM/Dispatch
+    'bom-pending': '/bom', 'bom-created': '/bom',
+    'dispatch-pending': '/bom', 'dispatched': '/bom', 'delivered': '/bom',
+    // Installation
+    'installation-pending': '/installation', 'installation-scheduled': '/installation',
+    'installation-in-progress': '/installation', 'installation-completed': '/installation',
+    'installation-rework-required': '/installation',
+    // WCR
+    'wcr-pending': '/wcr', 'wcr-submitted': '/wcr', 'wcr-approved': '/wcr', 'wcr-rejected': '/wcr',
+    // Liaison/Inspection
+    'inspection-pending': '/liaison', 'inspection-scheduled': '/liaison',
+    'inspection-completed': '/liaison', 'inspection-approved': '/liaison',
+    'inspection-rejected': '/liaison', 'meter-installation-pending': '/liaison',
+    'meter-installed': '/liaison', 'grid-sync-pending': '/liaison', 'grid-synced': '/liaison',
+    // Subsidy
+    'subsidy-pending': '/subsidy', 'subsidy-applied': '/subsidy',
+    'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
+  };
+  
 
 
 // Pages this user can see — used to match tasks by stage
