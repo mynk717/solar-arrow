@@ -83,7 +83,7 @@ if (isAlwaysAllowed(path)) {
   // List of paths that require a page-level permission check
   const PERMISSION_PATHS = [
     '/leads', '/enquiries', '/survey', '/quotation',
-    '/registration', '/payments', '/payment','/bom', '/dispatch',
+    '/registration', '/payment','/bom', '/dispatch',
     '/installation', '/liaison', '/wcr', '/subsidy',
   ];
 
@@ -95,7 +95,7 @@ if (isAlwaysAllowed(path)) {
     // This path needs a permission — check canView array
     if (customPerms && Array.isArray(customPerms.canView) && customPerms.canView.length > 0) {
       // User has custom permissions set — enforce them
-      return customPerms.canView.includes(matchedPath)
+      return customPerms.canView.some(p => matchedPath === p || matchedPath.startsWith(p))
         ? NextResponse.next()
         : NextResponse.redirect(new URL('/unauthorized', req.url));
     }
