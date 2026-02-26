@@ -120,7 +120,6 @@ const userPerms = isAdminOrOwner
 const canSee = (path: string) =>
   isAdminOrOwner || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(path));
 
-
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
@@ -155,77 +154,87 @@ fetches.push(fetch('/api/followups'));
       let ldsArr: any[] = [];
       let usersArr: any[] = [];
       let pokesArr: Poke[] = [];
-
-      if (results[0].status === 'fulfilled' && results[0].value.ok) {
-        enqs = await results[0].value.json();
-      }
-      if (results[1].status === 'fulfilled' && results[1].value.ok) {
-        ldsArr = await results[1].value.json();
-      }
-      if (isAdminOrOwner && results[2].status === 'fulfilled' && results[2].value.ok) {
-        usersArr = await results[2].value.json();
-      }
-      const pokesIdx = isAdminOrOwner ? 3 : 2;
-      if (results[pokesIdx]?.status === 'fulfilled' && (results[pokesIdx] as any).value.ok) {
-        pokesArr = await (results[pokesIdx] as any).value.json();
-      }
-
+      let actsArr: Activity[] = [];
+      let fusArr: FollowUp[] = [];
+      
+      // Build named index map — avoids fragile manual index tracking
+      let idx = 0;
+      const idxEnq   = idx++;                              // always 0
+      const idxLeads = idx++;                              // always 1
+      const idxUsers = isAdminOrOwner ? idx++ : -1;        // 2 if admin, else skip
+      const idxPokes = idx++;
+      const idxActs  = idx++;
+      const idxFUs   = idx++;
+      
+      const get = (i: number) =>
+        i >= 0 && results[i]?.status === 'fulfilled'
+          ? (results[i] as PromiseFulfilledResult<Response>).value
+          : null;
+      
+      if (get(idxEnq)?.ok)   enqs     = await get(idxEnq)!.json();
+      if (get(idxLeads)?.ok) ldsArr   = await get(idxLeads)!.json();
+      if (get(idxUsers)?.ok) usersArr = await get(idxUsers)!.json();
+      if (get(idxPokes)?.ok) pokesArr = await get(idxPokes)!.json();
+      
       setEnquiries(enqs);
       setLeads(ldsArr);
       setUsers(usersArr);
       setPokes(pokesArr);
-
-      // Filter enquiries visible to this user based on permissions
-const visibleEnqs: Enquiry[] = isAdminOrOwner
-? enqs
-: enqs.filter((e: Enquiry) => {
-    if (e.allottedUser !== email && e.surveyedBy !== email) return false;
-    const requiredPerm = statusToPermKey[e.status];
-    return !requiredPerm || canSee(requiredPerm);
-  });
-
-     // Build visible enquiry ID set for permission filtering
-     const visibleEnqIds = new Set<string>(visibleEnqs.map((e: Enquiry) => e.id));
-
-// Activities
-const actIdx = isAdminOrOwner ? 4 : 3;
-let actsArr: Activity[] = [];
-if (results[actIdx]?.status === 'fulfilled' && (results[actIdx] as PromiseFulfilledResult<Response>).value.ok) {
-  const allActs: Activity[] = await (results[actIdx] as PromiseFulfilledResult<Response>).value.json();
-  actsArr = isAdminOrOwner
-    ? allActs.slice(0, 20)
-    : allActs.filter((a: Activity) => visibleEnqIds.has(a.enquiryId)).slice(0, 10);
-}
-setActivities(actsArr);
-
-// Follow-ups
-const fuIdx = isAdminOrOwner ? 5 : 4;
-let fusArr: FollowUp[] = [];
-if (results[fuIdx]?.status === 'fulfilled' && (results[fuIdx] as PromiseFulfilledResult<Response>).value.ok) {
-  const allFUs: FollowUp[] = await (results[fuIdx] as PromiseFulfilledResult<Response>).value.json();
-  fusArr = isAdminOrOwner
-    ? allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, 10)
-    : allFUs.filter((f: FollowUp) => visibleEnqIds.has(f.enquiryId) && f.status === 'pending').slice(0, 8);
-}
-setFollowups(fusArr);
+      
+      
+            // Build permitted enq ID set for activity/followup filtering
+            const permittedEnqIds = new Set<string>(
+              isAdminOrOwner
+                ? enqs.map((e: Enquiry) => e.id)
+                : enqs
+                    .filter((e: Enquiry) => e.allottedUser === email || e.surveyedBy === email)
+                    .map((e: Enquiry) => e.id)
+            );
+      
+            if (get(idxActs)?.ok) {
+              const allActs: Activity[] = await get(idxActs)!.json();
+              actsArr = isAdminOrOwner
+                ? allActs.slice(0, 20)
+                : allActs.filter((a: Activity) => permittedEnqIds.has(a.enquiryId)).slice(0, 10);
+            }
+            setActivities(actsArr);
+      
+            if (get(idxFUs)?.ok) {
+              const allFUs: FollowUp[] = await get(idxFUs)!.json();
+              fusArr = isAdminOrOwner
+                ? allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, 10)
+                : allFUs.filter((f: FollowUp) => permittedEnqIds.has(f.enquiryId) && f.status === 'pending').slice(0, 8);
+            }
+            setFollowups(fusArr);      
+      
 
 
 
-      // ── CORRECT pipeline counts — mutually exclusive status field ──
+     // ── CORRECT pipeline counts ──
+      // For non-admins, filter to only enquiries assigned to them on visible pages
+      const permittedEnqs: Enquiry[] = isAdminOrOwner
+        ? enqs
+        : enqs.filter((e: Enquiry) => {
+            if (e.allottedUser !== email && e.surveyedBy !== email) return false;
+            const requiredPerm = (statusToPermKey as Record<string, string>)[e.status];
+            return !requiredPerm || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(requiredPerm));
+          });
+
       const realStats = {
         leads: isAdminOrOwner ? ldsArr.length : ldsArr.filter((l: any) => l.assignedTo === email).length,
-        new: visibleEnqs.filter(e => e.status === 'new').length,
-        surveyPending: visibleEnqs.filter(e => e.status === 'survey-pending').length,
-        surveyCompleted: visibleEnqs.filter(e => e.status === 'survey-completed').length,
-        paymentReceived: visibleEnqs.filter(e => e.status === 'payment-received').length,
-        installations: visibleEnqs.filter(e => e.status === 'installation-completed').length,
-        active: visibleEnqs.filter(e => e.status === 'active').length,
-        blocked: visibleEnqs.filter(e => e.isBlocked === true || e.isBlocked === 'TRUE').length,
-        totalQuotedValue: visibleEnqs.reduce((s, e) => s + (parseFloat(e.quotationAmount) || 0), 0),
-        overdue: visibleEnqs.filter(e =>
+        new: permittedEnqs.filter((e: Enquiry) => e.status === 'new').length,
+        surveyPending: permittedEnqs.filter((e: Enquiry) => e.status === 'survey-pending').length,
+        surveyCompleted: permittedEnqs.filter((e: Enquiry) => e.status === 'survey-completed').length,
+        paymentReceived: permittedEnqs.filter((e: Enquiry) => e.status === 'payment-received').length,
+        installations: permittedEnqs.filter((e: Enquiry) => e.status === 'installation-completed').length,
+        active: permittedEnqs.filter((e: Enquiry) => e.status === 'active').length,
+        blocked: permittedEnqs.filter((e: Enquiry) => e.isBlocked === true || e.isBlocked === 'TRUE').length,
+        totalQuotedValue: permittedEnqs.reduce((s: number, e: Enquiry) => s + (parseFloat(e.quotationAmount) || 0), 0),
+        overdue: permittedEnqs.filter((e: Enquiry) =>
           e.nextActionDate && e.nextActionDate < today && e.status !== 'active'
         ).length,
       };
+
       setStats(realStats);
     } catch (err) {
       console.error('[Dashboard] fetch error', err);
@@ -273,29 +282,71 @@ setFollowups(fusArr);
     )
     .slice(0, 10);
 
-  // ── My tasks (filtered by permitted pages for regular users) ──
-// Maps enquiry status → the page path required to view it
+  // Complete map — every status in statusValidation.ts VALID_TRANSITIONS
 const statusToPermKey: Record<string, string> = {
-  'new': '/enquiries', 'survey-pending': '/survey', 'survey-completed': '/survey',
-  'payment-received': '/payments', 'payment-pending': '/payments',
-  'quotation-pending': '/quotation', 'quotation-approved': '/quotation',
-  'registration-pending': '/registration', 'registration-completed': '/registration',
-  'installation-pending': '/installation', 'installation-in-progress': '/installation',
-  'installation-completed': '/installation',
+  // Enquiries base
+  'new': '/enquiries',
+  // Survey
+  'survey-pending': '/survey', 'survey-scheduled': '/survey',
+  'survey-completed': '/survey', 'survey-rejected': '/survey',
+  // Quotation
+  'quotation-sent': '/quotation', 'quotation-approved': '/quotation',
+  'quotation-rejected': '/quotation',
+  // Payments
+  'payment-pending': '/payments', 'payment-partial': '/payments',
+  'payment-complete': '/payments', 'payment-received': '/payments',
+  // Registration
+  'registration-pending': '/registration', 'registration-submitted': '/registration',
+  'registration-approved': '/registration', 'registration-rejected': '/registration',
+  // BOM + Dispatch
+  'bom-pending': '/bom', 'bom-created': '/bom',
+  'dispatch-pending': '/bom', 'dispatched': '/bom', 'delivered': '/bom',
+  // Installation
+  'installation-pending': '/installation', 'installation-scheduled': '/installation',
+  'installation-in-progress': '/installation', 'installation-completed': '/installation',
+  'installation-rework-required': '/installation',
+  // WCR
   'wcr-pending': '/wcr', 'wcr-submitted': '/wcr',
-  'subsidy-pending': '/subsidy',
+  'wcr-approved': '/wcr', 'wcr-rejected': '/wcr',
+  // Inspection + Meter + Grid (mapped to /liaison as that's the page)
+  'inspection-pending': '/liaison', 'inspection-scheduled': '/liaison',
+  'inspection-completed': '/liaison', 'inspection-approved': '/liaison',
+  'inspection-rejected': '/liaison',
+  'meter-installation-pending': '/liaison', 'meter-installed': '/liaison',
+  'grid-sync-pending': '/liaison', 'grid-synced': '/liaison',
+  // Subsidy
+  'subsidy-pending': '/subsidy', 'subsidy-applied': '/subsidy',
+  'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
 };
+
+
+// Pages this user can see — used to match tasks by stage
+const myVisiblePaths = isAdminOrOwner
+  ? Object.values(statusToPermKey)
+  : (userPerms?.canView ?? []);
 
 const myTasks = enquiries
   .filter(e => {
-    if (e.status === 'active') return false;
-    if (!(e.allottedUser === email || e.surveyedBy === email)) return false;
-    if (!isAdminOrOwner && userPerms) {
-      const requiredPerm = statusToPermKey[e.status];
-      if (requiredPerm && !canSee(requiredPerm)) return false;
-    }
-    return true;
+    if (e.status === 'active' || e.status === 'cancelled') return false;
+
+    // Admin/owner sees all non-active tasks
+    if (isAdminOrOwner) return true;
+
+    // For regular users: show task if they are assigned OR if the stage
+    // is on a page they have permission to — and they're the responsible person
+    const requiredPerm = statusToPermKey[e.status];
+    const canSeeThisStage = !requiredPerm || myVisiblePaths.includes(requiredPerm);
+
+    if (!canSeeThisStage) return false;
+
+    // Match by assignment or by role-relevant field
+    const isAssigned = e.allottedUser === email;
+    const isSurveyor = e.surveyedBy === email;
+    const isInMyStage = canSeeThisStage && (isAssigned || isSurveyor);
+
+    return isInMyStage;
   })
+
 
     .sort((a, b) => {
       if (!a.nextActionDate) return 1;
