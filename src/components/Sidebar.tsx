@@ -31,7 +31,7 @@ import { useState, useEffect } from 'react';
 const ALL_NAV = [
   { name: 'Dashboard',    href: '/dashboard',    icon: LayoutDashboard, alwaysShow: true },
   { name: 'Kanban',       href: '/kanban',       icon: Kanban,          alwaysShow: true },
-  { name: 'Leads',        href: '/leads',        icon: Users,           permPath: 'leads' },
+  { name: 'Leads',        href: '/leads',        icon: Users,           permPath: 'Leads' },
   { name: 'ConEnq',       href: '/enquiries',    icon: FileText,        permPath: 'Enquiries' },
   { name: 'Survey',       href: '/survey',       icon: ClipboardCheck,  permPath: 'Survey' },
   { name: 'Quotation',    href: '/quotation',    icon: FileCheck,       permPath: 'Quotation' },
@@ -39,9 +39,9 @@ const ALL_NAV = [
   { name: 'Payments',     href: '/payments',     icon: DollarSign,      permPath: 'Payments' },
   { name: 'BOM',          href: '/bom',          icon: Package,         permPath: 'BOM' },
   { name: 'Installation', href: '/installation', icon: Wrench,          permPath: 'Installation' },
-  { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: 'liaison' },
+  { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: 'Liaison' },
   { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: 'WCR' },
-  { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: 'ubsidy' },
+  { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: 'Subsidy' },
   { name: 'Settings',     href: '/settings',     icon: Settings,        alwaysShow: true },
 ];
 
@@ -58,17 +58,21 @@ session?.user?.accountType === 'owner' ||
 session?.user?.role === 'admin' ||
 session?.user?.role === 'owner';
 
-const customPerms = (session?.user?.permissions as any)?.canView as string[] | undefined;
+// Permissions shape from Redis: { Leads: { view: true }, Survey: { view: true }, ... }
+const userPerms = session?.user?.permissions as Record<string, { view?: boolean }> | null;
 
 const navigation = ALL_NAV.filter(item => {
-if (item.alwaysShow) return true;           // dashboard, kanban, settings always visible
-if (isAdminOrOwner) return true;            // admin/owner sees everything
-if (!item.permPath) return true;
-if (customPerms && customPerms.length > 0) {
-  return customPerms.includes(item.permPath); // custom permissions take priority
-}
-return true; // no custom perms set → show all (middleware handles blocking)
+  if (item.alwaysShow) return true;        // dashboard, kanban, settings always show
+  if (isAdminOrOwner) return true;         // admin/owner sees everything
+  if (!item.permPath) return true;
+  if (!userPerms) return false;            // no perms set → hide everything
+  return userPerms[item.permPath as string]?.view === true;  // ✅ correct shape
 });
+
+
+const canSee = (key: string) =>
+  isAdminOrOwner || (userPerms?.[key]?.view === true);
+
 
 
   const [showHeader, setShowHeader] = useState(true);

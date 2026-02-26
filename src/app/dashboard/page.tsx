@@ -82,6 +82,18 @@ export default function DashboardPage() {
   const email = session?.user?.email || '';
   const name = session?.user?.name || '';
 
+  const isAdminOrOwner =
+  session?.user?.accountType === 'admin' ||
+  session?.user?.accountType === 'owner' ||
+  role === 'admin' || role === 'owner';
+
+const userPerms = isAdminOrOwner
+  ? null
+  : (session?.user?.permissions as Record<string, { view?: boolean }> | null);
+
+const canSee = (key: string) =>
+  isAdminOrOwner || (userPerms?.[key]?.view === true);
+
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
@@ -99,9 +111,10 @@ export default function DashboardPage() {
     if (status !== 'authenticated') { setLoading(false); return; }
     try {
       const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads')];
-      if (role === 'admin' || role === 'owner') {
+      if (isAdminOrOwner) {
         fetches.push(fetch('/api/users'));
       }
+      
       fetches.push(fetch('/api/pokes'));
 
       const results = await Promise.allSettled(fetches);
@@ -117,10 +130,10 @@ export default function DashboardPage() {
       if (results[1].status === 'fulfilled' && results[1].value.ok) {
         ldsArr = await results[1].value.json();
       }
-      if ((role === 'admin' || role === 'owner') && results[2].status === 'fulfilled' && results[2].value.ok) {
+      if (isAdminOrOwner && results[2].status === 'fulfilled' && results[2].value.ok) {
         usersArr = await results[2].value.json();
       }
-      const pokesIdx = (role === 'admin' || role === 'owner') ? 3 : 2;
+      const pokesIdx = isAdminOrOwner ? 3 : 2;
       if (results[pokesIdx]?.status === 'fulfilled' && (results[pokesIdx] as any).value.ok) {
         pokesArr = await (results[pokesIdx] as any).value.json();
       }
@@ -188,12 +201,28 @@ export default function DashboardPage() {
     )
     .slice(0, 10);
 
-  // ── My tasks (for any role) ──
-  const myTasks = enquiries
-    .filter(e =>
-      (e.allottedUser === email || e.surveyedBy === email) &&
-      e.status !== 'active'
-    )
+  // ── My tasks (filtered by permitted pages for regular users) ──
+const statusToPermKey: Record<string, string> = {
+  'new': 'Enquiries', 'survey-pending': 'Survey', 'survey-completed': 'Survey',
+  'payment-received': 'Payments', 'payment-pending': 'Payments',
+  'quotation-pending': 'Quotation', 'quotation-approved': 'Quotation',
+  'registration-pending': 'Registration', 'registration-completed': 'Registration',
+  'installation-pending': 'Installation', 'installation-in-progress': 'Installation',
+  'installation-completed': 'Installation',
+  'wcr-pending': 'WCR', 'wcr-submitted': 'WCR',
+  'subsidy-pending': 'Subsidy',
+};
+const myTasks = enquiries
+  .filter(e => {
+    if (e.status === 'active') return false;
+    if (!(e.allottedUser === email || e.surveyedBy === email)) return false;
+    if (!isAdminOrOwner && userPerms) {
+      const requiredPerm = statusToPermKey[e.status];
+      if (requiredPerm && !canSee(requiredPerm)) return false;
+    }
+    return true;
+  })
+
     .sort((a, b) => {
       if (!a.nextActionDate) return 1;
       if (!b.nextActionDate) return -1;
@@ -203,7 +232,6 @@ export default function DashboardPage() {
 
   if (status === 'loading' || loading) return <DashboardSkeleton />;
 
-  const isAdminOrOwner = role === 'admin' || role === 'owner';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -296,38 +324,24 @@ export default function DashboardPage() {
         </div>
 
         {/* ── KPI Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <MetricCard
-            title="New Leads"
-            value={stats.leads}
-            icon={PhoneCall}
-            color="blue"
-            href="/leads"
-          />
-          <MetricCard
-            title="Active Enquiries"
-            value={stats.new + stats.surveyPending + stats.surveyCompleted}
-            icon={FileText}
-            color="indigo"
-            href="/enquiries"
-          />
-          <MetricCard
-            title="Live Systems"
-            value={stats.active}
-            icon={Zap}
-            color="green"
-            href="/liaison"
-          />
-          <MetricCard
-            title="Pipeline Value"
-            value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`}
-            icon={TrendingUp}
-            color="emerald"
-          />
-        </div>
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  {canSee('Leads') && (
+    <MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
+  )}
+  {canSee('Enquiries') && (
+    <MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" />
+  )}
+  {isAdminOrOwner && (
+    <MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" />
+  )}
+  {isAdminOrOwner && (
+    <MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" />
+  )}
+</div>
+
 
         {/* ── Blocked Warning Banner ── */}
-        {stats.blocked > 0 && (
+        {isAdminOrOwner && stats.blocked > 0 && (
           <div
             className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 cursor-pointer hover:bg-red-100 transition"
             onClick={() => router.push('/enquiries?filter=blocked')}
@@ -341,6 +355,7 @@ export default function DashboardPage() {
         )}
 
         {/* ── Installation Pipeline ── */}
+        {isAdminOrOwner && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
           <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <TrendingUp size={16} className="text-blue-500" />
@@ -369,6 +384,8 @@ export default function DashboardPage() {
             <PipelineStage name="Subsidy"      count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
           </div>
         </div>
+        )}
+
 
         {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
         {isAdminOrOwner && priorityEnquiries.length > 0 && (
@@ -543,10 +560,15 @@ export default function DashboardPage() {
 
         {/* ── Quick Actions ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <QuickActionCard title="Add New Lead"    description="Capture new prospect"       icon={PhoneCall} href="/leads"      color="blue" />
-          <QuickActionCard title="Create Enquiry"  description="Convert lead to enquiry"    icon={FileText}  href="/enquiries"  color="indigo" />
-          <QuickActionCard title="View Kanban"     description="Track all stages visually"  icon={Kanban}    href="/kanban"     color="green" />
-        </div>
+  {canSee('Leads') && (
+    <QuickActionCard title="Add New Lead" description="Capture new prospect" icon={PhoneCall} href="/leads" color="blue" />
+  )}
+  {canSee('Enquiries') && (
+    <QuickActionCard title="Create Enquiry" description="Convert lead to enquiry" icon={FileText} href="/enquiries" color="indigo" />
+  )}
+  <QuickActionCard title="View Kanban" description="Track all stages visually" icon={Kanban} href="/kanban" color="green" />
+</div>
+
 
         {/* ── Admin Quick Nav ── */}
         {isAdminOrOwner && (
