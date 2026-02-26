@@ -76,26 +76,41 @@ export default withAuth(
       return NextResponse.next();
     }
     
-    // ✅ Check custom per-user permissions (set via admin panel) FIRST
-const customPerms = token?.permissions as any;
-if (customPerms?.canView && Array.isArray(customPerms.canView) && customPerms.canView.length > 0) {
-  const allowed = customPerms.canView.some(
-    (p: string) => path === p || path.startsWith(p + '/')
-  );
-  if (!allowed) {
-    return NextResponse.redirect(new URL('/unauthorized', req.url));
+   // ✅ Check custom per-user page permissions first
+// Shape stored in Redis: { Leads: { view: true }, Survey: { view: true }, ... }
+const customPerms = token?.permissions as Record<string, { view?: boolean }> | null;
+if (customPerms && Object.keys(customPerms).length > 0) {
+  const PATH_TO_PERM_KEY: Record<string, string> = {
+    '/leads': 'Leads',
+    '/enquiries': 'Enquiries',
+    '/survey': 'Survey',
+    '/quotation': 'Quotation',
+    '/registration': 'Registration',
+    '/payments': 'Payments',
+    '/bom': 'BOM',
+    '/installation': 'Installation',
+    '/liaison': 'Liaison',
+    '/wcr': 'WCR',
+    '/subsidy': 'Subsidy',
+  };
+  const matchedKey = Object.entries(PATH_TO_PERM_KEY).find(
+    ([p]) => path === p || path.startsWith(p + '/')
+  )?.[1];
+
+  if (matchedKey) {
+    if (!customPerms[matchedKey]?.view) {
+      return NextResponse.redirect(new URL('/unauthorized', req.url));
+    }
   }
   return NextResponse.next();
 }
 
-// ✅ Fallback: use role-based permissions from lib/permissions
+// ✅ Fallback: role-based permissions for users without custom permissions
 const hasAccess = canAccessPage(accountType, userRole, path);
 if (!hasAccess) {
   return NextResponse.redirect(new URL('/unauthorized', req.url));
 }
-
-    
-    return NextResponse.next();
+return NextResponse.next();
   },
   {
     callbacks: {

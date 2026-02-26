@@ -180,7 +180,21 @@ export const authOptions: AuthOptions = {
         token.permissions = (user as any).permissions ?? null
         token.organizationName = (user as any).organizationName ?? null
       }
-      
+
+  // ✅ Always re-fetch permissions from Redis for credential users
+// ✅ Re-fetch permissions on every JWT refresh EXCEPT first login
+if (!account && !user && token.accountType === 'user' && token.email) {
+  try {
+    const freshUser = await redis.get(`user:${token.email}:info`) as any;
+    if (freshUser) {
+      token.permissions = freshUser.permissions ?? token.permissions;
+      token.role = freshUser.role ?? token.role;
+      token.isActive = freshUser.isActive;
+    }
+  } catch { /* silent — don't break auth */ }
+}
+
+
       if (account?.provider === 'google') {
         token.accessToken = account.access_token!
         token.refreshToken = account.refresh_token!
