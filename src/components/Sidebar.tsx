@@ -248,14 +248,14 @@ export default function Sidebar() {
   (session?.user?.role === 'admin' || session?.user?.role === 'owner')) && (
   <div className="border-t border-blue-500 mt-2">
     <Link
-      href="/settings/users"
+      href="/admin/users"
       className={`
         flex items-center gap-3 px-6 py-3.5 
         transition-all duration-200
         touch-manipulation
         active:scale-98
         ${
-          pathname === '/settings/users'
+          pathname === '/admin/users'
             ? 'bg-blue-700 border-l-4 border-white font-semibold'
             : 'hover:bg-blue-700/50 active:bg-blue-700/70'
         }
