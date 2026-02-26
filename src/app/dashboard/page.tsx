@@ -213,12 +213,13 @@ fetches.push(fetch('/api/followups'));
      // ── CORRECT pipeline counts ──
       // For non-admins, filter to only enquiries assigned to them on visible pages
       const permittedEnqs: Enquiry[] = isAdminOrOwner
-        ? enqs
-        : enqs.filter((e: Enquiry) => {
-            if (e.allottedUser !== email && e.surveyedBy !== email) return false;
-            const requiredPerm = (statusToPermKey as Record<string, string>)[e.status];
-            return !requiredPerm || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(requiredPerm));
-          });
+  ? enqs
+  : enqs.filter((e: Enquiry) => {
+      const requiredPerm = (statusToPermKey as Record<string, string>)[e.status];
+      // If user can see the page for this status, count it in stats
+      return !requiredPerm || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(requiredPerm));
+    });
+
 
       const realStats = {
         leads: isAdminOrOwner ? ldsArr.length : ldsArr.filter((l: any) => l.assignedTo === email).length,
