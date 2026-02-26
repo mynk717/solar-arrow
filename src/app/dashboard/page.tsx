@@ -58,6 +58,29 @@ type Poke = {
   read: boolean;
 };
 
+type Activity = {
+  logId: string;
+  enquiryId: string;
+  userId: string;
+  action: string;
+  fieldName: string;
+  oldValue: string;
+  newValue: string;
+  timestamp: string;
+};
+
+type FollowUp = {
+  followupId: string;
+  enquiryId: string;
+  userId: string;
+  followupDate: string;
+  followupType: string;
+  followupNotes: string;
+  outcome: string;
+  nextFollowupDate: string;
+  status: string;
+};
+
 // ─── Demo Data ────────────────────────────────────────────────────────────────
 const demoStats = {
   leads: 12,
@@ -71,6 +94,8 @@ const demoStats = {
   totalQuotedValue: 2800000,
   overdue: 3,
 };
+
+
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -91,12 +116,14 @@ const userPerms = isAdminOrOwner
   ? null
   : (session?.user?.permissions as Record<string, { view?: boolean }> | null);
 
-const canSee = (key: string) =>
-  isAdminOrOwner || (userPerms?.[key]?.view === true);
+  const canSee = (key: string) =>
+    isAdminOrOwner || (userPerms?.[key]?.view === true);
 
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState(demoStats);
   const [loading, setLoading] = useState(true);
@@ -116,6 +143,9 @@ const canSee = (key: string) =>
       }
       
       fetches.push(fetch('/api/pokes'));
+      fetches.push(fetch('/api/activities'));
+fetches.push(fetch('/api/followups'));
+
 
       const results = await Promise.allSettled(fetches);
 
@@ -143,6 +173,43 @@ const canSee = (key: string) =>
       setUsers(usersArr);
       setPokes(pokesArr);
 
+     // Build visible enquiry ID set for permission filtering
+const visibleEnqIds = new Set<string>(
+  isAdminOrOwner
+    ? enqs.map((e: Enquiry) => e.id)
+    : enqs
+        .filter((e: Enquiry) => {
+          if (e.allottedUser !== email && e.surveyedBy !== email) return false;
+          const requiredPerm = statusToPermKey[e.status];
+          return !requiredPerm || canSee(requiredPerm);
+        })
+        .map((e: Enquiry) => e.id)
+);
+
+// Activities
+const actIdx = isAdminOrOwner ? 4 : 3;
+let actsArr: Activity[] = [];
+if (results[actIdx]?.status === 'fulfilled' && (results[actIdx] as PromiseFulfilledResult<Response>).value.ok) {
+  const allActs: Activity[] = await (results[actIdx] as PromiseFulfilledResult<Response>).value.json();
+  actsArr = isAdminOrOwner
+    ? allActs.slice(0, 20)
+    : allActs.filter((a: Activity) => visibleEnqIds.has(a.enquiryId)).slice(0, 10);
+}
+setActivities(actsArr);
+
+// Follow-ups
+const fuIdx = isAdminOrOwner ? 5 : 4;
+let fusArr: FollowUp[] = [];
+if (results[fuIdx]?.status === 'fulfilled' && (results[fuIdx] as PromiseFulfilledResult<Response>).value.ok) {
+  const allFUs: FollowUp[] = await (results[fuIdx] as PromiseFulfilledResult<Response>).value.json();
+  fusArr = isAdminOrOwner
+    ? allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, 10)
+    : allFUs.filter((f: FollowUp) => visibleEnqIds.has(f.enquiryId) && f.status === 'pending').slice(0, 8);
+}
+setFollowups(fusArr);
+
+
+
       // ── CORRECT pipeline counts — mutually exclusive status field ──
       const realStats = {
         leads: ldsArr.length,
@@ -166,7 +233,11 @@ const canSee = (key: string) =>
     }
   }, [status, role, today]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchData();
+    }
+  }, [status, fetchData]);
 
   // ── Poke send ──
   async function sendPoke(enquiryId: string, to: string, customerName: string, message: string) {
@@ -230,7 +301,12 @@ const myTasks = enquiries
     })
     .slice(0, 8);
 
-  if (status === 'loading' || loading) return <DashboardSkeleton />;
+    if (status === 'loading') return <DashboardSkeleton />;
+    if (status === 'unauthenticated') { router.push('/login'); return null; }
+    // Wait for permissions to load before rendering for non-admin users
+    if (!isAdminOrOwner && loading) return <DashboardSkeleton />;
+    if (!isAdminOrOwner && userPerms === undefined) return <DashboardSkeleton />;
+    
 
 
   return (
@@ -514,6 +590,70 @@ const myTasks = enquiries
             </div>
           </div>
         )}
+{/* ── My Follow-ups ── */}
+{followups.length > 0 && (
+  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+    <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+      <PhoneCall size={16} className="text-green-500" />
+      Pending Follow-ups
+      <span className="ml-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+        {followups.length}
+      </span>
+    </h2>
+    <div className="space-y-2">
+      {followups.map(fu => (
+        <div key={fu.followupId}
+          className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-transparent hover:border-gray-200 cursor-pointer transition"
+          onClick={() => router.push(`/enquiries/${fu.enquiryId}`)}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900 text-sm">{fu.enquiryId}</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{fu.followupType}</span>
+              {fu.outcome && <span className="text-xs text-gray-400">{fu.outcome}</span>}
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">{fu.followupNotes}</p>
+            {fu.nextFollowupDate && (
+              <p className="text-xs text-orange-600 font-semibold mt-0.5">
+                📅 Next: {new Date(fu.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+              </p>
+            )}
+          </div>
+          <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+{/* ── Recent Activity ── */}
+{activities.length > 0 && (
+  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+    <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+      <Bell size={16} className="text-purple-500" />
+      Recent Activity
+    </h2>
+    <div className="space-y-1.5">
+      {activities.map(act => (
+        <div key={act.logId} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition">
+          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-purple-600 text-xs font-bold">{act.action[0].toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-gray-700">
+              <span className="font-semibold capitalize">{act.action.replace(/_/g, ' ')}</span>
+              {' on '}<span className="text-blue-600 cursor-pointer" onClick={() => router.push(`/enquiries/${act.enquiryId}`)}>{act.enquiryId}</span>
+              {act.fieldName && ` · ${act.fieldName}`}
+            </p>
+            <p className="text-xs text-gray-400">
+              {new Date(act.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
         {/* ── Surveys Awaiting Approval (admin/owner) ── */}
         {isAdminOrOwner && (() => {
