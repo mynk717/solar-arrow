@@ -190,6 +190,12 @@ if (!account && !user && token.accountType === 'user' && token.email) {
       token.permissions = freshUser.permissions ?? token.permissions;
       token.role = freshUser.role ?? token.role;
       token.isActive = freshUser.isActive;
+
+      // ✅ re-sync sheetId from org
+  if (!token.sheetId && freshUser.organizationId) {
+    const org = await redis.get(`org:${freshUser.organizationId}:info`) as any
+    if (org?.sheetId) token.sheetId = org.sheetId
+  }
     }
   } catch { /* silent — don't break auth */ }
 }

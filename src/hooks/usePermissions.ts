@@ -1,8 +1,9 @@
-// src/hooks/usePermissions.ts - UPDATED with proper types
+// src/hooks/usePermissions.ts
+'use client';
 
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
-import { getUserPermissions, type Permission, type AccountType } from '@/lib/permissions';
+import { resolvePermissions, type Permission, type AccountType } from '@/lib/permissions';
 import type { UserRole } from '@/lib/types';
 
 export function usePermissions(): Permission & {
@@ -16,14 +17,14 @@ export function usePermissions(): Permission & {
   const { data: session } = useSession();
   const pathname = usePathname();
 
-  // ✅ FIXED: Proper type casting with fallback
-  const accountType = (session?.user?.accountType as AccountType) || 'user';
-  const role = (session?.user?.role as UserRole) || null;
+  const accountType = session?.user?.accountType as AccountType ?? 'user';
+  const role = session?.user?.role as UserRole | null;
+  const customPerms = session?.user?.permissions as any ?? null;
   const branchId = session?.user?.branchId;
   const branchName = session?.user?.branchName;
 
-  const permissions = role 
-    ? getUserPermissions(accountType, role, pathname || '/')
+  const permissions = role
+    ? resolvePermissions(accountType, role, pathname, customPerms)
     : { canView: false, canEdit: false, canDelete: false, canExport: false };
 
   return {

@@ -116,3 +116,40 @@ export function canEditPage(
   const editablePages = ROLE_EDIT_PERMISSIONS[role] || [];
   return editablePages.includes('*') || editablePages.some(page => pagePath.startsWith(page));
 }
+// ADD THIS — resolves permissions from Redis-stored custom perms first,
+// falls back to role-based only if no custom perms are set
+export interface CustomPermissions {
+  canView: string[];
+  canEdit: string[];
+  canDelete: string[];
+  canExport: boolean;
+  canAssign: boolean;
+}
+
+export function resolvePermissions(
+  accountType: AccountType,
+  role: UserRole,
+  currentPath: string,
+  customPerms: CustomPermissions | null | undefined
+): Permission {
+  // Owner/Admin always get full access — custom perms don't apply
+  const isOwner = (accountType as string) === 'owner';
+  const isAdmin = (accountType as string) === 'admin';
+  if (isOwner || isAdmin) return OWNER_ADMIN_PERMISSIONS;
+
+  // If admin has set custom permissions for this user — use them
+  if (customPerms && Array.isArray(customPerms.canView) && customPerms.canView.length > 0) {
+    const matchedPath = currentPath.replace(/^\//, '').split('/')[0]; // e.g. "leads"
+    return {
+      canView: customPerms.canView.some(p => currentPath.startsWith('/' + p) || currentPath.startsWith(p)),
+      canEdit: Array.isArray(customPerms.canEdit)
+        ? customPerms.canEdit.some(p => currentPath.startsWith('/' + p) || currentPath.startsWith(p))
+        : false,
+      canDelete: Array.isArray(customPerms.canDelete) && customPerms.canDelete.length > 0,
+      canExport: customPerms.canExport ?? false,
+    };
+  }
+
+  // No custom perms set → fall back to role-based defaults
+  return getUserPermissions(accountType, role, currentPath);
+}
