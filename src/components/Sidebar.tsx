@@ -36,7 +36,7 @@ const ALL_NAV = [
   { name: 'Survey',       href: '/survey',       icon: ClipboardCheck,  permPath: '/survey' },
   { name: 'Quotation',    href: '/quotation',    icon: FileCheck,       permPath: '/quotation' },
   { name: 'Registration', href: '/registration', icon: Scale,           permPath: '/registration' },
-  { name: 'Payments',     href: '/payments',     icon: DollarSign,      permPath: '/payments' },
+  { name: 'Payments',     href: '/payments',     icon: IndianRupee,      permPath: '/payment' },
   { name: 'BOM',          href: '/bom',          icon: Package,         permPath: '/bom' },
   { name: 'Installation', href: '/installation', icon: Wrench,          permPath: '/installation' },
   { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: '/liaison' },
