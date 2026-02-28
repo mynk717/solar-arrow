@@ -144,11 +144,10 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
       const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads'), fetch('/api/bom')];
       if (isAdminOrOwner) {
         fetches.push(fetch('/api/users'));
-        fetches.push(fetch('/api/pokes'));
-        fetches.push(fetch('/api/activities'));
-        fetches.push(fetch('/api/followups'));
       }
-      
+      fetches.push(fetch('/api/pokes'));
+fetches.push(fetch('/api/activities'));
+fetches.push(fetch('/api/followups'));
 
 
       const results = await Promise.allSettled(fetches);

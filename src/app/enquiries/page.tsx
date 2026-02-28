@@ -58,9 +58,6 @@ const ALL_STATUSES = [
   { value: 'on-hold',                      label: 'On Hold' },
 ] as const;
 
-// State
-const [statusFilter, setStatusFilter] = useState<string>('all');
-
 
 // ── Assign Modal (inline, same pattern as leads) ──────────────────────────────
 function AssignEnquiryModal({
