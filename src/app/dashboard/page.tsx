@@ -328,8 +328,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
     if (status === 'loading') return <DashboardSkeleton />;
     if (status === 'unauthenticated') { router.push('/login'); return null; }
     // Wait for permissions to load before rendering for non-admin users
-    if (!isAdminOrOwner && loading) return <DashboardSkeleton />;
     if (!isAdminOrOwner && userPerms === undefined) return <DashboardSkeleton />;
+
     
 
 
@@ -488,7 +488,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 
 
         {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
-        {isAdminOrOwner && priorityEnquiries.length > 0 && (
+        {isAdminOrOwner && (loading || priorityEnquiries.length > 0) && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
   className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
@@ -505,8 +505,12 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   />
 </h2>
 {!collapsed.priorityActions && (
-            <div className="space-y-2">
-              {priorityEnquiries.map(e => {
+  <div className="space-y-2">
+    {loading ? (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 size={20} className="animate-spin text-amber-400" />
+      </div>
+    ) : priorityEnquiries.map(e => {
                 const isOverdue = e.nextActionDate && e.nextActionDate < today;
                 const isBlocked = e.isBlocked === true || e.isBlocked === 'TRUE';
                 const needsSurveyApproval = e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE');
@@ -576,8 +580,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         )}
 
         {/* ── MY TASKS (all roles) ── */}
-        {myTasks.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+        {(loading || myTasks.length > 0) && (
+  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
   className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
   onClick={() => toggle('myTasks')}
@@ -593,8 +597,12 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   />
 </h2>
 {!collapsed.myTasks && (
-            <div className="space-y-2">
-              {myTasks.map(e => {
+  <div className="space-y-2">
+    {loading ? (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 size={20} className="animate-spin text-blue-400" />
+      </div>
+    ) : myTasks.map(e => {
                 const isOverdue = e.nextActionDate && e.nextActionDate < today;
                 return (
                   <div key={e.taskId ?? e.entityId}
@@ -669,7 +677,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 )}
 
 {/* ── Recent Activity ── */}
-{activities.length > 0 && (
+{(loading || activities.length > 0) && (
   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
     <h2
   className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
@@ -686,8 +694,12 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   />
 </h2>
 {!collapsed.recentActivity && (
-    <div className="space-y-1.5">
-      {activities.map(act => (
+  <div className="space-y-1.5">
+    {loading ? (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 size={20} className="animate-spin text-purple-400" />
+      </div>
+    ) : activities.map(act => (
         <div key={act.logId} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition">
           <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-purple-600 text-xs font-bold">{act.action[0].toUpperCase()}</span>
