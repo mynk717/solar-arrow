@@ -469,7 +469,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
             <PipelineStage name="New"         count={stats.new}             icon={FileText}      color="indigo" href="/enquiries" />
             <PipelineStage name="Survey ⏳"   count={stats.surveyPending}   icon={ClipboardCheck} color="purple" href="/survey" />
             <PipelineStage name="Survey ✅"   count={stats.surveyCompleted} icon={FileCheck}     color="pink"   href="/survey" />
-            <PipelineStage name="Payment"     count={stats.paymentReceived} icon={DollarSign}    color="orange" href="/payment" />
+            <PipelineStage name="Payment"     count={stats.paymentReceived} icon={DollarSign}    color="orange" href="/payments" />
             <PipelineStage name="Installed"   count={stats.installations}   icon={Wrench}        color="teal"   href="/installation" />
             <PipelineStage name="Active ⚡"   count={stats.active}          icon={Zap}           color="green"  href="/liaison" />
           </div>
@@ -479,7 +479,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
             <PipelineStage name="Quotation"    count={enquiries.filter(e => e.quotationDate).length}                                               icon={FileCheck}   color="pink"    href="/quotation" />
             <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}           icon={Scale}       color="yellow"  href="/registration" />
             <PipelineStage name="BOM"          count={stats.bom ?? 0}              icon={Package}     color="cyan"    href="/bom" />
-            <PipelineStage name="Dispatch"     count={stats.dispatch ?? 0}                                                icon={Truck}       color="violet"  href="/dispatch" />
+            <PipelineStage name="Dispatch"     count={stats.dispatch ?? 0}                                                icon={Truck}       color="violet"  href="/bom" />
             <PipelineStage name="WCR"          count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}          icon={CheckSquare} color="rose"    href="/wcr" />
             <PipelineStage name="Subsidy"      count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
           </div>
