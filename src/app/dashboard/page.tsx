@@ -134,6 +134,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [showPokeModal, setShowPokeModal] = useState(false);
   const [pokeTarget, setPokeTarget] = useState<{ enquiryId: string; to: string; customerName: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [myTasks, setMyTasks] = useState<any[]>([]);
+
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -141,82 +143,60 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   const fetchData = useCallback(async () => {
     if (status !== 'authenticated') { setLoading(false); return; }
     try {
-      const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads'), fetch('/api/bom')];
-      if (isAdminOrOwner) {
-        fetches.push(fetch('/api/users'));
-      }
-      fetches.push(fetch('/api/pokes'));
-fetches.push(fetch('/api/activities'));
-fetches.push(fetch('/api/followups'));
-
-
-      const results = await Promise.allSettled(fetches);
-
-      let enqs: Enquiry[] = [];
-      let ldsArr: any[] = [];
-      let usersArr: any[] = [];
-      let pokesArr: Poke[] = [];
-      let actsArr: Activity[] = [];
-      let fusArr: FollowUp[] = [];
-      
-     // ── Build named index map ──────────────────────────────────────────────────
-let idx = 0;
-const idxEnq   = idx++;                         // 0 — always
-const idxLeads = idx++;                         // 1 — always
-const idxBom   = idx++;                         // 2 — always (bom is always fetched)
-const idxUsers = isAdminOrOwner ? idx++ : -1;   // 3 if admin, -1 if not
-const idxPokes = isAdminOrOwner ? idx++ : -1;   // 4 if admin, -1 if not
-const idxActs  = isAdminOrOwner ? idx++ : -1;   // 5 if admin, -1 if not
-const idxFUs   = isAdminOrOwner ? idx++ : -1;   // 6 if admin, -1 if not
-
-      
-      const get = (i: number) =>
-        i >= 0 && results[i]?.status === 'fulfilled'
-          ? (results[i] as PromiseFulfilledResult<Response>).value
-          : null;
-      
-      if (get(idxEnq)?.ok)   enqs     = await get(idxEnq)!.json();
-      if (get(idxLeads)?.ok) ldsArr   = await get(idxLeads)!.json();
-      let bomsArr: any[] = [];
-if (get(idxBom)?.ok) {
-  const bomRes = await get(idxBom)!.json();
-  // api/bom returns { boms: [...], count, cached } — handle both shapes
-  bomsArr = Array.isArray(bomRes) ? bomRes : (bomRes.boms ?? []);
-  setBoms(bomsArr);
-}
-      if (get(idxUsers)?.ok) usersArr = await get(idxUsers)!.json();
-      if (get(idxPokes)?.ok) pokesArr = await get(idxPokes)!.json();
-      
-      setEnquiries(enqs);
-      setLeads(ldsArr);
-      setUsers(usersArr);
-      setPokes(pokesArr);
-      
-      
-            // Build permitted enq ID set for activity/followup filtering
-            const permittedEnqIds = new Set<string>(
-              isAdminOrOwner
-                ? enqs.map((e: Enquiry) => e.id)
-                : enqs
-                    .filter((e: Enquiry) => e.allottedUser === email || e.surveyedBy === email)
-                    .map((e: Enquiry) => e.id)
-            );
-      
-            if (get(idxActs)?.ok) {
-              const allActs: Activity[] = await get(idxActs)!.json();
-              actsArr = isAdminOrOwner
-                ? allActs.slice(0, 20)
-                : allActs.filter((a: Activity) => permittedEnqIds.has(a.enquiryId)).slice(0, 10);
-            }
-            setActivities(actsArr);
-      
-            if (get(idxFUs)?.ok) {
-              const allFUs: FollowUp[] = await get(idxFUs)!.json();
-              fusArr = isAdminOrOwner
-                ? allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, 10)
-                : allFUs.filter((f: FollowUp) => permittedEnqIds.has(f.enquiryId) && f.status === 'pending').slice(0, 8);
-            }
-            setFollowups(fusArr);      
+            // ── Fixed: always fetch all 7, separate admin-only users fetch ──
+            const [enqRes, leadsRes, bomRes, tasksRes, pokesRes, actsRes, fusRes] =
+            await Promise.allSettled([
+              fetch('/api/enquiries'),
+              fetch('/api/leads'),
+              fetch('/api/bom'),
+              fetch('/api/tasks'),       // server-side filtered per user
+              fetch('/api/pokes'),       // all users see their own pokes
+              fetch('/api/activities'),  // server-side filtered per user
+              fetch('/api/followups'),   // all users
+            ]);
+    
+          const ok = (r: PromiseSettledResult<Response>) =>
+            r.status === 'fulfilled' && r.value.ok ? r.value : null;
+    
+          let enqs: Enquiry[] = [];
+          let ldsArr: any[] = [];
+          let bomsArr: any[] = [];
+          let usersArr: any[] = [];
+          let pokesArr: Poke[] = [];
+          let actsArr: Activity[] = [];
+          let fusArr: FollowUp[] = [];
+    
+          if (ok(enqRes))   enqs    = await ok(enqRes)!.json();
+          if (ok(leadsRes)) ldsArr  = await ok(leadsRes)!.json();
+          if (ok(bomRes)) {
+            const bomJson = await ok(bomRes)!.json();
+            bomsArr = Array.isArray(bomJson) ? bomJson : (bomJson.boms ?? []);
+            setBoms(bomsArr);
+          }
+          if (ok(tasksRes)) {
+            const tasksJson = await ok(tasksRes)!.json();
+            setMyTasks(tasksJson.allTasks ?? []);
+          }
+          if (ok(pokesRes)) pokesArr = await ok(pokesRes)!.json();
+          if (ok(actsRes))  actsArr  = (await ok(actsRes)!.json()).slice(0, isAdminOrOwner ? 20 : 10);
+          if (ok(fusRes)) {
+            const allFUs: FollowUp[] = await ok(fusRes)!.json();
+            fusArr = allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, isAdminOrOwner ? 10 : 8);
+          }
+    
+          // Admin-only: fetch users separately
+          if (isAdminOrOwner) {
+            const usersRes = await fetch('/api/users');
+            if (usersRes.ok) usersArr = await usersRes.json();
+          }
+    
+          setEnquiries(enqs);
+          setLeads(ldsArr);
+          setUsers(usersArr);
+          setPokes(pokesArr);
+          setActivities(actsArr);
+          setFollowups(fusArr);
+        
       
 
 
@@ -262,7 +242,7 @@ if (get(idxBom)?.ok) {
     } finally {
       setLoading(false);
     }
-  }, [status, role, today]);
+  }, [status, isAdminOrOwner, today]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -313,8 +293,8 @@ if (get(idxBom)?.ok) {
     // Quotation
     'quotation-sent': '/quotation', 'quotation-approved': '/quotation', 'quotation-rejected': '/quotation',
     // Payments
-    'payment-pending': '/payment', 'payment-partial': '/payment',
-    'payment-complete': '/payment', 'payment-received': '/payment',
+    'payment-pending': '/payments', 'payment-partial': '/payments',
+    'payment-complete': '/payments', 'payment-received': '/payments',
     // Registration
     'registration-pending': '/registration', 'registration-submitted': '/registration',
     'registration-approved': '/registration', 'registration-rejected': '/registration',
@@ -336,43 +316,6 @@ if (get(idxBom)?.ok) {
     'subsidy-pending': '/subsidy', 'subsidy-applied': '/subsidy',
     'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
   };
-  
-
-
-// Pages this user can see — used to match tasks by stage
-const myVisiblePaths = isAdminOrOwner
-  ? Object.values(statusToPermKey)
-  : (userPerms?.canView ?? []);
-
-const myTasks = enquiries
-  .filter(e => {
-    if (e.status === 'active' || e.status === 'cancelled') return false;
-
-    // Admin/owner sees all non-active tasks
-    if (isAdminOrOwner) return true;
-
-    // For regular users: show task if they are assigned OR if the stage
-    // is on a page they have permission to — and they're the responsible person
-    const requiredPerm = statusToPermKey[e.status];
-    const canSeeThisStage = !requiredPerm || myVisiblePaths.includes(requiredPerm);
-
-    if (!canSeeThisStage) return false;
-
-    // Match by assignment or by role-relevant field
-    const isAssigned = e.allottedUser === email;
-    const isSurveyor = e.surveyedBy === email;
-    const isInMyStage = canSeeThisStage && (isAssigned || isSurveyor);
-
-    return isInMyStage;
-  })
-
-
-    .sort((a, b) => {
-      if (!a.nextActionDate) return 1;
-      if (!b.nextActionDate) return -1;
-      return a.nextActionDate.localeCompare(b.nextActionDate);
-    })
-    .slice(0, 8);
 
     if (status === 'loading') return <DashboardSkeleton />;
     if (status === 'unauthenticated') { router.push('/login'); return null; }
@@ -629,16 +572,16 @@ const myTasks = enquiries
               {myTasks.map(e => {
                 const isOverdue = e.nextActionDate && e.nextActionDate < today;
                 return (
-                  <div key={e.id}
+                  <div key={e.taskId ?? e.entityId}
                     className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer hover:shadow-sm ${
                       isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-transparent hover:border-gray-200'
                     }`}
-                    onClick={() => router.push(`/enquiries/${e.id}`)}
+                    onClick={() => router.push(`/enquiries/${e.entityId}`)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 text-sm truncate">{e.customerName}</span>
-                        <span className="text-xs text-gray-400">{e.id}</span>
+                        <span className="text-xs text-gray-400">{e.entityId}</span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${
                           e.status === 'survey-pending' ? 'bg-purple-100 text-purple-700' :
                           e.status === 'survey-completed' ? 'bg-pink-100 text-pink-700' :
