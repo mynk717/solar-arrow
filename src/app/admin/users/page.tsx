@@ -224,7 +224,12 @@ export default function UsersManagement() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="font-bold text-gray-900">{user.name}</p>
+                  <button
+      onClick={() => router.push(`/admin/users/${encodeURIComponent(user.email)}`)}
+      className="font-bold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-left"
+    >
+      {user.name}
+    </button>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
                       user.role === 'owner' ? 'bg-purple-100 text-purple-800' :
                       user.role === 'admin' ? 'bg-blue-100 text-blue-800' :
