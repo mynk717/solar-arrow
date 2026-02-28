@@ -154,7 +154,7 @@ const navigation = ALL_NAV.filter(item => {
     <>
       {/* Mobile Header - Fixed Top Bar with scroll hide/show */}
 <div className={`
-  lg:hidden fixed left-0 right-0 bg-white border-b border-gray-200 
+  hidden fixed left-0 right-0 bg-white border-b border-gray-200 
   px-4 py-3 flex items-center justify-between z-50 shadow-sm
   transition-transform duration-300 ease-in-out
   ${showHeader ? 'top-0 translate-y-0' : '-top-20 -translate-y-full'}
@@ -178,7 +178,7 @@ const navigation = ALL_NAV.filter(item => {
       </div>
 
       {/* Add spacing for fixed header on mobile */}
-      <div className="lg:hidden h-14" />
+      <div className="hidden h-14" />
 
       {/* Sidebar */}
       <aside
@@ -219,7 +219,7 @@ const navigation = ALL_NAV.filter(item => {
 
         {/* User Info - Mobile Only */}
         {session?.user && (
-          <div className="lg:hidden px-6 py-3 bg-blue-700/30 border-b border-blue-500/30">
+          <div className="hidden px-6 py-3 bg-blue-700/30 border-b border-blue-500/30">
             <p className="text-sm font-medium truncate">{session.user.name}</p>
             <p className="text-xs text-blue-200 truncate">{session.user.email}</p>
             <span className="inline-block mt-1 text-xs bg-blue-500 px-2 py-0.5 rounded-full">
@@ -356,7 +356,7 @@ const navigation = ALL_NAV.filter(item => {
       {/* Overlay for mobile */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
+          className="hidden fixed inset-0 bg-black/60 z-30 backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden="true"
         />
