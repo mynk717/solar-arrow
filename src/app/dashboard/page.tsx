@@ -93,6 +93,8 @@ const demoStats = {
   blocked: 1,
   totalQuotedValue: 2800000,
   overdue: 3,
+  bom: 3,
+  dispatch: 2,
 };
 
 
@@ -121,6 +123,7 @@ const canSee = (path: string) =>
   isAdminOrOwner || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(path));
 
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [boms, setBoms] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -138,14 +141,14 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   const fetchData = useCallback(async () => {
     if (status !== 'authenticated') { setLoading(false); return; }
     try {
-      const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads')];
+      const fetches: Promise<Response>[] = [fetch('/api/enquiries'), fetch('/api/leads'), fetch('/api/bom')];
       if (isAdminOrOwner) {
         fetches.push(fetch('/api/users'));
+        fetches.push(fetch('/api/pokes'));
+        fetches.push(fetch('/api/activities'));
+        fetches.push(fetch('/api/followups'));
       }
       
-      fetches.push(fetch('/api/pokes'));
-      fetches.push(fetch('/api/activities'));
-fetches.push(fetch('/api/followups'));
 
 
       const results = await Promise.allSettled(fetches);
@@ -157,14 +160,16 @@ fetches.push(fetch('/api/followups'));
       let actsArr: Activity[] = [];
       let fusArr: FollowUp[] = [];
       
-      // Build named index map — avoids fragile manual index tracking
-      let idx = 0;
-      const idxEnq   = idx++;                              // always 0
-      const idxLeads = idx++;                              // always 1
-      const idxUsers = isAdminOrOwner ? idx++ : -1;        // 2 if admin, else skip
-      const idxPokes = idx++;
-      const idxActs  = idx++;
-      const idxFUs   = idx++;
+     // ── Build named index map ──────────────────────────────────────────────────
+let idx = 0;
+const idxEnq   = idx++;                         // 0 — always
+const idxLeads = idx++;                         // 1 — always
+const idxBom   = idx++;                         // 2 — always (bom is always fetched)
+const idxUsers = isAdminOrOwner ? idx++ : -1;   // 3 if admin, -1 if not
+const idxPokes = isAdminOrOwner ? idx++ : -1;   // 4 if admin, -1 if not
+const idxActs  = isAdminOrOwner ? idx++ : -1;   // 5 if admin, -1 if not
+const idxFUs   = isAdminOrOwner ? idx++ : -1;   // 6 if admin, -1 if not
+
       
       const get = (i: number) =>
         i >= 0 && results[i]?.status === 'fulfilled'
@@ -173,6 +178,13 @@ fetches.push(fetch('/api/followups'));
       
       if (get(idxEnq)?.ok)   enqs     = await get(idxEnq)!.json();
       if (get(idxLeads)?.ok) ldsArr   = await get(idxLeads)!.json();
+      let bomsArr: any[] = [];
+if (get(idxBom)?.ok) {
+  const bomRes = await get(idxBom)!.json();
+  // api/bom returns { boms: [...], count, cached } — handle both shapes
+  bomsArr = Array.isArray(bomRes) ? bomRes : (bomRes.boms ?? []);
+  setBoms(bomsArr);
+}
       if (get(idxUsers)?.ok) usersArr = await get(idxUsers)!.json();
       if (get(idxPokes)?.ok) pokesArr = await get(idxPokes)!.json();
       
@@ -234,6 +246,15 @@ fetches.push(fetch('/api/followups'));
         overdue: permittedEnqs.filter((e: Enquiry) =>
           e.nextActionDate && e.nextActionDate < today && e.status !== 'active'
         ).length,
+        bom: isAdminOrOwner
+    ? bomsArr.length
+    : bomsArr.filter((b: any) => permittedEnqs.some(e => e.id === b.enquiryId)).length,
+    dispatch: isAdminOrOwner
+    ? bomsArr.filter((b: any) => ['dispatched', 'delivered'].includes(b.dispatchStatus)).length
+    : bomsArr.filter((b: any) =>
+        ['dispatched', 'delivered'].includes(b.dispatchStatus) &&
+        permittedEnqs.some(e => e.id === b.enquiryId)
+      ).length,
       };
 
       setStats(realStats);
@@ -507,8 +528,8 @@ const myTasks = enquiries
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             <PipelineStage name="Quotation"    count={enquiries.filter(e => e.quotationDate).length}                                               icon={FileCheck}   color="pink"    href="/quotation" />
             <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}           icon={Scale}       color="yellow"  href="/registration" />
-            <PipelineStage name="BOM"          count={enquiries.filter(e => e.bomCreated === true || e.bomCreated === 'TRUE').length}              icon={Package}     color="cyan"    href="/bom" />
-            <PipelineStage name="Dispatch"     count={enquiries.filter(e => e.dispatchDate).length}                                                icon={Truck}       color="violet"  href="/dispatch" />
+            <PipelineStage name="BOM"          count={stats.bom ?? 0}              icon={Package}     color="cyan"    href="/bom" />
+            <PipelineStage name="Dispatch"     count={stats.dispatch ?? 0}                                                icon={Truck}       color="violet"  href="/dispatch" />
             <PipelineStage name="WCR"          count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}          icon={CheckSquare} color="rose"    href="/wcr" />
             <PipelineStage name="Subsidy"      count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
           </div>
