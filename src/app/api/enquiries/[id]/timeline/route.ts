@@ -17,8 +17,14 @@ export async function GET(
     const { id: enquiryId } = await params;
     const orgId = session.user.organizationId;
 
-    // Get all sheet history
-    const sheetHistory = await redis.get(`org:${orgId}:sheetHistory`) as any[] || [];
+    // Always include current active sheet + any historical sheets
+const historicalSheets = await redis.get(`org:${orgId}:sheetHistory`) as any[] || [];
+const currentSheetId = session.user.sheetId;
+const sheetHistory = [
+  ...(currentSheetId ? [{ sheetId: currentSheetId }] : []),
+  ...historicalSheets.filter((s: any) => s.sheetId !== currentSheetId),
+];
+
     
     const allActivities = [];
     

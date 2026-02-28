@@ -293,16 +293,17 @@ export default function EnquiryDetailPage() {
   const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'survey' | 'payment' | 'installation' | 'timeline'>('overview');
+const [activeTab, setActiveTab] = useState<string>('overview');
   const [showPokeModal, setShowPokeModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isAdminOrOwner =
+  const isAdminOrOwner = !!(
     session?.user?.accountType === 'admin' ||
     session?.user?.accountType === 'owner' ||
     session?.user?.role === 'admin' ||
-    session?.user?.role === 'owner';
+    session?.user?.role === 'owner'
+  );
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -320,8 +321,10 @@ export default function EnquiryDetailPage() {
       }
 
       if (timelineRes.status === 'fulfilled' && timelineRes.value.ok) {
-        setTimeline(await timelineRes.value.json());
+        const tlJson = await timelineRes.value.json();
+        setTimeline(Array.isArray(tlJson) ? tlJson : (tlJson.timeline ?? []));
       }
+      
 
       if (followupsRes.status === 'fulfilled' && followupsRes.value.ok) {
         const allFU: FollowUp[] = await followupsRes.value.json();
@@ -372,13 +375,21 @@ export default function EnquiryDetailPage() {
   const isBlocked = enquiry.isBlocked === true || (enquiry.isBlocked as any) === 'TRUE';
 
   // ── Tabs config ─────────────────────────────────────────────────────────────
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: User },
-    { id: 'survey', label: 'Survey', icon: ClipboardCheck },
-    { id: 'payment', label: 'Payment', icon: DollarSign },
-    { id: 'installation', label: 'Install', icon: Wrench },
-    { id: 'timeline', label: 'Timeline', icon: Activity },
-  ] as const;
+  const userCanView: string[] =
+  (session?.user?.permissions as any)?.canView ?? [];
+
+const canSeeTab = (path: string) =>
+  isAdminOrOwner || userCanView.includes(path);
+
+const tabs = [
+  { id: 'overview',     label: 'Overview', icon: User,           show: true },
+  { id: 'survey',       label: 'Survey',   icon: ClipboardCheck, show: canSeeTab('/survey') },
+  { id: 'payment',      label: 'Payment',  icon: DollarSign,     show: canSeeTab('/payments') || canSeeTab('/payment') },
+  { id: 'installation', label: 'Install',  icon: Wrench,         show: canSeeTab('/installation') },
+  { id: 'timeline',     label: 'Timeline', icon: Activity,       show: true },
+].filter(t => t.show);
+
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -432,6 +443,15 @@ export default function EnquiryDetailPage() {
             <FileText size={14} />
             Add Follow-up
           </button>
+          {(isAdminOrOwner || enquiry.allottedUser === session?.user?.email || enquiry.surveyedBy === session?.user?.email) && (
+  <button
+    onClick={() => router.push(`/enquiries/${enquiry.id}/edit`)}
+    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
+  >
+    <CheckCircle2 size={14} />
+    Update Status
+  </button>
+)}
           {enquiry.allottedUser && enquiry.allottedUser !== session?.user?.email && (
             <button
               onClick={() => setShowPokeModal(true)}
@@ -441,9 +461,9 @@ export default function EnquiryDetailPage() {
               Poke Assignee
             </button>
           )}
-          {isAdminOrOwner && (
+         {(isAdminOrOwner || enquiry.allottedUser === session?.user?.email || enquiry.surveyedBy === session?.user?.email) && (
             <Link
-              href={`/enquiries?id=${enquiry.id}`}
+            href={`/enquiries/${enquiry.id}/edit`}
               className="flex items-center gap-2 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition"
             >
               <Edit3 size={14} />

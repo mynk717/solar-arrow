@@ -135,6 +135,14 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [pokeTarget, setPokeTarget] = useState<{ enquiryId: string; to: string; customerName: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [myTasks, setMyTasks] = useState<any[]>([]);
+  const [collapsed, setCollapsed] = useState({
+    priorityActions: false,
+    myTasks: false,
+    recentActivity: true,   // collapsed by default — it's the longest
+  });
+  const toggle = (key: keyof typeof collapsed) =>
+    setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+  
 
 
   const today = new Date().toISOString().split('T')[0];
@@ -482,13 +490,21 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
         {isAdminOrOwner && priorityEnquiries.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <AlertTriangle size={16} className="text-amber-500" />
-              Priority Actions
-              <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-                {priorityEnquiries.length}
-              </span>
-            </h2>
+            <h2
+  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+  onClick={() => toggle('priorityActions')}
+>
+  <AlertTriangle size={16} className="text-amber-500" />
+  Priority Actions
+  <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+    {priorityEnquiries.length}
+  </span>
+  <ChevronRight
+    size={15}
+    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.priorityActions ? '' : 'rotate-90'}`}
+  />
+</h2>
+{!collapsed.priorityActions && (
             <div className="space-y-2">
               {priorityEnquiries.map(e => {
                 const isOverdue = e.nextActionDate && e.nextActionDate < today;
@@ -555,19 +571,28 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
         {/* ── MY TASKS (all roles) ── */}
         {myTasks.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <Clock size={16} className="text-blue-500" />
-              My Tasks
-              <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
-                {myTasks.length}
-              </span>
-            </h2>
+            <h2
+  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+  onClick={() => toggle('myTasks')}
+>
+  <Clock size={16} className="text-blue-500" />
+  My Tasks
+  <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+    {myTasks.length}
+  </span>
+  <ChevronRight
+    size={15}
+    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.myTasks ? '' : 'rotate-90'}`}
+  />
+</h2>
+{!collapsed.myTasks && (
             <div className="space-y-2">
               {myTasks.map(e => {
                 const isOverdue = e.nextActionDate && e.nextActionDate < today;
@@ -604,6 +629,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                 );
               })}
             </div>
+)}
           </div>
         )}
 {/* ── My Follow-ups ── */}
@@ -645,10 +671,21 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 {/* ── Recent Activity ── */}
 {activities.length > 0 && (
   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-    <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-      <Bell size={16} className="text-purple-500" />
-      Recent Activity
-    </h2>
+    <h2
+  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+  onClick={() => toggle('recentActivity')}
+>
+  <Bell size={16} className="text-purple-500" />
+  Recent Activity
+  <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+    {activities.length}
+  </span>
+  <ChevronRight
+    size={15}
+    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.recentActivity ? '' : 'rotate-90'}`}
+  />
+</h2>
+{!collapsed.recentActivity && (
     <div className="space-y-1.5">
       {activities.map(act => (
         <div key={act.logId} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition">
@@ -668,6 +705,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         </div>
       ))}
     </div>
+)}
   </div>
 )}
 

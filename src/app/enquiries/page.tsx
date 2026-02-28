@@ -188,10 +188,41 @@ export default function EnquiriesPage() {
       .catch(() => {});
   }, [isAdminOrOwner]);
 
-  // Filter — non-admins only see their own enquiries
-  const myEnquiries = isAdminOrOwner
-    ? enquiries
-    : enquiries.filter(e => e.allottedUser === email || e.surveyedBy === email);
+    // Filter — non-admins see enquiries in their permitted stages OR personally assigned
+    const statusToPermKey: Record<string, string> = {
+      new: '/enquiries',
+      'survey-pending': '/survey', 'survey-scheduled': '/survey',
+      'survey-completed': '/survey', 'survey-rejected': '/survey',
+      'quotation-sent': '/quotation', 'quotation-approved': '/quotation', 'quotation-rejected': '/quotation',
+      'payment-pending': '/payments', 'payment-partial': '/payments',
+      'payment-complete': '/payments', 'payment-received': '/payments',
+      'registration-pending': '/registration', 'registration-submitted': '/registration',
+      'registration-approved': '/registration', 'registration-rejected': '/registration',
+      'bom-pending': '/bom', 'bom-created': '/bom',
+      'dispatch-pending': '/bom', 'dispatched': '/bom', 'delivered': '/bom',
+      'installation-pending': '/installation', 'installation-scheduled': '/installation',
+      'installation-in-progress': '/installation', 'installation-completed': '/installation',
+      'installation-rework-required': '/installation',
+      'wcr-pending': '/wcr', 'wcr-submitted': '/wcr', 'wcr-approved': '/wcr', 'wcr-rejected': '/wcr',
+      'inspection-pending': '/liaison', 'inspection-scheduled': '/liaison',
+      'inspection-completed': '/liaison', 'inspection-approved': '/liaison',
+      'inspection-rejected': '/liaison', 'meter-installation-pending': '/liaison',
+      'meter-installed': '/liaison', 'grid-sync-pending': '/liaison', 'grid-synced': '/liaison',
+      'subsidy-pending': '/subsidy', 'subsidy-applied': '/subsidy',
+      'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
+    };
+  
+    const userCanView: string[] =
+      (session?.user?.permissions as any)?.canView ?? [];
+  
+    const myEnquiries = isAdminOrOwner
+      ? enquiries
+      : enquiries.filter(e => {
+          if (e.allottedUser === email || e.surveyedBy === email) return true;
+          const requiredPath = statusToPermKey[e.status];
+          return !!requiredPath && userCanView.includes(requiredPath);
+        });
+  
 
   const filtered = myEnquiries.filter(e => {
     const matchSearch =
