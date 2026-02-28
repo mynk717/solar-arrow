@@ -58,12 +58,11 @@ const { refreshSilent } = useLeads();
 useEffect(() => {
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/settings/users');
+      const response = await fetch('/api/users');
       if (response.ok) {
         const data = await response.json();
-        setUsers(data.users.filter((u: any) => 
-          u.isActive && ['sales', 'admin', 'telecaller'].includes(u.role)
-        ));
+        setUsers((Array.isArray(data) ? data : data.users ?? [])
+        .filter((u: any) => u.isActive));
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
@@ -1208,6 +1207,7 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
             email: lead.email,
             address: lead.address,
             area: lead.area,
+            allottedUser: lead.assignedTo || '',
             
             // Pass form data
             capacity: formData.systemCapacity,

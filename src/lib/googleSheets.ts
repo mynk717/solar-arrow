@@ -1139,6 +1139,7 @@ export async function convertLeadToEnquiry(
       leadConvertedDate: new Date().toISOString().split('T')[0],
       paymentType: enquiryData.paymentType || 'Direct',
       lastEditedBy: convertedBy,
+      allottedUser: enquiryData.allottedUser || lead.assignedTo || convertedBy,
       ...enquiryData,
     };
 
