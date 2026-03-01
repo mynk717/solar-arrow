@@ -131,8 +131,9 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
       <DemoBanner />
 
       {/* Header - Sticky */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="p-4 pt-6">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="p-4 pt-3">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
@@ -158,7 +159,8 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
               placeholder="Search by Enquiry ID or Surveyor"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 font-medium"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 font-medium text-base"
+              style={{ fontSize: '16px' }}
             />
           </div>
 
@@ -175,7 +177,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
 
 {/* Scheduled But Not Yet Submitted */}
 {scheduledEnquiries.length > 0 && (filter === 'all' || filter === 'scheduled') && (
-  <div className="p-4 pt-4 space-y-3">
+  <div className="p-4 pt-4 pb-24 space-y-3">
     <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
       <Clock size={18} className="text-orange-500" />
       Awaiting Survey Visit ({scheduledEnquiries.length})
@@ -233,7 +235,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
 
       {/* Survey Cards */}
       {filter !== 'scheduled' && (
-        <div className="p-4 pt-6 space-y-3">
+        <div className="p-4 pt-6 pb-24 space-y-3">
         {filteredSurveys.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
