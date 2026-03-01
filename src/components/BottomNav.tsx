@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   LayoutDashboard, FileText, IndianRupee, Settings, PhoneCall,
-  ClipboardCheck, Wrench, Zap, CheckSquare, MoreHorizontal, X,
+  ClipboardCheck, Wrench, Zap, CheckSquare, MoreHorizontal, X,Users, Package, Scale,
 } from 'lucide-react';
 
 export default function BottomNav() {
@@ -32,11 +32,18 @@ export default function BottomNav() {
     { key: 'enq',      href: '/enquiries',     label: 'ConEnq',  icon: FileText,        show: canSee('/enquiries') },
     { key: 'payments', href: '/payments',      label: 'Payment', icon: IndianRupee,     show: canSee('/payments') || canSee('/payment') },
     { key: 'survey',   href: '/survey',        label: 'Survey',  icon: ClipboardCheck,  show: canSee('/survey') },
+    { key: 'quotation',href: '/quotation',     label: 'Quotation',icon: FileText,       show: canSee('/quotation') },
+    { key: 'reg',      href: '/registration',  label: 'Reg',     icon: Scale,           show: canSee('/registration') },
+    { key: 'bom',      href: '/bom',           label: 'BOM',     icon: Package,         show: canSee('/bom') },
     { key: 'install',  href: '/installation',  label: 'Install', icon: Wrench,          show: canSee('/installation') },
     { key: 'liaison',  href: '/liaison',       label: 'Liaison', icon: Zap,             show: canSee('/liaison') },
     { key: 'wcr',      href: '/wcr',           label: 'WCR',     icon: CheckSquare,     show: canSee('/wcr') },
+    { key: 'subsidy',  href: '/subsidy',       label: 'Subsidy', icon: IndianRupee,     show: canSee('/subsidy') },
+    // Admin-only
+    { key: 'users',    href: '/admin/users',   label: 'Users',   icon: Users,           show: isAdminOrOwner },
     { key: 'settings', href: '/settings',      label: 'Settings',icon: Settings,        show: true },
   ].filter(t => t.show);
+
 
   const primaryTabs = allTabs.slice(0, 4);
   const moreTabs    = allTabs.slice(4);
