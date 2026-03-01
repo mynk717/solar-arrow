@@ -283,81 +283,85 @@ const saveConfig = async (id?: string, name?: string) => {
     );
   }
 
-  // Signed in
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Settings size={32} />
-            Settings
-          </h1>
-          <p className="text-gray-600 mt-2">Manage your Google Sheets integration</p>
-        </div>
-        <button
-          onClick={() => signOut()}
-          className="text-red-600 hover:text-red-700 flex items-center gap-2"
-        >
-          <LogOut size={18} />
-          Sign Out
-        </button>
-      </div>
-
-      {/* User Info */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-center gap-4">
-          {session?.user?.image && (
-            <img src={session.user.image} alt={session.user.name || 'User'} className="w-16 h-16 rounded-full" />
-          )}
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{session?.user?.name}</h2>
-            <p className="text-gray-600">{session?.user?.email}</p>
-            <div className="mt-2 flex items-center gap-4">
-  <span className={`inline-flex items-center gap-2 text-sm px-3 py-1 rounded-full ${
-    tokenStatus === 'valid' 
-      ? 'text-green-700 bg-green-50' 
-      : tokenStatus === 'expired'
-      ? 'text-red-700 bg-red-50'
-      : 'text-gray-700 bg-gray-50'
-  }`}>
-    {tokenStatus === 'valid' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-    {tokenStatus === 'valid' ? 'Connected to Google' : tokenStatus === 'expired' ? 'Connection Expired' : 'Checking...'}
-  </span>
-{tokenStatus === 'expired' && (
-  <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-    <div className="flex items-start gap-3">
-      <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
-      <div>
-        <h3 className="font-bold text-red-900 mb-2">
-          {session?.user?.accountType === 'user' 
-            ? 'Administrator Action Required' 
-            : 'Authentication Expired'}
-        </h3>
-        <p className="text-red-800 mb-3">
-          {session?.user?.accountType === 'user'
-            ? 'Your organization administrator needs to refresh the Google Sheets connection. Please contact them to resolve this issue.'
-            : 'Your Google authentication has expired. You need to re-authenticate to continue using Google Sheets.'}
-        </p>
-        {/* ✅ Only show button for admins */}
-        {session?.user?.accountType === 'admin' && (
-          <button
-            onClick={handleRefreshToken}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-          >
-            <RefreshCw size={16} className="inline mr-2" />
-            Re-authenticate Now
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-
+    // Signed in
+    return (
+      <div className="min-h-screen bg-gray-50">
+  
+        {/* ── Sticky Header ── */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Settings size={16} className="text-white" />
+              </div>
+              <span className="font-bold text-gray-900 text-base">Settings</span>
             </div>
+            <button
+              onClick={() => signOut()}
+              className="flex items-center gap-1.5 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-xl transition"
+            >
+              <LogOut size={15} />
+              Sign Out
+            </button>
           </div>
         </div>
-      </div>
+  
+        <div className="max-w-4xl mx-auto px-4 py-4 pb-24">
+  
+          {/* ── Profile Card ── */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex items-center gap-3">
+            {session?.user?.image ? (
+              <img
+                src={session.user.image}
+                alt={session.user.name || 'User'}
+                className="w-14 h-14 rounded-full border-2 border-blue-100 flex-shrink-0"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-blue-700 font-bold text-xl">
+                  {session?.user?.name?.[0]?.toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-gray-900 text-base truncate">{session?.user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+              <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold mt-1.5 ${
+                tokenStatus === 'valid'
+                  ? 'text-green-700 bg-green-50'
+                  : tokenStatus === 'expired'
+                  ? 'text-red-700 bg-red-50'
+                  : 'text-gray-600 bg-gray-100'
+              }`}>
+                {tokenStatus === 'valid'
+                  ? <><CheckCircle size={12} /> Connected to Google</>
+                  : tokenStatus === 'expired'
+                  ? <><AlertCircle size={12} /> Connection Expired</>
+                  : <><RefreshCw size={12} className="animate-spin" /> Checking...</>
+                }
+              </span>
+            </div>
+            {tokenStatus === 'expired' && (session?.user?.accountType === 'admin' || session?.user?.accountType === 'owner') && (
+              <button
+                onClick={handleRefreshToken}
+                className="flex-shrink-0 flex flex-col items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl transition"
+              >
+                <RefreshCw size={16} />
+                Reconnect
+              </button>
+            )}
+          </div>
+  
+          {/* ── Expired warning for regular users ── */}
+          {tokenStatus === 'expired' && session?.user?.accountType === 'user' && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+              <AlertCircle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-800">
+                Your organization admin needs to refresh the Google connection. Please contact them.
+              </p>
+            </div>
+          )}
+  
       
 
 {/* Telegram Notifications Section */}
@@ -583,6 +587,7 @@ const saveConfig = async (id?: string, name?: string) => {
           <li><strong>Access:</strong> You automatically have access to sheets you create</li>
         </ul>
       </div>
+    </div>
     </div>
   );
 }
