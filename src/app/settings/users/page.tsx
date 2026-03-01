@@ -5,6 +5,10 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Users, UserPlus, Trash2, Edit2, Mail, Shield, Building, Loader2, Key, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
+
+
 
 interface User {
   email: string;
@@ -70,10 +74,10 @@ export default function UsersPage() {
 
       await fetchUsers();
       setShowAddModal(false);
-      alert('✅ User added successfully! They will receive login credentials via email.');
+      toast.success('✅ User added successfully! They will receive login credentials via email.');
     } catch (error: any) {
       console.error('Failed to add user', error);
-      alert(`❌ ${error.message}`);
+      toast.error(`❌ ${error.message}`);
     }
   };
 
@@ -92,15 +96,15 @@ export default function UsersPage() {
 
       await fetchUsers();
       setEditingUser(null);
-      alert('✅ User updated successfully!');
+      toast.success('✅ User updated successfully!');
     } catch (error: any) {
       console.error('Failed to update user', error);
-      alert(`❌ ${error.message}`);
+      toast.error(`❌ ${error.message}`);
     }
   };
 
   const handleDeleteUser = async (userEmail: string) => {
-    if (!confirm('Are you sure you want to remove this user? They will lose access immediately.')) return;
+    if (!window.confirm('Remove this user? They will lose access immediately.')) return;
 
     try {
       const response = await fetch('/api/settings/users', {
@@ -115,10 +119,10 @@ export default function UsersPage() {
       }
 
       await fetchUsers();
-      alert('✅ User removed successfully!');
+      toast.success('✅ User removed successfully!');
     } catch (error: any) {
       console.error('Failed to delete user', error);
-      alert(`❌ ${error.message}`);
+      toast.error(`❌ ${error.message}`);
     }
   };
 
@@ -152,126 +156,117 @@ export default function UsersPage() {
   const inactiveUsers = users.filter(u => !u.isActive);
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Users size={32} className="text-blue-600" />
-            User Management
-          </h1>
-          <p className="text-gray-600 mt-2">Manage team members and their access permissions</p>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={fetchUsers}
-            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <RefreshCw size={20} />
-            Refresh
-          </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <UserPlus size={20} />
-            Add User
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Users" value={users.length} color="blue" />
-        <StatCard label="Active" value={activeUsers.length} color="green" />
-        <StatCard label="Admins" value={adminUsers.length} color="purple" />
-        <StatCard label="Inactive" value={inactiveUsers.length} color="red" />
-      </div>
-
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {users.map(user => (
-              <tr key={user.email} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">{user.name[0].toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-gray-700">
-                  <RoleBadge role={user.role} />
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-gray-700">{user.department || '-'}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setEditingUser(user)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Edit"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    {user.role !== 'owner' && (
-                      <button
-                        onClick={() => handleDeleteUser(user.email)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Remove"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {users.length === 0 && (
-          <div className="p-12 text-center text-gray-500">
-            No users found. Add your first team member!
+    <div className="min-h-screen bg-gray-50">
+       <Toaster />
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3" style={{ paddingTop: 'max(12px, env(safe-area-inset-top))' }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Users size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-gray-900 text-base">Team Members</span>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">{users.length}</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <button onClick={fetchUsers} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition">
+              <RefreshCw size={16} className="text-gray-600" />
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm font-semibold transition"
+            >
+              <UserPlus size={15} />
+              Add
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Add User Modal */}
-      {showAddModal && (
-        <AddUserModal
-          onClose={() => setShowAddModal(false)}
-          onSubmit={handleAddUser}
-        />
-      )}
+      <div className="px-4 py-4 pb-24 max-w-4xl mx-auto">
 
-      {/* Edit User Modal */}
+        {/* Stats Row */}
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {[
+            { label: 'Total', value: users.length, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Active', value: activeUsers.length, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: 'Admins', value: adminUsers.length, color: 'text-purple-600', bg: 'bg-purple-50' },
+            { label: 'Inactive', value: inactiveUsers.length, color: 'text-red-600', bg: 'bg-red-50' },
+          ].map(s => (
+            <div key={s.label} className={`${s.bg} rounded-2xl p-3 text-center`}>
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-gray-500 font-medium mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Users List — cards instead of table */}
+        <div className="space-y-2">
+          {users.length === 0 && (
+            <div className="text-center py-16 text-gray-400">
+              <Users size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">No team members yet</p>
+              <p className="text-xs mt-1">Tap Add to invite your first member</p>
+            </div>
+          )}
+          {users.map(user => (
+            <div key={user.email} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+              <div className="flex items-center gap-3">
+                {/* Avatar */}
+                <div className="w-11 h-11 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-blue-700 font-bold text-base">{user.name[0].toUpperCase()}</span>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-gray-900 text-sm truncate">{user.name}</p>
+                    <RoleBadge role={user.role} />
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    {user.department && (
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <Building size={10} /> {user.department}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">
+                      {user.lastLogin ? `Last: ${new Date(user.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : 'Never logged in'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setEditingUser(user)}
+                    className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition"
+                  >
+                    <Edit2 size={15} />
+                  </button>
+                  {user.role !== 'owner' && (
+                    <button
+                      onClick={() => handleDeleteUser(user.email)}
+                      className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 transition"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
+
+      {/* Modals */}
+      {showAddModal && <AddUserModal onClose={() => setShowAddModal(false)} onSubmit={handleAddUser} />}
       {editingUser && (
         <EditUserModal
           user={editingUser}
@@ -328,7 +323,7 @@ function AddUserModal({ onClose, onSubmit }: any) {
     e.preventDefault();
     
     if (!formData.email || !formData.name || !formData.password) {
-      alert('Please fill all required fields');
+      toast.error('Please fill all required fields');
       return;
     }
 
