@@ -3,6 +3,7 @@
   "short_name": "Solar Arrow",
   "description": "Solar Panel Management System for Chhattisgarh State Power Distribution Company Limited. Track installations from enquiry to activation.",
   "start_url": "/dashboard",
+  "id": "/dashboard",
   "display": "standalone",
   "background_color": "#2563eb",
   "theme_color": "#2563eb",
@@ -84,7 +85,7 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "description": "View your solar installation dashboard",
-      "url": "/",
+      "url": "/dashboard",
       "icons": [
         {
           "src": "/android/android-launchericon-96-96.png",

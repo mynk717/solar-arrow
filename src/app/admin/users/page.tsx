@@ -178,32 +178,39 @@ export default function UsersManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-5">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{users.length} users in your organization</p>
+            {/* Header */}
+            <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Users size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-base leading-tight">User Management</p>
+              <p className="text-xs text-gray-400">{users.length} members</p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={handleSyncUsers}
               disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-xs transition"
             >
-              {syncing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              Sync Sheet
+              {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              Sync
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs transition"
             >
-              <UserPlus size={16} />
-              Add User
+              <UserPlus size={14} />
+              Add
             </button>
           </div>
         </div>
       </div>
+
 
       {/* Flash message */}
       {msg && (
