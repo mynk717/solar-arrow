@@ -777,8 +777,8 @@ function LeadListView({
               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-900 font-semibold rounded border border-gray-300">
                 {lead.source}
               </span>
-              <div className="flex gap-2">
-                <button
+              <div className="grid grid-cols-2 gap-1 sm:flex sm:gap-2">
+              <button
                   onClick={() => onViewLead(lead)}
                   className="text-blue-600 p-2 rounded-lg bg-blue-50 touch-manipulation"
                   aria-label="View"
