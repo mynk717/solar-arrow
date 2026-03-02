@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const cacheKey = `org:${orgId}:wcrs`;
     const cached = await redis.get(cacheKey);
     if (cached) {
-      return NextResponse.json({ wcrs: JSON.parse(cached as string), cached: true });
+      return NextResponse.json({ wcrs: typeof cached === 'string' ? JSON.parse(cached) : cached, cached: true });
     }
 
     const sheets = await getGoogleSheetsClient();

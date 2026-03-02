@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Cache first (5 min)
     const cacheKey = `org:${orgId}:followups`;
     const cached = await redis.get(cacheKey);  // Add: import { redis } from '@/lib/redis';
-    if (cached) return NextResponse.json(JSON.parse(cached as string));
+    if (cached) return NextResponse.json(typeof cached === 'string' ? JSON.parse(cached) : cached);
 
     // Fetch FOLLOWUPS (matches your CSV + appendSheetRow schema)
     const sheets = await getGoogleSheetsClient();  // Add: import { getGoogleSheetsClient } from '@/lib/googleSheets';
