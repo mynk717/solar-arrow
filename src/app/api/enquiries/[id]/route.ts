@@ -4,7 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiry, deleteEnquiry, fetchEnquiries } from '@/lib/googleSheets';
 import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
 import { validateStatusTransition, getRequiredFieldsForStatus, validateRequiredFields } from '@/lib/statusValidation';
-import { invalidateEnquiryCache } from '@/lib/cacheInvalidation';
+import { redis } from '@/lib/redis';
 
 
 // GET single enquiry
@@ -71,7 +71,7 @@ export async function PATCH(
     };
 
     await updateEnquiry(updatedEnquiry);
-    await invalidateEnquiryCache(orgId);
+    await redis.del(`org:${orgId}:cache:enquiries`);
 
     // 🚀 NEW: Send Telegram notification for the update
     try {
