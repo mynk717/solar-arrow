@@ -98,11 +98,12 @@ function InfoRow({ label, value, icon: Icon }: { label: string; value?: string |
   return (
     <div className="flex items-start gap-2 py-2 border-b border-gray-50 last:border-0">
       {Icon && <Icon size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />}
-      <span className="text-xs text-gray-500 w-36 flex-shrink-0">{label}</span>
-      <span className="text-sm text-gray-900 font-medium break-words">{value}</span>
+      <span className="text-xs text-gray-500 w-28 flex-shrink-0">{label}</span> {/* w-36 → w-28 */}
+      <span className="text-sm text-gray-900 font-medium break-all min-w-0 flex-1">{value}</span> {/* break-words → break-all, add min-w-0 flex-1 */}
     </div>
   );
 }
+
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
@@ -494,7 +495,7 @@ const tabs = [
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -536,10 +537,10 @@ const tabs = [
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
 
         {/* ── Action Buttons ──────────────────────────────────────── */}
-        <div className="flex gap-2 flex-wrap items-center">
+<div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
 
 {/* Add Follow-up — anyone with enquiry view access */}
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
