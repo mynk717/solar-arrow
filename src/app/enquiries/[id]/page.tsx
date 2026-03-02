@@ -505,11 +505,13 @@ const tabs = [
             <ArrowLeft size={20} />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-base font-bold text-gray-900 truncate">{enquiry.customerName}</h1>
-              <span className="text-xs text-gray-400 font-mono">{enquiry.id}</span>
-              <StatusBadge status={enquiry.status} />
-            </div>
+          <div>
+  <div className="flex items-center gap-2">
+    <h1 className="text-base font-bold text-gray-900 truncate">{enquiry.customerName}</h1>
+    <StatusBadge status={enquiry.status} />
+  </div>
+  <p className="text-xs text-gray-400 font-mono">{enquiry.id}</p>
+</div>
             <p className="text-xs text-gray-500 mt-0.5">
               {enquiry.area} · {enquiry.capacity} kW
               {isBlocked && <span className="ml-2 text-red-600 font-semibold">⚠ Blocked</span>}
@@ -537,7 +539,7 @@ const tabs = [
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
 
         {/* ── Action Buttons ──────────────────────────────────────── */}
-<div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
 
 {/* Add Follow-up — anyone with enquiry view access */}
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
@@ -603,12 +605,12 @@ const tabs = [
         </div>
 
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto">
-          {tabs.map(tab => (
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto scrollbar-none scroll-smooth">
+        {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition flex-1 justify-center
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition justify-center
                 ${activeTab === tab.id ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               <tab.icon size={13} />
