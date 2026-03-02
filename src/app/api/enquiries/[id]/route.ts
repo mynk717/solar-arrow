@@ -65,6 +65,7 @@ export async function PATCH(
       ...currentEnquiry,
       ...updates,
       id: enquiryId,
+      createdAt: currentEnquiry.createdAt ? new Date(currentEnquiry.createdAt) : new Date(),
       updatedAt: new Date(),
     };
 
