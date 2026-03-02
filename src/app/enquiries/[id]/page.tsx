@@ -498,33 +498,33 @@ const tabs = [
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="px-3 py-3 flex items-center gap-2">
           <button
             onClick={() => router.push('/enquiries')}
-            className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-600"
+            className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-600 flex-shrink-0"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
           <div className="flex-1 min-w-0">
           <div>
-  <div className="flex items-center gap-2">
-    <h1 className="text-base font-bold text-gray-900 truncate">{enquiry.customerName}</h1>
+  <div className="flex items-center gap-2 min-w-0">
+    <h1 className="text-sm font-bold text-gray-900 truncate">{enquiry.customerName}</h1>
     <StatusBadge status={enquiry.status} />
   </div>
-  <p className="text-xs text-gray-400 font-mono">{enquiry.id}</p>
+  <p className="text-xs text-gray-400 font-mono truncate">{enquiry.id}</p>
 </div>
             <p className="text-xs text-gray-500 mt-0.5">
               {enquiry.area} · {enquiry.capacity} kW
               {isBlocked && <span className="ml-2 text-red-600 font-semibold">⚠ Blocked</span>}
-              {isOverdue && !isBlocked && <span className="ml-2 text-orange-600 font-semibold">⏰ Overdue</span>}
+              {isOverdue && !isBlocked && <span className="ml-1 text-orange-600 font-semibold">⏰ Overdue</span>}
             </p>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-500"
+            className="p-1.5 rounded-xl hover:bg-gray-100 transition text-gray-500 flex-shrink-0"
           >
-            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
           </button>
         </div>
 
@@ -537,7 +537,7 @@ const tabs = [
         )}
       </div>
 
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4">
+      <div className="px-3 sm:px-4 py-4 space-y-4">
 
         {/* ── Action Buttons ──────────────────────────────────────── */}
 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
