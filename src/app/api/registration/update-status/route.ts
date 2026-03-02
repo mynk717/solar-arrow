@@ -53,14 +53,14 @@ export async function POST(request: NextRequest) {
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex((row: any) => row[0] === id);
+    const rowIndex = rows.findIndex((row: any) => row[0] === id || row[1] === id);
 
-    if (rowIndex === -1) {
-      return NextResponse.json(
-        { error: 'Registration not found' },
-        { status: 404 }
-      );
-    }
+if (rowIndex === -1) {
+  return NextResponse.json(
+    { error: `Registration not found for id: ${id}. Total rows: ${rows.length}` }, // Better error message for debugging
+    { status: 404 }
+  );
+}
 
     const actualRowIndex = rowIndex + 2;
     const row = rows[rowIndex];

@@ -14,7 +14,9 @@ import {
   ChevronDown, ChevronUp, RefreshCw, UserCheck,
   Building2, CreditCard, Activity
 } from 'lucide-react';
-import type { Enquiry } from '@/lib/types';
+import type { Enquiry, EnquiryStatus } from '@/lib/types';
+import { VALID_TRANSITIONS } from '@/lib/statusValidation';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,6 +281,105 @@ function FollowUpModal({ enquiryId, onClose, onSaved }: { enquiryId: string; onC
     </div>
   );
 }
+// ─── Update Status Modal ──────────────────────────────────────────────────────
+
+function UpdateStatusModal({ enquiry, onClose, onUpdated }: {
+  enquiry: Enquiry;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const allowedNext: EnquiryStatus[] =
+  (VALID_TRANSITIONS as Record<string, EnquiryStatus[]>)[enquiry.status] ?? [];
+  const [newStatus, setNewStatus] = useState<EnquiryStatus>(
+    allowedNext[0] ?? enquiry.status
+  );  
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    if (newStatus === enquiry.status) { onClose(); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/enquiries/${enquiry.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, notes, updatedAt: new Date().toISOString() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update');
+      onUpdated();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Update Status</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Current: <span className="font-semibold text-blue-700">{enquiry.status}</span>
+          </p>
+        </div>
+
+        {allowedNext.length === 0 ? (
+          <p className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3">
+            No further transitions available for this status.
+          </p>
+        ) : (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">New Status</label>
+            <select
+              value={newStatus}
+              onChange={e => setNewStatus(e.target.value as EnquiryStatus)}
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            >
+              {allowedNext.map(s => (
+                <option key={s} value={s}>
+                  {s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Notes (optional)</label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Reason for status change..."
+            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
+          />
+        </div>
+
+        {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={save}
+            disabled={saving || newStatus === enquiry.status || allowedNext.length === 0}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+            {saving ? 'Updating...' : 'Update Status'}
+          </button>
+          <button onClick={onClose} className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -295,6 +396,7 @@ export default function EnquiryDetailPage() {
   const [error, setError] = useState<string | null>(null);
 const [activeTab, setActiveTab] = useState<string>('overview');
   const [showPokeModal, setShowPokeModal] = useState(false);
+  const [showUpdateStatusModal, setShowUpdateStatusModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -434,43 +536,56 @@ const tabs = [
 
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
 
-        {/* ── Action Buttons ──────────────────────────────────────────────── */}
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setShowFollowUpModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
-          >
-            <FileText size={14} />
-            Add Follow-up
-          </button>
-          {(isAdminOrOwner || enquiry.allottedUser === session?.user?.email || enquiry.surveyedBy === session?.user?.email) && (
+        {/* ── Action Buttons ──────────────────────────────────────── */}
+<div className="flex gap-2 flex-wrap">
+
+{/* Add Follow-up — anyone with enquiry view access */}
+{(isAdminOrOwner || userCanView.includes('/enquiries')) && (
   <button
-    onClick={() => router.push(`/enquiries/${enquiry.id}/edit`)}
+    onClick={() => setShowFollowUpModal(true)}
+    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
+  >
+    <FileText size={14} />
+    Add Follow-up
+  </button>
+)}
+
+{/* Update Status — anyone with enquiry edit permission */}
+{(isAdminOrOwner || userCanView.includes('/enquiries')) && (
+  <button
+    onClick={() => setShowUpdateStatusModal(true)}
     className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
   >
     <CheckCircle2 size={14} />
     Update Status
   </button>
 )}
-          {enquiry.allottedUser && enquiry.allottedUser !== session?.user?.email && (
-            <button
-              onClick={() => setShowPokeModal(true)}
-              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
-            >
-              <Send size={14} />
-              Poke Assignee
-            </button>
-          )}
-         {(isAdminOrOwner || enquiry.allottedUser === session?.user?.email || enquiry.surveyedBy === session?.user?.email) && (
-            <Link
-            href={`/enquiries/${enquiry.id}/edit`}
-              className="flex items-center gap-2 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition"
-            >
-              <Edit3 size={14} />
-              Edit
-            </Link>
-          )}
-        </div>
+
+{/* Poke Assignee — only if someone else is assigned */}
+{enquiry.allottedUser && enquiry.allottedUser !== session?.user?.email && (
+  <button
+    onClick={() => setShowPokeModal(true)}
+    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
+  >
+    <Send size={14} />
+    Poke Assignee
+  </button>
+)}
+
+{/* Edit — full field editing, admin/owner only */}
+{isAdminOrOwner && (
+  <Link
+    href={`/enquiries/${enquiry.id}/edit`}
+    className="flex items-center gap-2 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition"
+  >
+    <Edit3 size={14} />
+    Edit
+  </Link>
+)}
+
+</div>
+
+
 
         {/* ── Quick Stats ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
@@ -763,10 +878,7 @@ const tabs = [
         <PokeModal
           enquiry={enquiry}
           onClose={() => setShowPokeModal(false)}
-          onSent={() => {
-            setShowPokeModal(false);
-            alert(`Poke sent to ${enquiry.allottedUser}`);
-          }}
+          onSent={() => setShowPokeModal(false)}
         />
       )}
       {showFollowUpModal && (
@@ -779,6 +891,16 @@ const tabs = [
           }}
         />
       )}
+      {showUpdateStatusModal && (
+  <UpdateStatusModal
+    enquiry={enquiry}
+    onClose={() => setShowUpdateStatusModal(false)}
+    onUpdated={() => {
+      setShowUpdateStatusModal(false);
+      fetchData();
+    }}
+  />
+)}
     </div>
   );
 }
