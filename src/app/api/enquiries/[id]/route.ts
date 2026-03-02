@@ -48,6 +48,7 @@ export async function PATCH(
 
     const { id: enquiryId } = await context.params;
     const updates = await request.json();
+    const orgId = session.user.organizationId || 'default-org';
 
     // Fetch current enquiry
     const enquiries = await fetchEnquiries();
@@ -70,10 +71,10 @@ export async function PATCH(
     };
 
     await updateEnquiry(updatedEnquiry);
+    await invalidateEnquiryCache(orgId);
 
     // 🚀 NEW: Send Telegram notification for the update
     try {
-      const orgId = session.user.organizationId || 'default-org';
       
       // Determine activity type based on what was updated
       let activityType: 'status' | 'payment' | 'survey' | 'installation' | 'registration' | 'general' = 'general';
