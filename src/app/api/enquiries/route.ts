@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { fetchEnquiries, createEnquiry } from '@/lib/googleSheets';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 // GET all enquiries
 export async function GET(request: NextRequest) {
@@ -53,13 +54,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const existing = await fetchEnquiries();
     const newEnquiry = {
       ...body,
+      id: `ENQ-${(existing.length + 1).toString().padStart(6, '0')}`,  // inline, no separate variable
+  status: 'new',
       createdAt: new Date(),
       updatedAt: new Date(),
+      lastEditedBy: session.user.email,
     };
 
     await createEnquiry(newEnquiry);
+    // Telegram
+try {
+  const orgId = session.user.organizationId ?? 'default-org';
+  await sendOrgGroupNotification(orgId, {
+    text: `🆕 *New Enquiry Created*\nID: ${newEnquiry.id}\nCustomer: ${newEnquiry.customerName}\nPhone: ${newEnquiry.phone}\nArea: ${newEnquiry.area}\nCapacity: ${newEnquiry.capacity} kW\nCreated by: ${session.user.email}`,
+  });
+} catch (e) {
+  console.error('Telegram notification failed', e);
+}
     
     return NextResponse.json(
       { success: true, message: 'Enquiry created successfully', enquiry: newEnquiry },
