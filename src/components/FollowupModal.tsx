@@ -1,7 +1,7 @@
 // src/components/FollowupModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Loader2, PhoneCall, Mail, MapPin, MessageCircle, X } from 'lucide-react';
 
 interface Props {
@@ -46,6 +46,13 @@ export default function FollowupModal({ enquiryId, customerName, onClose, onSave
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+  
   const todayISO = new Date().toISOString().split('T')[0];
   const isValid = form.followupNotes.trim().length > 0 && form.outcome !== '';
 
