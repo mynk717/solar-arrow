@@ -5,6 +5,9 @@ import { updateEnquiry, deleteEnquiry, fetchEnquiries } from '@/lib/googleSheets
 import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
 import { validateStatusTransition, getRequiredFieldsForStatus, validateRequiredFields } from '@/lib/statusValidation';
 import { redis } from '@/lib/redis';
+import { invalidateEnquiriesCache } from '@/lib/redis';
+
+// POST - Create new enquiry
 
 
 // GET single enquiry
@@ -183,7 +186,8 @@ export async function DELETE(
 
     const { id } = await context.params;
     await deleteEnquiry(id);
-    
+    await invalidateEnquiriesCache(session.user.organizationId ?? 'default-org');
+
     return NextResponse.json({ 
       success: true,
       message: 'Enquiry deleted successfully'

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { fetchEnquiries, createEnquiry } from '@/lib/googleSheets';
 import { sendOrgGroupNotification } from '@/lib/telegram';
+import { invalidateEnquiriesCache } from '@/lib/redis';
+
 
 // GET all enquiries
 export async function GET(request: NextRequest) {
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
     };
 
     await createEnquiry(newEnquiry);
+    await invalidateEnquiriesCache(session.user.organizationId ?? 'default-org');
     // Telegram
 try {
   const orgId = session.user.organizationId ?? 'default-org';
