@@ -1,116 +1,230 @@
+// src/components/FollowupModal.tsx
+'use client';
+
 import React, { useState } from 'react';
+import { CheckCircle2, Loader2, PhoneCall, Mail, MapPin, MessageCircle, X } from 'lucide-react';
 
 interface Props {
   enquiryId: string;
   customerName: string;
   onClose: () => void;
-  onSubmit: () => void;
+  onSaved: () => void; // renamed from onSubmit for clarity
 }
 
-export default function FollowupModal({ enquiryId, customerName, onClose, onSubmit }: Props) {
-  const [followupType, setFollowupType] = useState('Call');
-  const [followupNotes, setFollowupNotes] = useState('');
-  const [outcome, setOutcome] = useState('');
-  const [nextFollowupDate, setNextFollowupDate] = useState('');
-  const [loading, setLoading] = useState(false);
+const FOLLOWUP_TYPES = [
+  { value: 'call',    label: 'Phone Call',  icon: PhoneCall },
+  { value: 'visit',   label: 'Site Visit',  icon: MapPin },
+  { value: 'whatsapp',label: 'WhatsApp',    icon: MessageCircle },
+  { value: 'email',   label: 'Email',       icon: Mail },
+] as const;
 
-  const handleSubmit = async () => {
-    setLoading(true);
+type FollowupType = typeof FOLLOWUP_TYPES[number]['value'];
+
+const OUTCOMES = [
+  'Interested',
+  'Not Interested',
+  'Converted',
+  'Callback Later',
+] as const;
+
+type Outcome = typeof OUTCOMES[number];
+
+interface FormState {
+  followupType: FollowupType;
+  followupNotes: string;
+  outcome: Outcome | '';
+  nextFollowupDate: string;
+}
+
+export default function FollowupModal({ enquiryId, customerName, onClose, onSaved }: Props) {
+  const [form, setForm] = useState<FormState>({
+    followupType: 'call',
+    followupNotes: '',
+    outcome: '',
+    nextFollowupDate: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const todayISO = new Date().toISOString().split('T')[0];
+  const isValid = form.followupNotes.trim().length > 0 && form.outcome !== '';
+
+  const handleSave = async () => {
+    if (!isValid) return;
+    setSaving(true);
+    setError(null);
+
     try {
-      const response = await fetch('/api/followups', {
+      // 1. Append row to FOLLOWUPS tab
+      const fuRes = await fetch('/api/followups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           enquiryId,
-          followupType,
-          followupNotes,
-          outcome,
-          nextFollowupDate
-        })
+          followupType: form.followupType,
+          followupNotes: form.followupNotes,
+          outcome: form.outcome,
+          nextFollowupDate: form.nextFollowupDate || '',
+        }),
       });
 
-      if (response.ok) {
-        onSubmit();
-        onClose();
+      if (!fuRes.ok) {
+        const data = await fuRes.json();
+        throw new Error(data.error ?? 'Failed to save follow-up');
       }
-    } catch (error) {
-      console.error('Error adding follow-up:', error);
+
+      // 2. Patch back lastFollowupDate + nextActionDate on the ENQUIRIES row
+      //    so the dashboard / kanban card reflects this follow-up immediately
+      const patchPayload: Record<string, string> = {
+        lastFollowupDate: todayISO,
+      };
+      if (form.nextFollowupDate) {
+        patchPayload.nextActionDate = form.nextFollowupDate;
+      }
+
+      await fetch(`/api/enquiries/${enquiryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patchPayload),
+      });
+      // Non-blocking — don't throw even if patch fails
+
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4">Add Follow-up</h2>
-        <p className="text-gray-600 mb-4">Customer: {customerName}</p>
-
-        <div className="space-y-4">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-2">
           <div>
-            <label className="block text-sm font-medium mb-1">Follow-up Type</label>
-            <select
-              value={followupType}
-              onChange={(e) => setFollowupType(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            >
-              <option>Call</option>
-              <option>Email</option>
-              <option>Visit</option>
-              <option>WhatsApp</option>
-            </select>
+            <h3 className="text-lg font-bold text-gray-900">Add Follow-up</h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {customerName} · <span className="text-blue-600 font-mono text-xs">{enquiryId}</span>
+            </p>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Notes</label>
-            <textarea
-              value={followupNotes}
-              onChange={(e) => setFollowupNotes(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Outcome</label>
-            <select
-              value={outcome}
-              onChange={(e) => setOutcome(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="">Select outcome</option>
-              <option>Interested</option>
-              <option>Not Interested</option>
-              <option>Converted</option>
-              <option>Callback Later</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Next Follow-up Date</label>
-            <input
-              type="date"
-              value={nextFollowupDate}
-              onChange={(e) => setNextFollowupDate(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition">
+            <X size={18} className="text-gray-400" />
+          </button>
         </div>
 
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          >
-            {loading ? 'Adding...' : 'Add Follow-up'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
-          >
-            Cancel
-          </button>
+        <div className="px-6 pb-6 space-y-4 mt-3">
+
+          {/* Follow-up Type — icon buttons */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+            <div className="grid grid-cols-4 gap-2">
+              {FOLLOWUP_TYPES.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, followupType: value }))}
+                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition
+                    ${form.followupType === value
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                    }`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes — required */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Notes <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={form.followupNotes}
+              onChange={e => setForm(f => ({ ...f, followupNotes: e.target.value }))}
+              rows={3}
+              placeholder="What happened in this follow-up?"
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 
+                         focus:border-blue-500 focus:outline-none text-sm resize-none"
+            />
+          </div>
+
+          {/* Outcome — required */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Outcome <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {OUTCOMES.map(o => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, outcome: o }))}
+                  className={`py-2 rounded-xl border-2 text-xs font-semibold transition
+                    ${form.outcome === o
+                      ? o === 'Not Interested'
+                        ? 'border-red-400 bg-red-50 text-red-700'
+                        : o === 'Converted'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                    }`}
+                >
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Next Follow-up Date — optional */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Next Follow-up Date
+              <span className="text-gray-400 font-normal ml-1">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={form.nextFollowupDate}
+              min={todayISO}
+              onChange={e => setForm(f => ({ ...f, nextFollowupDate: e.target.value }))}
+              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 
+                         focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+              {error}
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={handleSave}
+              disabled={saving || !isValid}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 
+                         text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition"
+            >
+              {saving
+                ? <><Loader2 size={16} className="animate-spin" /> Saving...</>
+                : <><CheckCircle2 size={16} /> Save Follow-up</>
+              }
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition"
+            >
+              Cancel
+            </button>
+          </div>
+
         </div>
       </div>
     </div>

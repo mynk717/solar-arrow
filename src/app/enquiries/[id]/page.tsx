@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import type { Enquiry, EnquiryStatus } from '@/lib/types';
 import { VALID_TRANSITIONS } from '@/lib/statusValidation';
+import FollowupModal from '@/components/FollowupModal';
+
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -195,93 +197,6 @@ function PokeModal({ enquiry, onClose, onSent }: { enquiry: Enquiry; onClose: ()
 
 // ─── Add Follow-up Modal ──────────────────────────────────────────────────────
 
-function FollowUpModal({ enquiryId, onClose, onSaved }: { enquiryId: string; onClose: () => void; onSaved: () => void }) {
-  const [form, setForm] = useState({
-    followupType: 'call',
-    followupNotes: '',
-    outcome: '',
-    nextFollowupDate: '',
-  });
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    if (!form.followupNotes.trim()) return;
-    setSaving(true);
-    try {
-      await fetch('/api/followups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enquiryId, ...form }),
-      });
-      onSaved();
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4">
-        <h3 className="text-lg font-bold text-gray-900">Add Follow-up</h3>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Type</label>
-          <select
-            value={form.followupType}
-            onChange={e => setForm({ ...form, followupType: e.target.value })}
-            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
-          >
-            <option value="call">Phone Call</option>
-            <option value="visit">Site Visit</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">Email</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Notes <span className="text-red-500">*</span></label>
-          <textarea
-            value={form.followupNotes}
-            onChange={e => setForm({ ...form, followupNotes: e.target.value })}
-            rows={3}
-            placeholder="What happened in this follow-up?"
-            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Outcome</label>
-          <input
-            value={form.outcome}
-            onChange={e => setForm({ ...form, outcome: e.target.value })}
-            placeholder="e.g. Interested, callback scheduled"
-            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Next Follow-up Date</label>
-          <input
-            type="date"
-            value={form.nextFollowupDate}
-            min={new Date().toISOString().split('T')[0]}
-            onChange={e => setForm({ ...form, nextFollowupDate: e.target.value })}
-            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
-          />
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={save}
-            disabled={saving || !form.followupNotes.trim()}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-            {saving ? 'Saving...' : 'Save Follow-up'}
-          </button>
-          <button onClick={onClose} className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition">
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 // ─── Update Status Modal ──────────────────────────────────────────────────────
 
 function UpdateStatusModal({ enquiry, onClose, onUpdated }: {
@@ -885,16 +800,17 @@ const tabs = [
           onSent={() => setShowPokeModal(false)}
         />
       )}
-      {showFollowUpModal && (
-        <FollowUpModal
-          enquiryId={enquiry.id}
-          onClose={() => setShowFollowUpModal(false)}
-          onSaved={() => {
-            setShowFollowUpModal(false);
-            fetchData();
-          }}
-        />
-      )}
+      {showFollowUpModal && enquiry && (
+  <FollowupModal
+    enquiryId={enquiry.id}
+    customerName={enquiry.customerName}
+    onClose={() => setShowFollowUpModal(false)}
+    onSaved={() => {
+      setShowFollowUpModal(false);
+      fetchData(); // re-fetches ENQ row (now has updated lastFollowupDate/nextActionDate) + FOLLOWUPS list
+    }}
+  />
+)}
       {showUpdateStatusModal && (
   <UpdateStatusModal
     enquiry={enquiry}
