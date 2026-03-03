@@ -401,8 +401,16 @@ function enquiryToRow(enquiry: Enquiry): any[] {
     enquiry.blockedReason || '',
     enquiry.lastEditedBy || '',
     enquiry.lastEditedAt?.toISOString() || '',
-    enquiry.lastFollowupDate?.toISOString().split('T')[0] || '',
-    enquiry.nextActionDate?.toISOString().split('T')[0] || '',
+    enquiry.lastFollowupDate
+  ? (typeof enquiry.lastFollowupDate === 'string'
+      ? enquiry.lastFollowupDate
+      : (enquiry.lastFollowupDate as Date).toISOString().split('T')[0])
+  : '',
+enquiry.nextActionDate
+  ? (typeof enquiry.nextActionDate === 'string'
+      ? enquiry.nextActionDate
+      : (enquiry.nextActionDate as Date).toISOString().split('T')[0])
+  : '',
     // Legacy
     enquiry.registrationId || '',
     enquiry.registrationDate?.toISOString().split('T')[0] || '',
