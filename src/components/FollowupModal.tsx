@@ -89,12 +89,15 @@ export default function FollowupModal({ enquiryId, customerName, onClose, onSave
         patchPayload.nextActionDate = form.nextFollowupDate;
       }
 
-      await fetch(`/api/enquiries/${enquiryId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patchPayload),
-      });
-      // Non-blocking — don't throw even if patch fails
+      try {
+        await fetch(`/api/enquiries/${enquiryId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patchPayload),
+        });
+      } catch {
+        // silent — followup already saved above
+      }
 
       onSaved();
       onClose();
