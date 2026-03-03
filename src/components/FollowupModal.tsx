@@ -106,134 +106,134 @@ export default function FollowupModal({ enquiryId, customerName, onClose, onSave
   };
 
   return (
-<div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 touch-none">
-<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto touch-auto">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-2">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900">Add Follow-up</h3>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {customerName} · <span className="text-blue-600 font-mono text-xs">{enquiryId}</span>
-            </p>
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 touch-none">
+    <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] flex flex-col">
+
+      {/* Header — outside scroll area, not sticky, just sits on top */}
+      <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Add Follow-up</h3>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {customerName} · <span className="text-blue-600 font-mono text-xs">{enquiryId}</span>
+          </p>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition">
+          <X size={18} className="text-gray-400" />
+        </button>
+      </div>
+
+      {/* Scrollable body — this is the ONLY scrollable div */}
+      <div className="px-6 pb-6 pt-4 space-y-4 overflow-y-auto flex-grow">
+
+        {/* Follow-up Type */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+          <div className="grid grid-cols-4 gap-2">
+            {FOLLOWUP_TYPES.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, followupType: value }))}
+                className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition
+                  ${form.followupType === value
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                  }`}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            ))}
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition">
-            <X size={18} className="text-gray-400" />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">
+            Notes <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={form.followupNotes}
+            onChange={e => setForm(f => ({ ...f, followupNotes: e.target.value }))}
+            rows={3}
+            placeholder="What happened in this follow-up?"
+            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
+          />
+        </div>
+
+        {/* Outcome */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">
+            Outcome <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {OUTCOMES.map(o => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, outcome: o }))}
+                className={`py-2 rounded-xl border-2 text-xs font-semibold transition
+                  ${form.outcome === o
+                    ? o === 'Not Interested'
+                      ? 'border-red-400 bg-red-50 text-red-700'
+                      : o === 'Converted'
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                  }`}
+              >
+                {o}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Next Follow-up Date */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">
+            Next Follow-up Date
+            <span className="text-gray-400 font-normal ml-1">(optional)</span>
+          </label>
+          <input
+            type="date"
+            value={form.nextFollowupDate}
+            min={todayISO}
+            onChange={e => setForm(f => ({ ...f, nextFollowupDate: e.target.value }))}
+            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+          />
+        </div>
+
+        {/* Error */}
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+            {error}
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={handleSave}
+            disabled={saving || !isValid}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition"
+          >
+            {saving
+              ? <><Loader2 size={16} className="animate-spin" /> Saving...</>
+              : <><CheckCircle2 size={16} /> Save Follow-up</>
+            }
+          </button>
+          <button
+            onClick={onClose}
+            className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition"
+          >
+            Cancel
           </button>
         </div>
 
-        <div className="px-6 pb-6 space-y-4 mt-3">
-
-          {/* Follow-up Type — icon buttons */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
-            <div className="grid grid-cols-4 gap-2">
-              {FOLLOWUP_TYPES.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, followupType: value }))}
-                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border-2 text-xs font-semibold transition
-                    ${form.followupType === value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
-                    }`}
-                >
-                  <Icon size={16} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notes — required */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Notes <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={form.followupNotes}
-              onChange={e => setForm(f => ({ ...f, followupNotes: e.target.value }))}
-              rows={3}
-              placeholder="What happened in this follow-up?"
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 
-                         focus:border-blue-500 focus:outline-none text-sm resize-none"
-            />
-          </div>
-
-          {/* Outcome — required */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Outcome <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {OUTCOMES.map(o => (
-                <button
-                  key={o}
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, outcome: o }))}
-                  className={`py-2 rounded-xl border-2 text-xs font-semibold transition
-                    ${form.outcome === o
-                      ? o === 'Not Interested'
-                        ? 'border-red-400 bg-red-50 text-red-700'
-                        : o === 'Converted'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
-                    }`}
-                >
-                  {o}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Next Follow-up Date — optional */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Next Follow-up Date
-              <span className="text-gray-400 font-normal ml-1">(optional)</span>
-            </label>
-            <input
-              type="date"
-              value={form.nextFollowupDate}
-              min={todayISO}
-              onChange={e => setForm(f => ({ ...f, nextFollowupDate: e.target.value }))}
-              className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-gray-900 
-                         focus:border-blue-500 focus:outline-none text-sm"
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
-              {error}
-            </p>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-1">
-            <button
-              onClick={handleSave}
-              disabled={saving || !isValid}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 
-                         text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition"
-            >
-              {saving
-                ? <><Loader2 size={16} className="animate-spin" /> Saving...</>
-                : <><CheckCircle2 size={16} /> Save Follow-up</>
-              }
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition"
-            >
-              Cancel
-            </button>
-          </div>
-
-        </div>
       </div>
+      {/* END scrollable body */}
+
     </div>
-  );
+  </div>
+);
 }
