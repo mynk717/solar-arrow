@@ -539,54 +539,55 @@ const tabs = [
 
 
 <div className="px-3 sm:px-4 py-4 space-y-4 bg-gray-50 min-h-screen">
-        {/* ── Action Buttons ──────────────────────────────────────── */}
-<div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+       {/* ── Action Buttons ──────────────────────────────────────── */}
+<div className="flex flex-wrap items-center gap-2">
 
-{/* Add Follow-up — anyone with enquiry view access */}
+{/* Add Follow-up */}
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
   <button
     onClick={() => setShowFollowUpModal(true)}
-    className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
-    >
+    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition"
+  >
     <FileText size={14} />
     Add Follow-up
   </button>
 )}
 
-{/* Update Status — anyone with enquiry edit permission */}
+{/* Update Status */}
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
   <button
     onClick={() => setShowUpdateStatusModal(true)}
-    className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
-    >
+    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition"
+  >
     <CheckCircle2 size={14} />
     Update Status
   </button>
 )}
 
-{/* Poke Assignee — only if someone else is assigned */}
+{/* Poke Assignee */}
 {enquiry.allottedUser && enquiry.allottedUser !== session?.user?.email && (
   <button
     onClick={() => setShowPokeModal(true)}
-    className="flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
-    >
+    className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-4 py-2 rounded-xl transition"
+  >
     <Send size={14} />
     Poke Assignee
   </button>
 )}
 
-{/* Edit — full field editing, admin/owner only */}
+{/* Edit */}
 {isAdminOrOwner && (
   <Link
     href={`/enquiries/${enquiry.id}/edit`}
-    className="flex items-center justify-center gap-1.5 border border-gray-300 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl hover:bg-gray-50 transition w-full"
-    >
+    className="flex items-center gap-1.5 border border-gray-300 text-gray-700 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
+  >
     <Edit3 size={14} />
     Edit
   </Link>
 )}
 
 </div>
+
 
 
 
