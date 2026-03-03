@@ -106,8 +106,8 @@ export default function FollowupModal({ enquiryId, customerName, onClose, onSave
   };
 
   return (
-  <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 touch-none">
-    <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] flex flex-col">
+<div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 pb-16 sm:pb-0 sm:p-4 touch-none">
+<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] flex flex-col mb-16 sm:mb-0">
 
       {/* Header — outside scroll area, not sticky, just sits on top */}
       <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 flex-shrink-0">

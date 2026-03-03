@@ -166,8 +166,8 @@ function PokeModal({ enquiry, onClose, onSent }: { enquiry: Enquiry; onClose: ()
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6">
+<div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 pb-16 sm:pb-0 sm:p-4">
+<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-1">Poke Assignee</h3>
         <p className="text-sm text-gray-500 mb-4">Send a nudge to <span className="font-semibold">{enquiry.allottedUser}</span></p>
         <textarea
@@ -234,8 +234,8 @@ function UpdateStatusModal({ enquiry, onClose, onUpdated }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4">
+<div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 pb-16 sm:pb-0 sm:p-4">
+<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 space-y-4">
         <div>
           <h3 className="text-lg font-bold text-gray-900">Update Status</h3>
           <p className="text-xs text-gray-500 mt-0.5">
