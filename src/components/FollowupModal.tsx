@@ -99,8 +99,8 @@ export default function FollowupModal({ enquiryId, customerName, onClose, onSave
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+<div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 touch-none">
+<div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto touch-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
