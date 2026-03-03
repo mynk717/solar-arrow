@@ -49,8 +49,8 @@ export default function ScheduleSurveyPage() {
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         const surveyors = usersData.filter(
-          (u: any) => ['admin', 'owner', 'sales'].includes(u.role) && u.isActive
-        );
+          (u: any) => ['surveyor', 'admin', 'owner'].includes(u.role) && u.isActive
+        );        
         setUsers(surveyors);
       }
     } catch (error) {
@@ -129,7 +129,7 @@ router.push('/survey');
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="p-4 max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 space-y-5">
           {/* Select Enquiry */}
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">

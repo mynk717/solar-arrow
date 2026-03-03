@@ -134,11 +134,11 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="p-4 pt-3">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
-              <p className="text-sm text-gray-700 mt-0.5 font-bold">{stats.total} total surveys</p>
-            </div>
+  <div className="flex items-center justify-between mb-3">
+    <div className="min-w-0">
+      <h1 className="text-lg font-bold text-gray-900 truncate">Surveys</h1>
+      <p className="text-xs text-gray-500 mt-0.5">{stats.total} total surveys</p>
+    </div>
             {/* ✅ Only admin/owner can schedule */}
             {canSchedule && (
               <button
@@ -159,7 +159,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
               placeholder="Search by Enquiry ID or Surveyor"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 font-medium text-base"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 text-sm bg-gray-50"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -177,7 +177,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
 
 {/* Scheduled But Not Yet Submitted */}
 {scheduledEnquiries.length > 0 && (filter === 'all' || filter === 'scheduled') && (
-  <div className="p-4 pt-4 pb-24 space-y-3">
+  <div className="p-4 pt-4 space-y-3" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
     <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
       <Clock size={18} className="text-orange-500" />
       Awaiting Survey Visit ({scheduledEnquiries.length})
@@ -235,7 +235,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
 
       {/* Survey Cards */}
       {filter !== 'scheduled' && (
-        <div className="p-4 pt-6 pb-24 space-y-3">
+        <div className="p-4 pt-4 space-y-3" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
         {filteredSurveys.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
@@ -281,14 +281,14 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
     <button
       onClick={onClick}
       className={`${colors[color]} ${
-        active ? 'ring-2 ring-offset-2 ring-blue-500 shadow-lg' : ''
-      } border-2 rounded-xl p-3 min-w-[110px] flex-shrink-0 active:scale-95 transition-all`}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-5 w-5" />
-        <p className="text-xs font-bold opacity-90">{title}</p>
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
+        active ? 'ring-2 ring-offset-1 ring-blue-500 shadow' : ''
+      } border rounded-xl px-3 py-2 min-w-[80px] flex-shrink-0 active:scale-95 transition-all`}
+      >
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Icon className="h-3.5 w-3.5" />
+          <p className="text-xs font-semibold opacity-90">{title}</p>
+        </div>
+        <p className="text-lg font-bold">{value}</p>      
     </button>
   );
 }
@@ -366,19 +366,19 @@ function SurveyCard({ survey, onView }: any) {
 
       {/* Details */}
       <div className="p-4 bg-gray-50">
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Building2 size={16} className="text-gray-500" />
-            <div>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+  <div className="flex items-center gap-2 min-w-0">
+    <Building2 size={14} className="text-gray-400 flex-shrink-0" />
+    <div className="min-w-0">
               <p className="text-xs text-gray-600 font-bold">Type</p>
               <p className="text-sm font-bold text-gray-900">
                 {survey.projectType}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap size={16} className="text-gray-500" />
-            <div>
+          <div className="flex items-center gap-2 min-w-0">
+    <Zap size={14} className="text-gray-400 flex-shrink-0" />
+    <div className="min-w-0">
               <p className="text-xs text-gray-600 font-bold">Load</p>
               <p className="text-sm font-bold text-gray-900">
                 {survey.sanctionedLoad} kW
