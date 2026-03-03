@@ -85,8 +85,8 @@ function StatusBadge({ status }: { status: string }) {
     active: 'bg-green-200 text-green-900',
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>
-      {status.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+<span className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${map[status] ?? 'bg-gray-100 text-gray-700'}`}>
+{status.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
     </span>
   );
 }
@@ -132,8 +132,8 @@ function SectionCard({ title, icon: Icon, color = 'blue', children, defaultOpen 
         </div>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
-      {open && <div className="p-4">{children}</div>}
-    </div>
+      {open && <div className="p-3">{children}</div>}
+      </div>
   );
 }
 
@@ -485,60 +485,60 @@ const canSeeTab = (path: string) =>
   isAdminOrOwner || userCanView.includes(path);
 
 const tabs = [
-  { id: 'overview',     label: 'Overview', icon: User,           show: true },
-  { id: 'survey',       label: 'Survey',   icon: ClipboardCheck, show: canSeeTab('/survey') },
-  { id: 'payment',      label: 'Payment',  icon: DollarSign,     show: canSeeTab('/payments') || canSeeTab('/payment') },
-  { id: 'installation', label: 'Install',  icon: Wrench,         show: canSeeTab('/installation') },
-  { id: 'timeline',     label: 'Timeline', icon: Activity,       show: true },
+  { id: 'overview',     label: 'Info',    icon: User,           show: true },
+  { id: 'survey',       label: 'Survey',  icon: ClipboardCheck, show: canSeeTab('/survey') },
+  { id: 'payment',      label: 'Pay',     icon: IndianRupee,     show: canSeeTab('/payments') || canSeeTab('/payment') },
+  { id: 'installation', label: 'Install', icon: Wrench,         show: canSeeTab('/installation') },
+  { id: 'timeline',     label: 'Log',     icon: Activity,       show: true },
 ].filter(t => t.show);
 
 
 
+
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="bg-gray-50 min-h-screen overflow-x-hidden">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-        <div className="px-3 py-3 flex items-center gap-2">
-          <button
-            onClick={() => router.push('/enquiries')}
-            className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-600 flex-shrink-0"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div className="flex-1 min-w-0">
-          <div>
-  <div className="flex items-center gap-2 min-w-0">
-    <h1 className="text-sm font-bold text-gray-900 truncate">{enquiry.customerName}</h1>
-    <StatusBadge status={enquiry.status} />
-  </div>
-  <p className="text-xs text-gray-400 font-mono truncate">{enquiry.id}</p>
-</div>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {enquiry.area} · {enquiry.capacity} kW
-              {isBlocked && <span className="ml-2 text-red-600 font-semibold">⚠ Blocked</span>}
-              {isOverdue && !isBlocked && <span className="ml-1 text-orange-600 font-semibold">⏰ Overdue</span>}
-            </p>
-          </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-1.5 rounded-xl hover:bg-gray-100 transition text-gray-500 flex-shrink-0"
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-          </button>
-        </div>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm w-full overflow-hidden">
+      <div className="px-3 py-3 flex items-center gap-2">
+    <button
+      onClick={() => router.push('/enquiries')}
+      className="p-2 rounded-xl hover:bg-gray-100 transition text-gray-600 flex-shrink-0"
+    >
+      <ArrowLeft size={18} />
+    </button>
 
-        {/* Blocked warning */}
-        {isBlocked && enquiry.blockedReason && (
-          <div className="mx-4 mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-2 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-red-600 flex-shrink-0" />
-            <p className="text-xs text-red-700 font-medium">{enquiry.blockedReason}</p>
-          </div>
-        )}
+    <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex items-center gap-2 overflow-hidden">
+        <h1 className="text-sm font-bold text-gray-900 truncate min-w-0">{enquiry.customerName}</h1>
+        <StatusBadge status={enquiry.status} />
       </div>
+      <p className="text-xs text-gray-400 font-mono truncate">{enquiry.id}</p>
+      <p className="text-xs text-gray-500 truncate">
+        {enquiry.area} · {enquiry.capacity} kW
+        {isBlocked && <span className="ml-2 text-red-600 font-semibold">⚠ Blocked</span>}
+        {isOverdue && !isBlocked && <span className="ml-1 text-orange-600 font-semibold">⏰ Overdue</span>}
+      </p>
+    </div>
 
-      <div className="px-3 sm:px-4 py-4 space-y-4">
+    <button
+      onClick={handleRefresh}
+      disabled={refreshing}
+      className="p-1.5 rounded-xl hover:bg-gray-100 transition text-gray-500 flex-shrink-0"
+    >
+      <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+    </button>
+  </div>
 
+  {isBlocked && enquiry.blockedReason && (
+    <div className="mx-3 mb-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-2">
+      <AlertTriangle size={14} className="text-red-600 flex-shrink-0" />
+      <p className="text-xs text-red-700 font-medium">{enquiry.blockedReason}</p>
+    </div>
+  )}
+</div>
+
+
+<div className="px-3 sm:px-4 py-4 space-y-4 bg-gray-50 min-h-screen">
         {/* ── Action Buttons ──────────────────────────────────────── */}
 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
 
@@ -546,8 +546,8 @@ const tabs = [
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
   <button
     onClick={() => setShowFollowUpModal(true)}
-    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
-  >
+    className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
+    >
     <FileText size={14} />
     Add Follow-up
   </button>
@@ -557,8 +557,8 @@ const tabs = [
 {(isAdminOrOwner || userCanView.includes('/enquiries')) && (
   <button
     onClick={() => setShowUpdateStatusModal(true)}
-    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
-  >
+    className="flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
+    >
     <CheckCircle2 size={14} />
     Update Status
   </button>
@@ -568,8 +568,8 @@ const tabs = [
 {enquiry.allottedUser && enquiry.allottedUser !== session?.user?.email && (
   <button
     onClick={() => setShowPokeModal(true)}
-    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition"
-  >
+    className="flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition w-full"
+    >
     <Send size={14} />
     Poke Assignee
   </button>
@@ -579,8 +579,8 @@ const tabs = [
 {isAdminOrOwner && (
   <Link
     href={`/enquiries/${enquiry.id}/edit`}
-    className="flex items-center gap-2 border border-gray-300 text-gray-700 text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-gray-50 transition"
-  >
+    className="flex items-center justify-center gap-1.5 border border-gray-300 text-gray-700 text-xs font-semibold px-3 py-2.5 rounded-xl hover:bg-gray-50 transition w-full"
+    >
     <Edit3 size={14} />
     Edit
   </Link>
@@ -597,21 +597,21 @@ const tabs = [
             { label: 'Quoted', value: enquiry.quotationAmount ? `₹${fmt(enquiry.quotationAmount)}` : '—', icon: IndianRupee, color: 'text-green-600' },
             { label: 'Priority', value: enquiry.priority ?? 'medium', icon: Tag, color: enquiry.priority === 'urgent' ? 'text-red-600' : 'text-orange-500' },
           ].map(stat => (
-            <div key={stat.label} className="bg-white rounded-2xl border border-gray-200 p-3 text-center shadow-sm">
-              <stat.icon size={18} className={`${stat.color} mx-auto mb-1`} />
+<div key={stat.label} className="bg-white rounded-2xl border border-gray-200 p-3 text-center shadow-sm overflow-hidden">
+<stat.icon size={18} className={`${stat.color} mx-auto mb-1`} />
               <p className="text-xs text-gray-500">{stat.label}</p>
-              <p className="text-sm font-bold text-gray-900 capitalize">{stat.value}</p>
-            </div>
+              <p className="text-sm font-bold text-gray-900 capitalize truncate">{stat.value}</p>
+              </div>
           ))}
         </div>
 
         {/* ── Tabs ────────────────────────────────────────────────────────── */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto scrollbar-none scroll-smooth">
+        <div className="w-full flex gap-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto scrollbar-none scroll-smooth">
         {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition justify-center
+              className={`flex-1 flex items-center gap-1 py-2 rounded-xl text-xs font-semibold transition justify-center
                 ${activeTab === tab.id ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
             >
               <tab.icon size={13} />
@@ -708,7 +708,7 @@ const tabs = [
               <InfoRow label="Rejected Reason" value={enquiry.surveyRejectedReason} icon={XCircle} />
               <div className="flex items-start gap-2 py-2">
                 <Shield size={14} className="text-gray-400 mt-0.5" />
-                <span className="text-xs text-gray-500 w-36 flex-shrink-0">Approved</span>
+                <span className="text-xs text-gray-500 w-28 flex-shrink-0">Approved</span>
                 {enquiry.surveyApproved
                   ? <span className="flex items-center gap-1 text-green-700 font-semibold text-sm"><CheckCircle2 size={14} /> Yes</span>
                   : <span className="flex items-center gap-1 text-red-600 font-semibold text-sm"><XCircle size={14} /> No</span>
@@ -787,7 +787,7 @@ const tabs = [
               <InfoRow label="Initial Reading" value={enquiry.meterReadingInitial} />
               <div className="flex items-start gap-2 py-2">
                 <Shield size={14} className="text-gray-400 mt-0.5" />
-                <span className="text-xs text-gray-500 w-36 flex-shrink-0">Earthing Done</span>
+                <span className="text-xs text-gray-500 w-28 flex-shrink-0">Earthing Done</span>
                 {enquiry.earthingDone
                   ? <span className="flex items-center gap-1 text-green-700 font-semibold text-sm"><CheckCircle2 size={14} /> Yes</span>
                   : <span className="text-sm text-gray-400">Pending</span>
@@ -804,7 +804,7 @@ const tabs = [
               <InfoRow label="Rejected Reason" value={enquiry.inspectionRejectedReason} />
               <div className="flex items-start gap-2 py-2">
                 <Shield size={14} className="text-gray-400 mt-0.5" />
-                <span className="text-xs text-gray-500 w-36 flex-shrink-0">Approved</span>
+                <span className="text-xs text-gray-500 w-28 flex-shrink-0">Approved</span>
                 {enquiry.inspectionApproved
                   ? <span className="flex items-center gap-1 text-green-700 font-semibold text-sm"><CheckCircle2 size={14} /> Yes</span>
                   : <span className="flex items-center gap-1 text-orange-600 text-sm"><Clock size={14} /> Pending</span>
@@ -817,7 +817,7 @@ const tabs = [
               <InfoRow label="Activation Date" value={fmtDate((enquiry as any).activationDate)} icon={Calendar} />
               <div className="flex items-start gap-2 py-2">
                 <Zap size={14} className="text-gray-400 mt-0.5" />
-                <span className="text-xs text-gray-500 w-36 flex-shrink-0">System Status</span>
+                <span className="text-xs text-gray-500 w-28 flex-shrink-0">System Status</span>
                 {enquiry.status === 'active'
                   ? <span className="flex items-center gap-1 text-green-700 font-bold text-sm"><CheckCircle2 size={14} /> ACTIVE</span>
                   : <span className="text-sm text-gray-500 capitalize">{enquiry.status}</span>

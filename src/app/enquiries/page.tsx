@@ -375,7 +375,10 @@ export default function EnquiriesPage() {
       {showForm && !isDemoMode && (
         <EnquiryForm
           onClose={() => setShowForm(false)}
-          onSubmit={(newEnq) => { setEnquiries(prev => [newEnq, ...prev]); setShowForm(false); }}
+          onSubmit={async (newEnq) => {
+            setShowForm(false);
+            await fetchData(); // ← refetch from real API instead of optimistic update
+          }}          
         />
       )}
 

@@ -60,22 +60,27 @@ export default function EnquiryForm({ onClose, onSubmit }: EnquiryFormProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (validate()) {
-      const newEnquiry = {
-        id: `ENQ${String(Date.now()).slice(-3).padStart(3, '0')}`,
-        ...formData,
-        status: 'new' as const,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      onSubmit(newEnquiry);
+    if (!validate()) return;
+  
+    try {
+      const res = await fetch('/api/enquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+  
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create enquiry');
+  
+      onSubmit(data.enquiry);  // use real enquiry returned from API
       onClose();
+    } catch (err: any) {
+      alert(err.message);
     }
   };
+  
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
