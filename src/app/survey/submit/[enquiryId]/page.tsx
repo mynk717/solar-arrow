@@ -739,8 +739,8 @@ const [photoUploading, setPhotoUploading] = useState(false);
       </form>
 
       {/* Fixed Bottom Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <button
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-20 shadow-lg">
+      <button
           onClick={handleSubmit}
           disabled={loading || photoUploading}
           className="w-full bg-blue-600 active:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 transition-transform shadow-lg max-w-2xl mx-auto"
