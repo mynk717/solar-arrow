@@ -135,6 +135,19 @@ export function generatePublicUrl(orgId: string, quotationId: string, token: str
 }
 
 /**
+ * Generate unique quotation ID based on existing IDs (max+1, not count-based)
+ */
+export function generateQuotationId(existingIds: string[]): string {
+  const numbers = existingIds
+    .filter(id => /^QT-\d+$/.test(id))
+    .map(id => parseInt(id.replace('QT-', ''), 10))
+    .filter(n => !isNaN(n));
+
+  const next = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+  return `QT-${String(next).padStart(3, '0')}`;
+}
+
+/**
  * Generate quotation reference number
  */
 export function generateReferenceNumber(orgPrefix: string, location: string, counter: number): string {

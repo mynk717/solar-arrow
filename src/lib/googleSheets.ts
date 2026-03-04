@@ -18,6 +18,8 @@ import {
   invalidateLeadsCache
 } from './redis';
 import { notifyLeadCreated } from './telegram';
+import { generateQuotationId } from '@/lib/quotations';
+
 
 
 
@@ -1579,6 +1581,21 @@ export async function fetchQuotation(
   }
 }
 
+export async function getNextQuotationId(orgId: string): Promise<string> {
+  const sheets = await getSheets();
+  const sheetId = await getSheetId();
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'QUOTATIONS!A2:A',
+  });
+
+  const existingIds = (response.data.values || [])
+    .map((row: string[]) => row[0])
+    .filter(Boolean);
+
+  return generateQuotationId(existingIds);
+}
 /**
  * Create new quotation
  */

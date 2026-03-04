@@ -17,12 +17,29 @@ interface ComponentOption {
   capacity?: number;
 }
 
+// REPLACE panelOptions entirely:
 const panelOptions: ComponentOption[] = [
-  { make: 'WAAREE', model: 'Energetica', wattage: 560, warranty: '30 Years Product Output Warranty' },
-  { make: 'WAAREE', model: 'Premium', wattage: 545, warranty: '25 Years Product Output Warranty' },
-  { make: 'Adani', model: 'Mono PERC', wattage: 540, warranty: '25 Years Product Output Warranty' },
-  { make: 'Vikram Solar', model: 'Eldora', wattage: 550, warranty: '25 Years Product Output Warranty' },
+  // ── Tier 1: National Brands ──
+  { make: 'WAAREE', model: 'Energetica (TOPCon)', wattage: 560, warranty: '30 Years Product Output Warranty' },
+  { make: 'WAAREE', model: 'Premium (Mono PERC)', wattage: 545, warranty: '25 Years Product Output Warranty' },
+  { make: 'Adani', model: 'Mono PERC 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  { make: 'Tata Power Solar', model: 'Mono PERC 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  { make: 'Vikram Solar', model: 'Eldora 550W', wattage: 550, warranty: '25 Years Product Output Warranty' },
+  { make: 'RenewSys', model: 'DESERV 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  { make: 'Premier Energies', model: 'P6-60M 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  { make: 'Goldi Solar', model: 'G12-108M 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  // ── Tier 2: Consumer/Residential ──
+  { make: 'Loom Solar', model: 'Shark 500W', wattage: 500, warranty: '25 Years Product Output Warranty' },
+  { make: 'Luminous', model: 'Mono PERC 370W', wattage: 370, warranty: '25 Years Product Output Warranty' },
+  { make: 'Havells', model: 'Mono PERC 335W', wattage: 335, warranty: '25 Years Product Output Warranty' },
+  { make: 'Servotech', model: 'Mono PERC 540W', wattage: 540, warranty: '25 Years Product Output Warranty' },
+  // ── Local: Chhattisgarh ──
+  { make: 'Icon Solar', model: 'Mono PERC 540W', wattage: 540, warranty: '10 Years Product Output Warranty' },
+  { make: 'GDA Solar', model: 'Poly 330W', wattage: 330, warranty: '10 Years Product Output Warranty' },
+  { make: 'Adison Power', model: 'Mono 400W', wattage: 400, warranty: '10 Years Product Output Warranty' },
+  { make: 'Sunclave', model: 'Mono PERC 450W', wattage: 450, warranty: '10 Years Product Output Warranty' },
 ];
+
 
 const inverterOptions: ComponentOption[] = [
   { make: 'Waaree', model: '3KVA Ongrid 5G Pro-Inverter, 04 MPPT, With Wifi and RMS', capacity: 3, warranty: '8 YEARS' },
@@ -554,15 +571,31 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
               <div>
                 <label className="block text-sm font-bold text-gray-900 mb-2">Select Panel</label>
                 <select
-                  className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold"
-                  onChange={handlePanelChange}
-                >
-                  {panelOptions.map((panel, idx) => (
-                    <option key={idx} value={idx}>
-                      {panel.make} {panel.model} ({panel.wattage}Wp)
-                    </option>
-                  ))}
-                </select>
+  className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold"
+  onChange={handlePanelChange}
+>
+  <optgroup label="── Tier 1: National Brands ──">
+    {panelOptions.slice(0, 8).map((panel, idx) => (
+      <option key={idx} value={idx}>
+        {panel.make} — {panel.model} ({panel.wattage}Wp)
+      </option>
+    ))}
+  </optgroup>
+  <optgroup label="── Tier 2: Consumer/Residential ──">
+    {panelOptions.slice(8, 12).map((panel, idx) => (
+      <option key={idx + 8} value={idx + 8}>
+        {panel.make} — {panel.model} ({panel.wattage}Wp)
+      </option>
+    ))}
+  </optgroup>
+  <optgroup label="── Local: Chhattisgarh ──">
+    {panelOptions.slice(12).map((panel, idx) => (
+      <option key={idx + 12} value={idx + 12}>
+        {panel.make} — {panel.model} ({panel.wattage}Wp)
+      </option>
+    ))}
+  </optgroup>
+</select>
               </div>
 
               <div>

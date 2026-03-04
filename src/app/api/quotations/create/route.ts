@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { createQuotation, fetchAllQuotations } from '@/lib/googleSheets';
+import { createQuotation, getNextQuotationId } from '@/lib/googleSheets';
 import {
   generatePublicToken,
   generatePublicUrl,
@@ -107,10 +107,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // Get current quotation count for this org
-    const existingQuotations = await fetchAllQuotations(orgId);
-    const counter = existingQuotations.length + 1;
-    const quotationId = `QT-${String(counter).padStart(3, '0')}`;
+    const quotationId = await getNextQuotationId(orgId);
+const counter = parseInt(quotationId.replace('QT-', ''), 10);
+
 
     // Generate security token
     const publicToken = generatePublicToken();
