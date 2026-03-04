@@ -127,13 +127,13 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <DemoBanner />
 
       {/* Header - Sticky */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="p-4 pt-3">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm w-full"
+  style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="p-4 pt-3 w-full min-w-0">
   <div className="flex items-center justify-between mb-3">
     <div className="min-w-0">
       <h1 className="text-lg font-bold text-gray-900 truncate">Surveys</h1>
@@ -143,16 +143,16 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
             {canSchedule && (
               <button
                 onClick={() => router.push('/survey/schedule')}
-                className="bg-blue-600 active:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold shadow-lg active:scale-95 transition-transform"
-              >
-                <Calendar size={20} />
-                <span className="hidden sm:inline">Schedule</span>
+                className="bg-blue-600 active:bg-blue-700 text-white px-3 py-2 rounded-xl flex items-center gap-1.5 font-bold text-sm shadow active:scale-95 transition-transform flex-shrink-0"
+>
+  <Calendar size={16} />
+  <span>Schedule</span>
               </button>
             )}
           </div>
 
           {/* Search Bar */}
-          <div className="relative mb-3">
+          <div className="relative mb-3 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
             <input
               type="text"
@@ -164,13 +164,23 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
             />
           </div>
 
-          {/* Stats */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-          <StatCard title="All" value={stats.total} Icon={ClipboardCheck} color="blue" active={filter === 'all'} onClick={() => setFilter('all')} />
-<StatCard title="Scheduled" value={stats.scheduled} Icon={Calendar} color="orange" active={filter === 'scheduled'} onClick={() => setFilter('scheduled')} />
-<StatCard title="Submitted" value={stats.submitted} Icon={Clock} color="yellow" active={filter === 'submitted'} onClick={() => setFilter('submitted')} />
-<StatCard title="Approved" value={stats.approved} Icon={CheckCircle} color="green" active={filter === 'approved'} onClick={() => setFilter('approved')} />
-<StatCard title="Rejected" value={stats.rejected} Icon={XCircle} color="red" active={filter === 'rejected'} onClick={() => setFilter('rejected')} />
+                    {/* Stats */}
+                    <div className="flex flex-wrap gap-2 pb-1">
+            {[
+              { key: 'all',       label: 'All',       value: stats.total,     color: 'bg-blue-50 text-blue-700 border-blue-200'   },
+              { key: 'scheduled', label: 'Scheduled', value: stats.scheduled, color: 'bg-orange-50 text-orange-700 border-orange-200' },
+              { key: 'submitted', label: 'Pending',   value: stats.submitted, color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+              { key: 'approved',  label: 'Approved',  value: stats.approved,  color: 'bg-green-50 text-green-700 border-green-200'  },
+              { key: 'rejected',  label: 'Rejected',  value: stats.rejected,  color: 'bg-red-50 text-red-700 border-red-200'    },
+            ].map(({ key, label, value, color }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key as any)}
+                className={`${color} ${filter === key ? 'ring-2 ring-blue-500 ring-offset-1 font-bold' : 'font-semibold'} border rounded-full px-3 py-1 text-xs flex items-center gap-1 active:scale-95 transition-all`}
+              >
+                {label} <span className="font-bold">{value}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -189,32 +199,32 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
       .map((enq) => (
         <div key={enq.id} className="bg-white rounded-2xl border-2 border-orange-200 shadow-sm overflow-hidden">
           <div className="p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <span className="text-sm font-mono font-bold text-blue-600">{enq.id}</span>
-                <p className="font-bold text-gray-900 mt-0.5">{enq.customerName}</p>
-                <p className="text-sm text-gray-600">{enq.phone}</p>
-              </div>
-              <span className="bg-orange-100 text-orange-800 text-xs font-bold px-3 py-1 rounded-full border border-orange-300 whitespace-nowrap">
-                📅 Scheduled
-              </span>
-            </div>
-            <div className="text-sm text-gray-700 space-y-1 mt-2">
-              <p className="flex items-center gap-2">
-                <MapPin size={14} />
-                {enq.area} — {enq.address}
-              </p>
-              <p className="flex items-center gap-2">
-                <Calendar size={14} />
-                {enq.surveyScheduledDate
-                  ? new Date(enq.surveyScheduledDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                  : 'Date not set'}
-              </p>
-              <p className="flex items-center gap-2">
-                <User size={14} />
-                Surveyor: <strong>{enq.surveyedBy || '—'}</strong>
-              </p>
-            </div>
+          <div className="flex items-start justify-between gap-2 mb-2">
+  <div className="min-w-0 flex-1">
+    <span className="text-xs font-mono font-bold text-blue-600">{enq.id}</span>
+    <p className="font-bold text-gray-900 text-sm truncate">{enq.customerName}</p>
+    <p className="text-xs text-gray-500">{enq.phone}</p>
+  </div>
+  <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full border border-orange-200 whitespace-nowrap flex-shrink-0">
+    Scheduled
+  </span>
+</div>
+<div className="text-xs text-gray-600 space-y-1 mt-2">
+  <p className="flex items-center gap-1.5 min-w-0">
+    <MapPin size={12} className="flex-shrink-0" />
+    <span className="truncate">{enq.area}{enq.address ? ` — ${enq.address}` : ''}</span>
+  </p>
+  <p className="flex items-center gap-1.5 min-w-0">
+    <Calendar size={12} className="flex-shrink-0" />
+    <span className="truncate">{enq.surveyScheduledDate
+      ? new Date(enq.surveyScheduledDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+      : 'Date not set'}</span>
+  </p>
+  <p className="flex items-center gap-1.5 min-w-0">
+    <User size={12} className="flex-shrink-0" />
+    <span className="truncate">Surveyor: <strong>{enq.surveyedBy || '—'}</strong></span>
+  </p>
+</div>
           </div>
           {/* Action — only assigned surveyor or admin can submit */}
           {(isAdminOrOwner || enq.surveyedBy === session?.user?.email) && (
@@ -282,7 +292,7 @@ function StatCard({ title, value, Icon, color, active, onClick }: any) {
       onClick={onClick}
       className={`${colors[color]} ${
         active ? 'ring-2 ring-offset-1 ring-blue-500 shadow' : ''
-      } border rounded-xl px-3 py-2 min-w-[80px] flex-shrink-0 active:scale-95 transition-all`}
+      } border rounded-xl px-3 py-2 min-w-[72px] flex-shrink-0 active:scale-95 transition-all`}
       >
         <div className="flex items-center gap-1.5 mb-0.5">
           <Icon className="h-3.5 w-3.5" />
@@ -310,7 +320,7 @@ function SurveyCard({ survey, onView }: any) {
   const getStatusBadge = () => {
     if (approved) {
       return (
-        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border-2 border-green-300 flex items-center gap-1 whitespace-nowrap">
+        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-200 flex items-center gap-1 whitespace-nowrap">
           <CheckCircle size={14} />
           Approved
         </span>
@@ -318,14 +328,14 @@ function SurveyCard({ survey, onView }: any) {
     }
     if (rejected) {
       return (
-        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border-2 border-red-300 flex items-center gap-1 whitespace-nowrap">
+        <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200 flex items-center gap-1 whitespace-nowrap">
           <XCircle size={14} />
           Rejected
         </span>
       );
     }
     return (
-      <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border-2 border-orange-300 flex items-center gap-1 whitespace-nowrap">
+      <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200 flex items-center gap-1 whitespace-nowrap">
         <Clock size={14} />
         Pending Review
       </span>
@@ -336,31 +346,27 @@ function SurveyCard({ survey, onView }: any) {
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden active:shadow-xl transition-all">
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="text-sm font-mono font-bold text-blue-600">
-                {survey.enquiryId}
-              </span>
-              {getStatusBadge()}
-            </div>
-            <div className="flex items-center gap-3 text-sm text-gray-700 mb-2 flex-wrap">
-              <span className="flex items-center gap-1 font-bold">
-                <User size={14} />
-                {survey.surveyorName}
-              </span>
-              {survey.surveyDate && (
-                <span className="flex items-center gap-1 font-bold">
-                  <Calendar size={14} />
-                  {new Date(survey.surveyDate).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-              )}
-            </div>
-          </div>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-sm font-mono font-bold text-blue-600 truncate">
+            {survey.enquiryId}
+          </span>
+          {getStatusBadge()}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+          <span className="flex items-center gap-1 font-semibold">
+            <User size={12} />
+            {survey.surveyorName}
+          </span>
+          {survey.surveyDate && (
+            <span className="flex items-center gap-1">
+              <Calendar size={12} />
+              {new Date(survey.surveyDate).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })}
+            </span>
+          )}
         </div>
       </div>
 
@@ -370,10 +376,10 @@ function SurveyCard({ survey, onView }: any) {
   <div className="flex items-center gap-2 min-w-0">
     <Building2 size={14} className="text-gray-400 flex-shrink-0" />
     <div className="min-w-0">
-              <p className="text-xs text-gray-600 font-bold">Type</p>
-              <p className="text-sm font-bold text-gray-900">
-                {survey.projectType}
-              </p>
+    <p className="text-xs text-gray-600 font-bold">Type</p>
+<p className="text-sm font-bold text-gray-900 truncate">
+  {survey.projectType}
+</p>
             </div>
           </div>
           <div className="flex items-center gap-2 min-w-0">
@@ -387,12 +393,12 @@ function SurveyCard({ survey, onView }: any) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
-          <MapPin size={14} className="text-gray-500" />
-          <p className="text-sm text-gray-800 font-bold">
-            {survey.installationSurface} • {survey.consumerCategory}
-          </p>
-        </div>
+        <div className="flex items-center gap-2 mb-3 min-w-0">
+  <MapPin size={14} className="text-gray-500 flex-shrink-0" />
+  <p className="text-sm text-gray-800 font-bold truncate">
+    {survey.installationSurface} • {survey.consumerCategory}
+  </p>
+</div>
 
         {survey.surveyNotes && (
           <div className="p-2 bg-white border border-gray-200 rounded-lg">
