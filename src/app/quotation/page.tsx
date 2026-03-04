@@ -30,6 +30,8 @@ export default function QuotationsPage() {
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+
 
   const handleMarkReady = async (quotationId: string) => {
     if (!confirm('Mark this quotation as ready to share with customer?')) return;
@@ -103,12 +105,12 @@ export default function QuotationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <DemoBanner />
+<div className="min-h-screen bg-gray-50 overflow-x-hidden pb-24">
+<DemoBanner />
 
       {/* Mobile-optimized Header - Sticky */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-        <div className="p-4">
+      <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Quotations</h1>
@@ -125,33 +127,43 @@ export default function QuotationsPage() {
             </button>
           </div>
 
-          {/* Stats - Horizontal Scroll on Mobile */}
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            <StatCard
-              title="Draft"
-              value={quotations.filter(q => q.status === 'Draft').length}
-              Icon={FileEdit}
-              color="gray"
-            />
-            <StatCard
-              title="Ready"
-              value={quotations.filter(q => q.status === 'Ready').length}
-              Icon={PackageCheck}
-              color="blue"
-            />
-            <StatCard
-              title="Shared"
-              value={quotations.filter(q => q.status === 'Shared' || q.status === 'Viewed').length}
-              Icon={Share2}
-              color="purple"
-            />
-            <StatCard
-              title="Approved"
-              value={quotations.filter(q => q.status === 'Approved').length}
-              Icon={ThumbsUp}
-              color="green"
-            />
-          </div>
+         {/* Stats Grid */}
+<div className="grid grid-cols-4 gap-2">
+  <StatCard
+    title="Draft"
+    value={quotations.filter(q => q.status === 'Draft').length}
+    Icon={FileEdit}
+    color="gray"
+    onClick={() => setFilterStatus(filterStatus === 'Draft' ? null : 'Draft')}
+    active={filterStatus === 'Draft'}
+  />
+  <StatCard
+    title="Ready"
+    value={quotations.filter(q => q.status === 'Ready').length}
+    Icon={PackageCheck}
+    color="blue"
+    onClick={() => setFilterStatus(filterStatus === 'Ready' ? null : 'Ready')}
+    active={filterStatus === 'Ready'}
+  />
+  <StatCard
+    title="Shared"
+    value={quotations.filter(q => q.status === 'Shared' || q.status === 'Viewed').length}
+    Icon={Share2}
+    color="purple"
+    onClick={() => setFilterStatus(filterStatus === 'Shared' ? null : 'Shared')}
+    active={filterStatus === 'Shared'}
+  />
+  <StatCard
+    title="Approved"
+    value={quotations.filter(q => q.status === 'Approved').length}
+    Icon={ThumbsUp}
+    color="green"
+    onClick={() => setFilterStatus(filterStatus === 'Approved' ? null : 'Approved')}
+    active={filterStatus === 'Approved'}
+  />
+</div>
+
+
         </div>
       </div>
 
@@ -171,7 +183,10 @@ export default function QuotationsPage() {
             </button>
           </div>
         ) : (
-          quotations.map((quot: any) => (
+          (filterStatus ? quotations.filter(q => {
+            if (filterStatus === 'Shared') return q.status === 'Shared' || q.status === 'Viewed';
+            return q.status === filterStatus;
+          }) : quotations).map((quot: any) => (
             <QuotationCard
               key={quot.quotationId}
               quotation={quot}
@@ -202,7 +217,7 @@ export default function QuotationsPage() {
 }
 
 // Mobile-optimized Stat Card
-function StatCard({ title, value, Icon, color }: any) {
+function StatCard({ title, value, Icon, color, onClick, active }: any) {
   const colors: Record<string, string> = {
     blue: 'bg-blue-50 border-blue-200 text-blue-700',
     green: 'bg-green-50 border-green-200 text-green-700',
@@ -211,15 +226,19 @@ function StatCard({ title, value, Icon, color }: any) {
   };
 
   return (
-    <div className={`${colors[color]} border-2 rounded-xl p-3 min-w-[110px] flex-shrink-0`}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-5 w-5" />
+    <div
+      onClick={onClick}
+      className={`${colors[color]} border-2 rounded-xl p-2.5 cursor-pointer active:scale-95 transition-transform ${active ? 'ring-2 ring-offset-1 ring-current' : ''}`}
+    >
+      <div className="flex items-center gap-1 mb-1">
+        <Icon className="h-4 w-4" />
         <p className="text-xs font-bold opacity-75">{title}</p>
       </div>
       <p className="text-2xl font-bold">{value}</p>
     </div>
   );
 }
+
 
 // Mobile-optimized Quotation Card
 function QuotationCard({ 
@@ -235,9 +254,9 @@ function QuotationCard({
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-mono font-bold text-blue-600">
+              <span className="text-sm font-mono font-bold text-blue-600 truncate block">
                 {quotation.quotationId}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${getStatusColor(quotation.status)}`}>
@@ -247,18 +266,18 @@ function QuotationCard({
             <h3 className="text-lg font-bold text-gray-900 mb-0.5">
               {quotation.customerName}
             </h3>
-            <div className="flex items-center gap-3 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Phone size={14} />
-                {quotation.customerPhone}
-              </span>
-              {quotation.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={14} />
-                  {quotation.location}
-                </span>
-              )}
-            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-600 min-w-0">
+  <span className="flex items-center gap-1 flex-shrink-0">
+    <Phone size={14} />
+    {quotation.customerPhone}
+  </span>
+  {quotation.location && (
+    <span className="flex items-center gap-1 min-w-0">
+      <MapPin size={14} className="flex-shrink-0" />
+      <span className="truncate">{quotation.location}</span>
+    </span>
+  )}
+</div>
           </div>
         </div>
       </div>
@@ -341,7 +360,7 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-fadeIn">
-      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
+     <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-full sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl animate-slideUp">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
           <div>
@@ -362,13 +381,13 @@ function ShareModal({ quotation, onClose, onCopy, copied }: any) {
             <label className="text-sm font-bold text-gray-700 mb-2 block flex items-center gap-1">
               <Copy size={14} /> Public Link
             </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={quotation.publicUrl}
-                readOnly
-                className="flex-1 px-3 py-2.5 border-2 border-gray-300 rounded-xl text-sm bg-gray-50 font-mono"
-              />
+            <div className="flex gap-2 min-w-0">
+  <input
+    type="text"
+    value={quotation.publicUrl}
+    readOnly
+    className="flex-1 min-w-0 px-3 py-2.5 border-2 border-gray-300 rounded-xl text-sm bg-gray-50 font-mono truncate"
+  />
               <button
                 onClick={() => onCopy(quotation.publicUrl)}
                 className="bg-blue-600 active:bg-blue-700 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 font-bold active:scale-95 transition-transform"
