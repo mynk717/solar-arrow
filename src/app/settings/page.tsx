@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
+import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle, Building2, Camera } from 'lucide-react';
 import { Download, Smartphone, Check } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -28,6 +28,9 @@ export default function SettingsPage() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [orgLogoUrl, setOrgLogoUrl] = useState<string>('');
+const [logoUploading, setLogoUploading] = useState(false);
+
 
 // Load config and check token on mount
 useEffect(() => {
@@ -55,6 +58,8 @@ const loadConfig = async () => {
       });
       setSheetId(data.sheetId);
       setSheetName(data.sheetName || 'Sheet1');
+      if (data.orgLogoUrl) setOrgLogoUrl(data.orgLogoUrl);
+
     }
   } catch (error) {
     console.error('Failed to load config:', error);
@@ -237,6 +242,36 @@ const saveConfig = async (id?: string, name?: string) => {
       setIsLoading(false)
     }
   }
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'solar-arrow/org-logos');
+      fd.append('publicId', `org_${session?.user?.organizationId}`);
+  
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error);
+  
+      const saveRes = await fetch('/api/org/update-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgLogoUrl: uploadData.url }),
+      });
+      if (!saveRes.ok) throw new Error('Failed to save logo');
+  
+      setOrgLogoUrl(uploadData.url);
+      setMessage({ type: 'success', text: 'Organization logo updated!' });
+    } catch (err: any) {
+      setMessage({ type: 'error', text: '❌ Logo upload failed: ' + err.message });
+    } finally {
+      setLogoUploading(false);
+      e.target.value = '';
+    }
+  };
   
   
   
@@ -351,7 +386,43 @@ const saveConfig = async (id?: string, name?: string) => {
               </button>
             )}
           </div>
-  
+  {/* ── Organization Logo ── */}
+{(session?.user?.accountType === 'admin' || session?.user?.accountType === 'owner') && (
+  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
+    <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+      <Building2 size={16} className="text-blue-600" />
+      Organization Logo
+      <span className="text-xs text-gray-400 font-normal ml-1">· used in quotations</span>
+    </h2>
+    <div className="flex items-center gap-4">
+      {orgLogoUrl ? (
+        <img
+          src={orgLogoUrl}
+          alt="Org Logo"
+          className="h-14 w-auto object-contain bg-gray-50 border border-gray-200 rounded-xl p-1.5 flex-shrink-0"
+        />
+      ) : (
+        <div className="h-14 w-24 flex items-center justify-center bg-gray-50 border border-dashed border-gray-300 rounded-xl flex-shrink-0">
+          <Building2 size={20} className="text-gray-300" />
+        </div>
+      )}
+      <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-gray-300 font-semibold text-sm cursor-pointer transition
+        ${logoUploading ? 'opacity-50 cursor-wait bg-gray-50' : 'bg-white hover:bg-gray-50 hover:border-blue-400'}`}>
+        {logoUploading
+          ? <><RefreshCw size={14} className="animate-spin" /> Uploading...</>
+          : <><Camera size={14} /> {orgLogoUrl ? 'Change Logo' : 'Upload Logo'}</>}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleLogoUpload}
+          disabled={logoUploading}
+        />
+      </label>
+    </div>
+  </div>
+)}
+
           {/* ── Expired warning for regular users ── */}
           {tokenStatus === 'expired' && session?.user?.accountType === 'user' && (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex items-start gap-3">

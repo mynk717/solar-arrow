@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
       sheetId: orgInfo.sheetId || null,
       sheetName: orgInfo.sheetName || 'Sheet1',
       updatedAt: orgInfo.updatedAt,
-      organizationName: orgInfo.name
+      organizationName: orgInfo.name,
+      orgLogoUrl: orgInfo.orgLogoUrl || null
     });
   } catch (error: any) {
     console.error('GET /api/settings Error:', error);
