@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateQuotation, fetchQuotation } from '@/lib/googleSheets';
+import { generatePublicToken, generatePublicUrl } from '@/lib/quotations';
+
 
 export async function POST(request: Request) {
   try {
@@ -32,20 +34,29 @@ export async function POST(request: Request) {
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
-
+    let publicToken = quotation.publicToken;
+    let publicUrl = quotation.publicUrl;
+    
+    const needsToken = !publicToken || publicToken.length < 10;
+    const needsUrl = !publicUrl || !publicUrl.includes(`/q/${orgId}/${quotationId}`) || !publicUrl.includes('token=');
+    
+    if (needsToken) publicToken = generatePublicToken();
+    if (needsToken || needsUrl) publicUrl = generatePublicUrl(orgId, quotationId, publicToken);
     // ✅ Change status to "Ready" instead of "Sent"
     await updateQuotation(orgId, quotationId, {
-      status: 'Ready',
+      status: 'Sent',
       sentBy: session.user.email,
       sentDate: new Date().toISOString(),
+      publicToken,
+      publicUrl,
     });
 
-    console.log(`✅ Quotation ${quotationId} marked as Ready`);
+    console.log(`✅ Quotation ${quotationId} link generated. URL: ${publicUrl}`);
 
     return NextResponse.json({
       success: true,
       message: 'Quotation is ready to share',
-      publicUrl: quotation.publicUrl,
+      publicUrl,
       quotationId: quotation.quotationId,
     });
   } catch (error: any) {

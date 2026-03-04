@@ -4,7 +4,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Save, Send, Loader2, Calculator, ArrowLeft, Plus, Minus } from 'lucide-react';
+import { Save, Loader2, Calculator, ArrowLeft, Plus, Minus } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
 import { useQuotations } from '@/lib/useQuotations'; 
@@ -39,10 +39,15 @@ export default function QuotationBuilderPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const leadId = searchParams.get('leadId');
+  const enquiryId = searchParams.get('enquiryId');
+
 
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
+const [enquiries, setEnquiries] = useState<any[]>([]);
+const [selectedLead, setSelectedLead] = useState<any>(null);
+const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
+const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'enquiry' : 'lead');
   const { createQuotation, sendQuotation } = useQuotations();
 
 
@@ -50,6 +55,7 @@ export default function QuotationBuilderPage() {
   const [formData, setFormData] = useState({
     // Lead/Customer
     leadId: leadId || '',
+    enquiryId: enquiryId || '',
     customerName: '',
     customerPhone: '',
     customerEmail: '',
@@ -137,18 +143,29 @@ export default function QuotationBuilderPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetchLeads();
+      fetchEnquiries();
       autoFillCompanyDetails();
     }
   }, [status]);
+  
 
   useEffect(() => {
     if (leadId && leads.length > 0) {
       const lead = leads.find(l => l.id === leadId);
-      if (lead) {
-        selectLead(lead);
-      }
+      if (lead) selectLead(lead);
     }
   }, [leadId, leads]);
+  
+  useEffect(() => {
+    if (enquiryId && enquiries.length > 0) {
+      const enquiry = enquiries.find(e => e.id === enquiryId || e.enquiryId === enquiryId);
+      if (enquiry) {
+        setSourceType('enquiry');
+        selectEnquiry(enquiry);
+      }
+    }
+  }, [enquiryId, enquiries]);
+  
 
   useEffect(() => {
     calculatePricing();
@@ -183,6 +200,34 @@ export default function QuotationBuilderPage() {
       // Don't fail the form if leads can't be loaded
       setLeads([]);
     }
+  };
+
+  const fetchEnquiries = async () => {
+    try {
+      const response = await fetch('/api/enquiries/list');
+      if (response.ok) {
+        const data = await response.json();
+        setEnquiries(data.enquiries || []);
+      }
+    } catch (error) {
+      console.error('Error fetching enquiries:', error);
+      setEnquiries([]);
+    }
+  };
+
+  const selectEnquiry = (enquiry: any) => {
+    setSelectedEnquiry(enquiry);
+    setFormData(prev => ({
+      ...prev,
+      enquiryId: enquiry.id || enquiry.enquiryId,
+      leadId: enquiry.leadId || '',
+      customerName: enquiry.customerName || enquiry.name,
+      customerPhone: enquiry.phone || enquiry.customerPhone,
+      customerEmail: enquiry.email || enquiry.customerEmail || '',
+      customerAddress: enquiry.address || enquiry.customerAddress || '',
+      location: enquiry.area || enquiry.location || '',
+      systemCapacity: enquiry.capacity ? parseFloat(enquiry.capacity) : 3,
+    }));
   };
 
   const autoFillCompanyDetails = () => {
@@ -271,7 +316,9 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
         premisesType: formData.premisesType as 'Residence' | 'Commercial' | 'Industrial',
         systemType: formData.systemType as 'On-Grid' | 'Hybrid' | 'Off-Grid',
         quotationType: 'Initial' as const,
-      };
+        leadId: formData.leadId || undefined,
+        enquiryId: formData.enquiryId || undefined,
+      };      
   
       // Use the hook instead of direct fetch
       const result = await createQuotation(quotationData);
@@ -328,28 +375,84 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
           </div>
         </div>
 
-        {/* Lead Selection */}
-        {!leadId && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Select Lead (Optional)</h2>
-            <select
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold"
-              value={formData.leadId}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                const lead = leads.find(l => l.id === e.target.value);
-                if (lead) selectLead(lead);
-                else setFormData(prev => ({ ...prev, leadId: '' }));
-              }}
-            >
-              <option value="">-- Create without lead --</option>
-              {leads.map(lead => (
-  <option key={lead.id} value={lead.id}>
-    {lead.customerName || lead.name} — {lead.phone} · {lead.capacity || 'N/A'} kW · {lead.area || lead.location || ''}
-  </option>
-))}
-            </select>
-          </div>
-        )}
+        {/* Source Selection — Lead or Enquiry */}
+{!leadId && !enquiryId && (
+  <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h2 className="text-lg font-bold text-gray-900 mb-3">Link to Lead / Enquiry</h2>
+
+    {/* Toggle */}
+    <div className="flex gap-2 mb-4">
+      <button
+        type="button"
+        onClick={() => setSourceType('lead')}
+        className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+          sourceType === 'lead'
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        From Lead
+      </button>
+      <button
+        type="button"
+        onClick={() => setSourceType('enquiry')}
+        className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+          sourceType === 'enquiry'
+            ? 'bg-purple-600 text-white'
+            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+        }`}
+      >
+        From Enquiry
+      </button>
+    </div>
+
+    {sourceType === 'lead' && (
+      <select
+        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-semibold"
+        value={formData.leadId}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+          const lead = leads.find(l => l.id === e.target.value);
+          if (lead) selectLead(lead);
+          else setFormData(prev => ({ ...prev, leadId: '' }));
+        }}
+      >
+        <option value="">-- Create without lead --</option>
+        {leads.map(lead => (
+          <option key={lead.id} value={lead.id}>
+            {lead.customerName || lead.name} — {lead.phone} · {lead.capacity || 'N/A'} kW · {lead.area || lead.location || ''}
+          </option>
+        ))}
+      </select>
+    )}
+
+    {sourceType === 'enquiry' && (
+      <select
+        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900 font-semibold"
+        value={formData.enquiryId}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+          const enq = enquiries.find(en => en.id === e.target.value || en.enquiryId === e.target.value);
+          if (enq) selectEnquiry(enq);
+          else setFormData(prev => ({ ...prev, enquiryId: '' }));
+        }}
+      >
+        <option value="">-- Create without enquiry --</option>
+        {enquiries.map(enq => (
+          <option key={enq.id || enq.enquiryId} value={enq.id || enq.enquiryId}>
+            {enq.customerName || enq.name} — {enq.phone || enq.customerPhone} · {enq.capacity || 'N/A'} kW · {enq.enquiryId || enq.id}
+          </option>
+        ))}
+      </select>
+    )}
+
+    {/* Selected source badge */}
+    {(selectedLead || selectedEnquiry) && (
+      <div className="mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 font-semibold flex items-center gap-2">
+        ✅ Auto-filled from {selectedLead ? `Lead: ${selectedLead.id}` : `Enquiry: ${selectedEnquiry?.enquiryId || selectedEnquiry?.id}`}
+      </div>
+    )}
+  </div>
+)}
+
 
         <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
           {/* Customer Information */}
@@ -704,16 +807,6 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
                   Save as Draft
                 </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={(e: any) => handleSubmit(e, true)}
-              disabled={loading || isDemoMode}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-bold text-lg disabled:opacity-50"
-            >
-              <Send size={20} />
-              Create & Send
             </button>
 
             <button

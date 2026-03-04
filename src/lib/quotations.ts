@@ -1,7 +1,7 @@
 // src/lib/quotations.ts
 import crypto from 'crypto';
 
-export type QuotationStatus = 'Draft' | 'Ready' | 'Shared' | 'Viewed' | 'Approved' | 'Rejected';
+export type QuotationStatus = 'Draft' | 'Ready' | 'Sent' | 'Shared' | 'Viewed' | 'Approved' | 'Rejected';
 
 export interface Quotation {
   // Multi-tenant

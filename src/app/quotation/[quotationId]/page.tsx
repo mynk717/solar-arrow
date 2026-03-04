@@ -3,17 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { 
-  ArrowLeft, 
-  Send, 
-  Copy, 
-  Loader2, 
-  ExternalLink,
-  Edit,
-  Trash2,
-  CheckCircle,
-  Eye
-} from 'lucide-react';
+import { ArrowLeft, Share2, Copy, Loader2, ExternalLink, Edit, CheckCircle, Eye, MessageCircle, Download, ChevronDown, RefreshCw } from 'lucide-react';
 import { formatCurrency } from '@/lib/quotations';
 
 interface Quotation {
@@ -54,8 +44,22 @@ interface Quotation {
   validUntilDate: string;
   publicUrl: string;
   qrCodeUrl?: string;
+  pdfUrl?: string;
   notes: string;
   termsAndConditions: string;
+  leadId?: string;
+  enquiryId?: string;
+  quotationType?: string;
+  panelWarranty?: string;
+  inverterWarranty?: string;
+  inverterQuantity?: number;
+  advancePercentage?: number;
+  preDispatchPercentage?: number;
+  preGridPercentage?: number;
+  paymentTerms?: string;
+  publicToken?: string;
+  approvedBy?: string;
+  approvedDate?: string;
 }
 
 export default function QuotationDetailPage({
@@ -72,6 +76,9 @@ export default function QuotationDetailPage({
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+const [generatingLink, setGeneratingLink] = useState(false);
+
 
   useEffect(() => {
     if (session) {
@@ -97,31 +104,49 @@ export default function QuotationDetailPage({
     }
   };
 
-  const handleSend = async () => {
-    if (!confirm('Send this quotation to the customer?')) return;
-    
-    try {
-      setSending(true);
-      const response = await fetch('/api/quotations/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quotationId: params.quotationId }),
-      });
-  
-      const data = await response.json();
-  
-      if (!response.ok) throw new Error(data.error || 'Failed to send');
-  
-      // ✅ Show success message with public URL
-      alert(`✅ Quotation sent successfully via WhatsApp!\n\n📱 Public Link:\n${data.publicUrl}\n\nCustomer can view and approve online.`);
-      
-      await fetchQuotation(); // Refresh
-    } catch (err: any) {
-      alert('❌ ' + err.message);
-    } finally {
-      setSending(false);
-    }
-  };
+  // REPLACE handleSend entirely with:
+
+const generateLink = async () => {
+  try {
+    setGeneratingLink(true);
+    const response = await fetch('/api/quotations/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quotationId: params.quotationId }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to generate link');
+    await fetchQuotation(); // refresh to get updated publicUrl
+  } catch (err: any) {
+    alert('❌ ' + err.message);
+  } finally {
+    setGeneratingLink(false);
+  }
+};
+
+const hasValidLink =
+  !!quotation?.publicUrl &&
+  quotation.publicUrl.includes('token=') &&
+  quotation.publicUrl.includes('/q/');
+
+const shareViaWhatsApp = () => {
+  if (!quotation?.publicUrl) return;
+  const text = encodeURIComponent(
+    `Hi ${quotation.customerName},\n\nPlease find your Solar Installation Quotation:\n🔗 ${quotation.publicUrl}\n\nCapacity: ${quotation.systemCapacity} kWp | Amount: ₹${quotation.finalAmount.toLocaleString('en-IN')}\nValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}\n\n- ${quotation.organizationName}`
+  );
+  window.open(`https://wa.me/${quotation.customerPhone?.replace(/\D/g, '')}?text=${text}`, '_blank');
+  setShareOpen(false);
+};
+
+const shareViaEmail = () => {
+  if (!quotation?.publicUrl) return;
+  const subject = encodeURIComponent(`Solar Quotation - ${quotation.referenceNumber}`);
+  const body = encodeURIComponent(
+    `Dear ${quotation.customerName},\n\nPlease find your Solar Installation Quotation at:\n${quotation.publicUrl}\n\nFinal Amount: ₹${quotation.finalAmount.toLocaleString('en-IN')}\nValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}\n\nRegards,\n${quotation.organizationName}`
+  );
+  window.open(`mailto:${quotation.customerEmail}?subject=${subject}&body=${body}`, '_blank');
+  setShareOpen(false);
+};
 
   const copyLink = () => {
     if (quotation?.publicUrl) {
@@ -175,58 +200,103 @@ export default function QuotationDetailPage({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
-            {quotation.status === 'Draft' && (
-              <button
-                onClick={handleSend}
-                disabled={sending}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50"
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send size={16} />
-                    Send to Customer
-                  </>
-                )}
-              </button>
-            )}
+<div className="flex items-center gap-2 relative">
 
-            {quotation.publicUrl && (
-              <>
-                <button
-                  onClick={copyLink}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle size={16} />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={16} />
-                      Copy Link
-                    </>
-                  )}
-                </button>
+{/* View Public Page — always visible if link exists */}
+{hasValidLink && (
+  <a
+    href={quotation.publicUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm"
+  >
+    <ExternalLink size={15} />
+    Preview
+  </a>
+)}
 
-                <a
-                  href={quotation.publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium"
-                >
-                  <ExternalLink size={16} />
-                  View Public Page
-                </a>
-              </>
-            )}
-          </div>
+{/* Generate Link — shown when no valid link exists */}
+{!hasValidLink && (
+  <button
+    onClick={generateLink}
+    disabled={generatingLink}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm disabled:opacity-50"
+  >
+    {generatingLink ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />}
+    {generatingLink ? 'Generating...' : 'Generate Link'}
+  </button>
+)}
+
+{/* Share dropdown — only when valid link exists */}
+{hasValidLink && (
+  <div className="relative">
+    <button
+      onClick={() => setShareOpen((prev) => !prev)}
+      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm"
+    >
+      <Share2 size={15} />
+      Share
+      <ChevronDown size={14} />
+    </button>
+
+    {shareOpen && (
+      <>
+        {/* Backdrop to close dropdown */}
+        <div className="fixed inset-0 z-10" onClick={() => setShareOpen(false)} />
+        <div className="absolute right-0 top-11 z-20 bg-white border border-gray-200 rounded-xl shadow-xl w-52 overflow-hidden">
+          <button
+            onClick={shareViaWhatsApp}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-green-50 hover:text-green-700 transition"
+          >
+            <MessageCircle size={16} className="text-green-500" />
+            WhatsApp
+          </button>
+          <button
+            onClick={shareViaEmail}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition border-t border-gray-100"
+          >
+            <ExternalLink size={16} className="text-blue-500" />
+            Email
+          </button>
+          <button
+            onClick={copyLink}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition border-t border-gray-100"
+          >
+            {copied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} className="text-gray-500" />}
+            {copied ? 'Copied!' : 'Copy Link'}
+          </button>
+          {quotation.pdfUrl && (
+            <a
+              href={quotation.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition border-t border-gray-100"
+              onClick={() => setShareOpen(false)}
+            >
+              <Download size={16} className="text-orange-500" />
+              Download PDF
+            </a>
+          )}
+        </div>
+      </>
+    )}
+  </div>
+)}
+
+{/* Resend/regenerate link for already-sent quotations with broken URLs */}
+{hasValidLink && (
+  <button
+    onClick={generateLink}
+    disabled={generatingLink}
+    title="Regenerate link"
+    className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+  >
+    {generatingLink ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+  </button>
+)}
+
+</div>
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -270,6 +340,25 @@ export default function QuotationDetailPage({
                   <p className="text-gray-600">Valid Until</p>
                   <p className="font-medium">{new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}</p>
                 </div>
+                {/* ADD after Valid Until div: */}
+{quotation.leadId && (
+  <div>
+    <p className="text-gray-600">Lead ID</p>
+    <p className="font-medium font-mono text-xs">{quotation.leadId}</p>
+  </div>
+)}
+{quotation.enquiryId && (
+  <div>
+    <p className="text-gray-600">Enquiry ID</p>
+    <p className="font-medium font-mono text-xs">{quotation.enquiryId}</p>
+  </div>
+)}
+{quotation.firstViewedDate && (
+  <div>
+    <p className="text-gray-600">First Viewed</p>
+    <p className="font-medium">{new Date(quotation.firstViewedDate).toLocaleDateString('en-IN')}</p>
+  </div>
+)}
               </div>
             </div>
 
@@ -353,17 +442,7 @@ export default function QuotationDetailPage({
               </div>
             )}
 
-            {/* Public Link */}
-            {quotation.publicUrl && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <label className="text-sm font-medium text-gray-700 block mb-2">
-                  Public Link:
-                </label>
-                <p className="text-xs text-blue-600 break-all bg-white p-2 rounded border border-blue-200">
-                  {quotation.publicUrl}
-                </p>
-              </div>
-            )}
+            
           </div>
         </div>
       </div>
@@ -374,6 +453,7 @@ export default function QuotationDetailPage({
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     Draft: 'bg-gray-100 text-gray-800',
+    Ready: 'bg-indigo-100 text-indigo-800',
     Sent: 'bg-blue-100 text-blue-800',
     Viewed: 'bg-yellow-100 text-yellow-800',
     Approved: 'bg-green-100 text-green-800',

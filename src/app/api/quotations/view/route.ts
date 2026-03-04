@@ -8,7 +8,6 @@ export async function POST(request: Request) {
   try {
     const { orgId, quotationId, token } = await request.json();
 
-    // ✅ FIX 1: Validate required parameters
     if (!orgId || !quotationId || !token) {
       return NextResponse.json(
         { error: 'Missing required parameters (orgId, quotationId, token)' },
@@ -18,49 +17,54 @@ export async function POST(request: Request) {
 
     console.log(`👁️ Public view request: ${orgId}/${quotationId}`);
 
-    // ✅ FIX 2: Fetch quotation
+    // ✅ Fetch quotation FIRST, null check immediately
     const quotation = await fetchQuotation(orgId, quotationId);
-    const orgInfo: any = await redis.get(`org:${orgId}:info`);
-const enrichedQuotation = {
-  ...quotation,
-  orgLogoUrl: orgInfo?.orgLogoUrl || null,
-};
 
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
     }
 
-    // ✅ FIX 3: Validate token
+    // ✅ Validate token
     if (!validateQuotationToken(quotation, token)) {
       return NextResponse.json({ error: 'Invalid or expired link' }, { status: 403 });
     }
 
-    // ✅ FIX 4: Check if expired
+    // ✅ Check expiry
     if (isQuotationExpired(quotation.validUntilDate)) {
       return NextResponse.json({ error: 'Quotation has expired' }, { status: 410 });
     }
 
-    // ✅ FIX 5: Track view
+    // ✅ Enrich with org logo from Redis AFTER all validations pass
+    const orgInfo: any = await redis.get(`org:${orgId}:info`);
+    const enrichedQuotation = {
+      ...quotation,
+      orgLogoUrl: orgInfo?.orgLogoUrl || null,
+    };
+
+    // ✅ Track view (fire and forget — don't await to keep response fast)
     const now = new Date().toISOString();
-    const updates: any = {
+    const isFirstView = (quotation.viewCount || 0) === 0;
+    const updates: Record<string, any> = {
       viewCount: (quotation.viewCount || 0) + 1,
       lastViewedDate: now,
     };
-
-    // Set first viewed date if this is the first view
-    if ((quotation.viewCount || 0) === 0) {
+    if (isFirstView) {
       updates.firstViewedDate = now;
       updates.status = 'Viewed';
     }
-
-    await updateQuotation(orgId, quotationId, updates);
+    // Non-blocking — client doesn't need to wait for sheet write
+    updateQuotation(orgId, quotationId, updates).catch((err) =>
+      console.error('⚠️ Failed to update view count:', err)
+    );
 
     console.log(`✅ Quotation viewed: ${quotationId} (Total views: ${updates.viewCount})`);
 
+    // ✅ Return 'quotation' key — matches what public page reads (data.quotation)
     return NextResponse.json({
       success: true,
-      enrichedQuotation,
+      quotation: enrichedQuotation,
     });
+
   } catch (error: any) {
     console.error('❌ Error viewing quotation:', error);
     return NextResponse.json(

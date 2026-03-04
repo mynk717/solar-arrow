@@ -3,40 +3,73 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, CheckCircle, Phone, Mail, MapPin, Calendar, Copy } from 'lucide-react';
-import Image from 'next/image';
+import { Loader2, CheckCircle, Phone, Mail, MapPin, Copy, Building2 } from 'lucide-react';
 
 interface Quotation {
   quotationId: string;
+  organizationId: string;
   referenceNumber: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
-  customerAddress: string; 
+  customerAddress: string;
   location: string;
+  premisesType: string;
   systemCapacity: number;
   systemType: string;
   panelType: string;
   panelMake: string;
-  panelModel: string;
   panelWattage: number;
   panelQuantity: number;
+  panelWarranty: string;
   inverterMake: string;
   inverterModel: string;
-  inverterCapacity: number;  
-  inverterQuantity: number;  
-  inverterWarranty: string;  
-  panelWarranty: string;     
+  inverterCapacity: number;
+  inverterQuantity: number;
+  inverterWarranty: string;
+  structureType: string;
+  structureMake: string;
+  structureWarranty: string;
+  bosItems: string;
+  bosWarranty: string;
+  cableMake: string;
+  cableWarranty: string;
+  earthingType: string;
+  earthingQuantity: number;
+  earthingWarranty: string;
+  lightningArrestorType: string;
+  lightningArrestorQuantity: number;
+  lightningArrestorWarranty: string;
+  maintenanceYears: number;
   baseCost: number;
   gstAmount: number;
   gstPercentage: number;
   totalCost: number;
   subsidyAmount: number;
   finalAmount: number;
+  advancePercentage: number;
+  preDispatchPercentage: number;
+  preGridPercentage: number;
+  paymentTerms: string;
   validUntilDate: string;
   status: string;
   organizationName: string;
   createdAt: string;
+  termsAndConditions: string;
+  loanAvailable: boolean;
+  loanInterestRate: number;
+  // Company details
+  companyGst: string;
+  companyUdyam: string;
+  companyCspdclReg: string;
+  companyBankName: string;
+  companyAccountNumber: string;
+  companyIfsc: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
+  // Org logo from Cloudinary
+  orgLogoUrl?: string;
 }
 
 export default function PublicQuotationPage({
@@ -44,7 +77,6 @@ export default function PublicQuotationPage({
 }: {
   params: Promise<{ orgId: string; quotationId: string }>;
 }) {
-  // Unwrap params promise
   const params = use(paramsPromise);
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -55,34 +87,20 @@ export default function PublicQuotationPage({
   const [approving, setApproving] = useState(false);
   const [approved, setApproved] = useState(false);
 
-  useEffect(() => {
-    fetchQuotation();
-  }, [params.orgId, params.quotationId, token]);
+  useEffect(() => { fetchQuotation(); }, []);
 
   const fetchQuotation = async () => {
     try {
       setLoading(true);
-
-      const viewResponse = await fetch('/api/quotations/view', {
+      const res = await fetch('/api/quotations/view', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgId: params.orgId,
-          quotationId: params.quotationId,
-          token,
-        }),
+        body: JSON.stringify({ orgId: params.orgId, quotationId: params.quotationId, token }),
       });
-
-      const data = await viewResponse.json();
-
-      if (!viewResponse.ok) {
-        throw new Error(data.error || 'Failed to load quotation');
-      }
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load quotation');
       setQuotation(data.quotation);
-      if (data.quotation.status === 'Approved') {
-        setApproved(true);
-      }
+      if (data.quotation.status === 'Approved') setApproved(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -92,27 +110,15 @@ export default function PublicQuotationPage({
 
   const handleApprove = async () => {
     if (!quotation || !token) return;
-
     try {
       setApproving(true);
-
-      const response = await fetch('/api/quotations/approve', {
+      const res = await fetch('/api/quotations/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgId: params.orgId,
-          quotationId: params.quotationId,
-          token,
-          customerName: quotation.customerName,
-        }),
+        body: JSON.stringify({ orgId: params.orgId, quotationId: params.quotationId, token, customerName: quotation.customerName }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to approve quotation');
-      }
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to approve');
       setApproved(true);
       alert('✅ ' + data.message);
       await fetchQuotation();
@@ -123,216 +129,229 @@ export default function PublicQuotationPage({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-16 w-16 text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Loading quotation...</p>
-        </div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+      <div className="text-center">
+        <Loader2 className="animate-spin h-16 w-16 text-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600 text-lg">Loading quotation...</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <p className="text-sm text-gray-500">Please contact the sales team for assistance.</p>
-        </div>
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
+        <div className="text-6xl mb-4">❌</div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <p className="text-sm text-gray-500">Please contact the sales team for assistance.</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!quotation) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md text-center">
-          <div className="text-6xl mb-4">🔍</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Quotation Not Found</h1>
-          <p className="text-gray-600">This quotation does not exist or has been removed.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!quotation) return null;
+
+  const bomRows = [
+    { item: 'Solar PV Modules', spec: `${quotation.panelWattage}Wp ${quotation.panelType}`, make: quotation.panelMake, warranty: quotation.panelWarranty, qty: `${quotation.panelQuantity} Nos` },
+    { item: 'String Inverter', spec: `${quotation.inverterCapacity}kVA ${quotation.inverterModel}`, make: quotation.inverterMake, warranty: quotation.inverterWarranty, qty: `${quotation.inverterQuantity} Nos` },
+    { item: 'Module Mounting Structure', spec: quotation.structureType || 'Hot Dip Galvanized', make: quotation.structureMake || 'As per design', warranty: quotation.structureWarranty || '5 Years', qty: '1 Lot' },
+    { item: 'DC Solar Cables', spec: 'Solar Grade, UV Resistant, Halogen Free', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot' },
+    { item: 'AC Power LT Cables', spec: 'Al Core, XLPE, Armoured', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot' },
+    { item: 'Earthing System', spec: quotation.earthingType || 'Chemical Earthing', make: 'Standard/True Power', warranty: quotation.earthingWarranty || '5 Years', qty: `${quotation.earthingQuantity || 3} Nos` },
+    { item: 'Lightning Arrestor', spec: quotation.lightningArrestorType || 'ESE / Pipe Type', make: 'Reputed Make', warranty: quotation.lightningArrestorWarranty || '5 Years', qty: `${quotation.lightningArrestorQuantity || 1} Nos` },
+    { item: 'BOS & Protection Devices', spec: quotation.bosItems || 'MCB, MCCB, SPD, DC Fuse', make: 'Standard', warranty: quotation.bosWarranty || '5 Years', qty: '1 Lot' },
+    { item: 'Remote Monitoring System', spec: 'Data Logger / RMS with WiFi', make: 'OEM Provided', warranty: 'As per OEM', qty: '1 Nos' },
+    { item: 'Miscellaneous Items', spec: 'Conduits, Cable Trays, Clamps', make: 'Reputed Make', warranty: 'As provided by OEM', qty: '1 Lot' },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-100 py-4 px-3">
+    <div className="min-h-screen bg-gray-100 py-4 px-3 print:bg-white print:py-0">
       <div className="max-w-3xl mx-auto space-y-4">
-  
-        {/* Header Card */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-700 to-blue-500 px-6 py-5 text-white">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                {/* Org Logo */}
-                {(quotation as any).orgLogoUrl && (
-                  <img
-                    src={(quotation as any).orgLogoUrl}
-                    alt={(quotation as any).organizationName}
-                    className="h-12 object-contain bg-white rounded-lg px-2 py-1 mb-3"
-                  />
+
+        {/* ═══ LETTERHEAD HEADER ═══ */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+
+          {/* Top: Company Identity Bar */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-4">
+              {quotation.orgLogoUrl ? (
+                <img
+                  src={quotation.orgLogoUrl}
+                  alt={quotation.organizationName}
+                  className="h-14 w-auto object-contain"
+                />
+              ) : (
+                <div className="h-14 w-14 bg-blue-600 rounded-xl flex items-center justify-center">
+                  <Building2 className="text-white" size={28} />
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-extrabold text-gray-900 leading-tight">{quotation.organizationName}</h2>
+                {quotation.companyGst && (
+                  <p className="text-xs text-gray-500 mt-0.5">GST: {quotation.companyGst}</p>
                 )}
-                <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">
-                  Techno-Commercial Proposal
-                </p>
-                <h1 className="text-2xl font-bold">Solar Installation Quotation</h1>
-                <p className="text-blue-200 text-sm mt-1">
-                  Ref: {quotation.referenceNumber}
-                </p>
-                <p className="text-blue-200 text-xs mt-0.5">
-                  Quotation ID: {quotation.quotationId}
-                </p>
+                {quotation.companyCspdclReg && (
+                  <p className="text-xs text-gray-500">CSPDCL Reg: {quotation.companyCspdclReg}</p>
+                )}
               </div>
-              <div className="text-right text-sm">
-                <p className="text-blue-200">Dated</p>
-                <p className="font-bold">{new Date(quotation.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                <p className="text-blue-200 mt-2">Valid Until</p>
-                <p className="font-bold text-yellow-300">{new Date(quotation.validUntilDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest">Proposal No.</p>
+              <p className="font-bold text-blue-700 text-base">{quotation.referenceNumber}</p>
+              <p className="text-xs text-gray-500 mt-1">Dated: {new Date(quotation.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+          </div>
+
+          {/* Blue Proposal Title Banner */}
+          <div className="bg-gradient-to-r from-blue-700 to-blue-500 px-6 py-3 text-white text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-200 mb-0.5">Techno-Commercial Proposal</p>
+            <h1 className="text-lg font-bold">
+              {quotation.systemCapacity} kWp {quotation.systemType} Rooftop Solar PV Project
+            </h1>
+          </div>
+
+          {/* Summary Strip */}
+          <div className="flex flex-wrap gap-2 px-6 py-3 bg-blue-50 border-b border-blue-100 text-xs font-semibold text-blue-700">
+            {[
+              `⚡ ${quotation.systemCapacity} kWp DC`,
+              `🔄 ${quotation.systemType}`,
+              `🏠 ${quotation.premisesType}`,
+              quotation.panelType,
+              quotation.panelMake,
+            ].map((tag) => (
+              <span key={tag} className="bg-white border border-blue-200 rounded-full px-3 py-1">{tag}</span>
+            ))}
+          </div>
+
+          {/* To: Customer Block */}
+          <div className="px-6 py-4 flex flex-wrap gap-6 justify-between">
+            <div>
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Prepared For</p>
+              <p className="font-extrabold text-gray-900 text-lg">{quotation.customerName}</p>
+              {quotation.customerAddress && <p className="text-gray-600 text-sm">{quotation.customerAddress}</p>}
+              {quotation.location && <p className="text-gray-500 text-sm flex items-center gap-1"><MapPin size={12} />{quotation.location}</p>}
+              <div className="flex flex-wrap gap-4 mt-2">
+                {quotation.customerPhone && (
+                  <a href={`tel:${quotation.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold">
+                    <Phone size={13} /> {quotation.customerPhone}
+                  </a>
+                )}
+                {quotation.customerEmail && (
+                  <a href={`mailto:${quotation.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold">
+                    <Mail size={13} /> {quotation.customerEmail}
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Valid Until</p>
+              <p className="font-bold text-red-600 text-base">{new Date(quotation.validUntilDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              <div className="mt-2">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                  quotation.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                  quotation.status === 'Sent' ? 'bg-blue-100 text-blue-700' :
+                  quotation.status === 'Viewed' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-gray-100 text-gray-700'
+                }`}>● {quotation.status}</span>
               </div>
             </div>
           </div>
-  
-          {/* To: Customer */}
-          <div className="px-6 py-4 border-b border-gray-100">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Prepared For</p>
-            <p className="font-bold text-gray-900 text-lg">{quotation.customerName}</p>
-            {quotation.customerAddress && <p className="text-gray-600 text-sm">{quotation.customerAddress}</p>}
-            {quotation.location && <p className="text-gray-600 text-sm">{quotation.location}</p>}
-            <div className="flex flex-wrap gap-4 mt-2">
-              {quotation.customerPhone && (
-                <a href={`tel:${quotation.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold">
-                  <Phone size={14} /> {quotation.customerPhone}
-                </a>
-              )}
-              {quotation.customerEmail && (
-                <a href={`mailto:${quotation.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold">
-                  <Mail size={14} /> {quotation.customerEmail}
-                </a>
-              )}
-            </div>
-          </div>
-  
-          {/* Approved Banner */}
+
           {approved && (
             <div className="bg-green-500 text-white text-center py-3 font-bold flex items-center justify-center gap-2">
               <CheckCircle size={20} /> QUOTATION APPROVED — Our team will contact you soon!
             </div>
           )}
         </div>
-  
-        {/* System Summary */}
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
-            ⚡ System Configuration
-          </h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {[
-              ['Capacity', `${quotation.systemCapacity} kWp`],
-              ['System Type', quotation.systemType],
-              ['Panel Type', quotation.panelType],
-              ['Premises', (quotation as any).premisesType],
-            ].map(([label, value]) => (
-              <div key={label} className="bg-blue-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 font-semibold">{label}</p>
-                <p className="font-bold text-gray-900 mt-0.5">{value}</p>
-              </div>
-            ))}
+
+        {/* ═══ BILL OF MATERIALS ═══ */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-bold text-gray-900 text-base">📋 List of Major Equipment & Proposed Vendors</h2>
           </div>
-        </div>
-  
-        {/* Bill of Materials Table */}
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
-            📋 List of Major Equipment
-          </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white">
-                  <th className="text-left py-2 px-3 rounded-tl-lg">S.No</th>
-                  <th className="text-left py-2 px-3">Item</th>
-                  <th className="text-left py-2 px-3">Specification</th>
-                  <th className="text-left py-2 px-3">Make</th>
-                  <th className="text-left py-2 px-3">Warranty</th>
-                  <th className="text-left py-2 px-3 rounded-tr-lg">Qty</th>
+                <tr className="bg-blue-600 text-white text-xs">
+                  <th className="text-center py-2.5 px-3 w-8">S.No</th>
+                  <th className="text-left py-2.5 px-3">Item</th>
+                  <th className="text-left py-2.5 px-3">Specifications</th>
+                  <th className="text-left py-2.5 px-3">Proposed Make</th>
+                  <th className="text-left py-2.5 px-3">Warranty</th>
+                  <th className="text-center py-2.5 px-3">UOM / Qty</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {[
-                  { item: 'Solar PV Modules', spec: `${quotation.panelWattage}Wp ${quotation.panelType}`, make: quotation.panelMake, warranty: (quotation as any).panelWarranty, qty: `${quotation.panelQuantity} Nos` },
-                  { item: 'String Inverter', spec: `${quotation.inverterCapacity}kVA`, make: quotation.inverterMake, warranty: (quotation as any).inverterWarranty, qty: `${(quotation as any).inverterQuantity} Nos` },
-                  { item: 'Module Mounting Structure', spec: (quotation as any).structureType || 'Hot Dip Galvanized', make: (quotation as any).structureMake || 'As per design', warranty: (quotation as any).structureWarranty || '5 Years', qty: '1 Lot' },
-                  { item: 'DC/AC Cables', spec: 'Solar Grade, UV Resistant', make: (quotation as any).cableMake || 'Polycab/Waacab', warranty: (quotation as any).cableWarranty || '5 Years', qty: '1 Lot' },
-                  { item: 'Earthing System', spec: (quotation as any).earthingType || 'Chemical Earthing', make: 'Standard', warranty: (quotation as any).earthingWarranty || '5 Years', qty: `${(quotation as any).earthingQuantity || 3} Nos` },
-                  { item: 'Lightning Arrestor', spec: (quotation as any).lightningArrestorType || 'ESE Type', make: 'Reputed Make', warranty: (quotation as any).lightningArrestorWarranty || '5 Years', qty: `${(quotation as any).lightningArrestorQuantity || 1} Nos` },
-                  { item: 'BOS & Accessories', spec: (quotation as any).bosItems || 'Balance of System', make: 'Standard', warranty: (quotation as any).bosWarranty || '5 Years', qty: '1 Lot' },
-                  { item: 'Remote Monitoring', spec: (quotation as any).monitoringSystem || 'RMS/Data Logger', make: 'OEM', warranty: 'As per OEM', qty: '1 Nos' },
-                ].map((row, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="py-2.5 px-3 font-semibold text-gray-500">{i + 1}</td>
-                    <td className="py-2.5 px-3 font-bold text-gray-900">{row.item}</td>
-                    <td className="py-2.5 px-3 text-gray-700">{row.spec}</td>
-                    <td className="py-2.5 px-3 text-gray-700">{row.make}</td>
-                    <td className="py-2.5 px-3 text-gray-600 text-xs">{row.warranty}</td>
-                    <td className="py-2.5 px-3 font-semibold">{row.qty}</td>
+                {bomRows.map((row, i) => (
+                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
+                    <td className="py-2.5 px-3 text-center font-semibold text-gray-400 text-xs">{i + 1}</td>
+                    <td className="py-2.5 px-3 font-semibold text-gray-900">{row.item}</td>
+                    <td className="py-2.5 px-3 text-gray-600 text-xs leading-relaxed">{row.spec}</td>
+                    <td className="py-2.5 px-3 font-semibold text-blue-700 text-xs">{row.make}</td>
+                    <td className="py-2.5 px-3 text-green-700 text-xs font-medium">{row.warranty}</td>
+                    <td className="py-2.5 px-3 text-center font-bold text-gray-700 text-xs">{row.qty}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-  
-        {/* Pricing */}
-        <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
-            💰 Commercial Offer
-          </h2>
-          <table className="w-full text-sm">
-            <tbody>
-              {[
-                { label: 'Project Cost (Base)', value: quotation.baseCost, normal: true },
-                { label: `GST (${quotation.gstPercentage}%)`, value: quotation.gstAmount, normal: true },
-                { label: 'Grand Total', value: quotation.totalCost, bold: true },
-              ].map((row) => (
-                <tr key={row.label} className="border-b border-gray-100">
-                  <td className={`py-2.5 ${row.bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>{row.label}</td>
-                  <td className={`py-2.5 text-right ${row.bold ? 'font-bold text-gray-900 text-base' : 'text-gray-700'}`}>
-                    ₹{row.value.toLocaleString('en-IN')}/-
-                  </td>
+
+        {/* ═══ COMMERCIAL OFFER ═══ */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-bold text-gray-900 text-base">💰 Commercial Offer</h2>
+          </div>
+          <div className="px-5 pb-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 border-b border-gray-100">
+                  <th className="text-left py-2 font-semibold">Description</th>
+                  <th className="text-right py-2 font-semibold">Amount (INR)</th>
                 </tr>
-              ))}
-              {quotation.subsidyAmount > 0 && (
-                <tr className="border-b border-gray-100">
-                  <td className="py-2.5 text-green-700 font-semibold">MNRE/State Subsidy</td>
-                  <td className="py-2.5 text-right text-green-700 font-bold">- ₹{quotation.subsidyAmount.toLocaleString('en-IN')}/-</td>
+              </thead>
+              <tbody>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 text-gray-700">1. Project Cost (Offered Price)</td>
+                  <td className="py-3 text-right font-semibold">₹{quotation.baseCost.toLocaleString('en-IN')}/-</td>
                 </tr>
-              )}
-              <tr className="bg-blue-50">
-                <td className="py-3 px-2 font-bold text-blue-900 text-base rounded-bl-xl">
-                  Effective Cost After Subsidy
-                </td>
-                <td className="py-3 px-2 text-right font-bold text-blue-900 text-xl rounded-br-xl">
-                  ₹{quotation.finalAmount.toLocaleString('en-IN')}/-
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <tr className="border-b border-gray-50">
+                  <td className="py-3 text-gray-700">2. GST ({quotation.gstPercentage}%)<br /><span className="text-xs text-gray-400">5% on Supply + 18% on Installation (as per Govt. clause)</span></td>
+                  <td className="py-3 text-right font-semibold">₹{quotation.gstAmount.toLocaleString('en-IN')}/-</td>
+                </tr>
+                <tr className="border-b border-gray-100 font-bold">
+                  <td className="py-3 text-gray-900">3. Grand Total (To be Paid)</td>
+                  <td className="py-3 text-right text-gray-900 text-base">₹{quotation.totalCost.toLocaleString('en-IN')}/-</td>
+                </tr>
+                {quotation.subsidyAmount > 0 && (
+                  <tr className="border-b border-gray-100">
+                    <td className="py-3 text-green-700 font-semibold">4. MNRE/PM Surya Ghar Subsidy</td>
+                    <td className="py-3 text-right text-green-700 font-bold">− ₹{quotation.subsidyAmount.toLocaleString('en-IN')}/-</td>
+                  </tr>
+                )}
+                <tr className="bg-gradient-to-r from-blue-600 to-blue-500 text-white">
+                  <td className="py-4 px-4 font-bold text-base rounded-bl-xl">Effective Cost After Subsidy</td>
+                  <td className="py-4 px-4 text-right font-extrabold text-2xl rounded-br-xl">₹{quotation.finalAmount.toLocaleString('en-IN')}/-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {quotation.loanAvailable && (
+            <div className="mx-5 mb-4 mt-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 text-sm text-purple-700 font-semibold">
+              💳 Loan Available — EMI at {quotation.loanInterestRate}% p.a. Contact us for details.
+            </div>
+          )}
         </div>
-  
-        {/* Payment Terms */}
+
+        {/* ═══ PAYMENT SCHEDULE ═══ */}
         <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
-            💳 Payment Schedule
-          </h2>
+          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">💳 Payment Schedule</h2>
+          <p className="text-xs text-gray-500 mb-3">Payment in favour of <span className="font-bold text-gray-800">{quotation.organizationName}</span></p>
           <div className="space-y-2 text-sm">
             {[
-              { label: `Advance with PO`, pct: (quotation as any).advancePercentage || 70, color: 'bg-blue-50 border-blue-200 text-blue-800' },
-              { label: 'Before Despatch', pct: (quotation as any).preDispatchPercentage || 20, color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
-              { label: 'Before Grid Synchronization', pct: (quotation as any).preGridPercentage || 10, color: 'bg-green-50 border-green-200 text-green-800' },
+              { label: 'Advance with Purchase Order', pct: quotation.advancePercentage || 70, color: 'bg-blue-50 border-blue-200 text-blue-800' },
+              { label: 'Before Material Despatch', pct: quotation.preDispatchPercentage || 20, color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
+              { label: 'Before Grid Synchronization', pct: quotation.preGridPercentage || 10, color: 'bg-green-50 border-green-200 text-green-800' },
             ].map((p) => (
               <div key={p.label} className={`flex justify-between items-center px-4 py-3 rounded-xl border ${p.color}`}>
                 <span className="font-semibold">{p.label}</span>
@@ -341,27 +360,66 @@ export default function PublicQuotationPage({
             ))}
           </div>
         </div>
-  
-        {/* T&C */}
+
+        {/* ═══ TERMS & CONDITIONS ═══ */}
         <div className="bg-white rounded-2xl shadow-sm p-5">
-          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
-            📄 Terms & Conditions
-          </h2>
-          <ol className="space-y-2 text-sm text-gray-700 list-decimal list-inside">
-            <li>GST for Supply (5%) and Installation (18%) is included as per government clause.</li>
-            <li>Payment Schedule: {(quotation as any).paymentTerms || '70% Advance with PO, 20% before Despatch, 10% before Grid synchronization'}.</li>
-            <li>O&M, Commissioning, Erection and Grid connectivity included for {(quotation as any).maintenanceYears || 5} years.</li>
+          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">📄 Terms & Conditions</h2>
+          <ol className="space-y-1.5 text-sm text-gray-700 list-decimal list-inside leading-relaxed">
+            <li>GST for Supply (5%) is included. GST for Installation (18%) is included as per government clause.</li>
+            <li>Payment Schedule: {quotation.paymentTerms || '70% Advance with PO, 20% before Despatch, 10% before Grid synchronization'}.</li>
+            <li>Operational Maintenance, Commissioning, Erection & Grid connectivity included for {quotation.maintenanceYears || 5} years as per CREDA norms.</li>
             <li>Transportation is included up to site.</li>
-            <li>Prices are subject to change based on market rates at time of procurement.</li>
+            <li>Project cost is based on current market prices; may vary during procurement.</li>
+            <li>In case of delayed payment, 18% p.a. interest shall be applicable on overdue amounts.</li>
             <li>All back-to-back OEM warranties will be provided.</li>
+            <li>Solar Panels: 30 Years Performance Warranty | Inverter: As per OEM | BOS: 5 Years.</li>
+            <li>Adjustment of CSPDCL bills is subject to government policy. {quotation.organizationName} shall not be responsible for the same.</li>
             <li>Subjected to Raipur Jurisdiction.</li>
-            {(quotation as any).termsAndConditions && (quotation as any).termsAndConditions !== 'Standard T&C as per company policy' && (
-              <li>{(quotation as any).termsAndConditions}</li>
+            {quotation.termsAndConditions && !quotation.termsAndConditions.toLowerCase().includes('standard') && (
+              <li>{quotation.termsAndConditions}</li>
             )}
           </ol>
         </div>
-  
-        {/* WhatsApp + Share */}
+
+        {/* ═══ COMPANY CREDENTIALS FOOTER ═══ */}
+        <div className="bg-white rounded-2xl shadow-sm p-5">
+          <h2 className="font-bold text-gray-900 text-base mb-3 pb-2 border-b border-gray-100">
+            🏢 {quotation.organizationName} — Company Details
+          </h2>
+          <div className="grid grid-cols-1 gap-2 text-xs text-gray-600">
+            {quotation.companyAddress && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">Address:</span><span>{quotation.companyAddress}</span></div>
+            )}
+            {quotation.companyPhone && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">Phone:</span><a href={`tel:${quotation.companyPhone}`} className="text-blue-600">{quotation.companyPhone}</a></div>
+            )}
+            {quotation.companyEmail && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">Email:</span><a href={`mailto:${quotation.companyEmail}`} className="text-blue-600">{quotation.companyEmail}</a></div>
+            )}
+            {quotation.companyGst && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">GSTIN:</span><span className="font-mono">{quotation.companyGst}</span></div>
+            )}
+            {quotation.companyUdyam && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">UDYAM:</span><span className="font-mono">{quotation.companyUdyam}</span></div>
+            )}
+            {quotation.companyCspdclReg && (
+              <div className="flex gap-2"><span className="font-semibold text-gray-800 w-28 shrink-0">CSPDCL Reg:</span><span>{quotation.companyCspdclReg}</span></div>
+            )}
+          </div>
+          {/* Bank Details */}
+          {quotation.companyBankName && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-700 mb-1.5">Bank Details (Payment in favour of {quotation.organizationName})</p>
+              <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-1 text-xs">
+                <span className="text-gray-500">Bank:</span><span className="font-semibold">{quotation.companyBankName}</span>
+                <span className="text-gray-500">Account No:</span><span className="font-mono font-semibold">{quotation.companyAccountNumber}</span>
+                <span className="text-gray-500">IFSC:</span><span className="font-mono font-semibold">{quotation.companyIfsc}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ═══ SHARE ═══ */}
         <div className="bg-white rounded-2xl shadow-sm p-5">
           <h2 className="font-bold text-gray-900 text-sm mb-3">📤 Share This Quotation</h2>
           <div className="flex gap-3 flex-wrap">
@@ -374,7 +432,7 @@ export default function PublicQuotationPage({
               WhatsApp
             </a>
             <a
-              href={`mailto:${quotation.customerEmail}?subject=Solar Installation Quotation - ${quotation.quotationId}&body=Dear ${quotation.customerName},%0D%0A%0D%0APlease find your quotation at:%0D%0A${window.location.href}%0D%0A%0D%0AAmount: Rs.${quotation.finalAmount.toLocaleString('en-IN')}%0D%0AValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}%0D%0A%0D%0ARegards,%0D%0A${quotation.organizationName}`}
+              href={`mailto:${quotation.customerEmail}?subject=Solar Quotation - ${quotation.referenceNumber}&body=Dear ${quotation.customerName},%0D%0A%0D%0AKindly find your quotation at:%0D%0A${window.location.href}%0D%0A%0D%0AAmount: Rs.${quotation.finalAmount.toLocaleString('en-IN')}%0D%0AValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}%0D%0A%0D%0ARegards,%0D%0A${quotation.organizationName}`}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
             >
               <Mail size={18} /> Email
@@ -387,7 +445,7 @@ export default function PublicQuotationPage({
             </button>
           </div>
         </div>
-  
+
         {/* Approve Button */}
         {!approved && quotation.status !== 'Approved' && (
           <button
@@ -398,61 +456,17 @@ export default function PublicQuotationPage({
             {approving ? <><Loader2 className="animate-spin" size={24} /> Approving...</> : <><CheckCircle size={24} /> Approve This Quotation</>}
           </button>
         )}
-  
+
         {/* Footer */}
-        <div className="text-center text-gray-500 text-xs pb-8">
-          <p className="font-semibold">{quotation.organizationName}</p>
-          <p>Generated on {new Date(quotation.createdAt).toLocaleDateString('en-IN')}</p>
-          <p className="mt-1 text-gray-400">Powered by Solar Arrow</p>
+        <div className="text-center text-gray-400 text-xs pb-8 space-y-1">
+          <p className="font-semibold text-gray-600">{quotation.organizationName}</p>
+          {quotation.companyAddress && <p>{quotation.companyAddress}</p>}
+          {quotation.companyPhone && <p>📞 {quotation.companyPhone}</p>}
+          <p className="mt-2">Generated on {new Date(quotation.createdAt).toLocaleDateString('en-IN')} · Ref: {quotation.referenceNumber}</p>
+          <p className="text-gray-300">Powered by Solar Arrow</p>
         </div>
-  
+
       </div>
-    </div>
-  );
-  
-}
-
-function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-      <div className="flex-shrink-0">{icon}</div>
-      <div>
-        <p className="text-xs text-gray-600 font-medium">{label}</p>
-        <p className="text-base font-bold text-gray-900">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function DetailCard({ title, value, subtitle, color }: { title: string; value: string; subtitle: string; color: string }) {
-  const bgColors: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200',
-    yellow: 'bg-yellow-50 border-yellow-200',
-    green: 'bg-green-50 border-green-200',
-  };
-
-  const textColors: Record<string, string> = {
-    blue: 'text-blue-700',
-    yellow: 'text-yellow-700',
-    green: 'text-green-700',
-  };
-
-  return (
-    <div className={`${bgColors[color]} border-2 rounded-xl p-6 text-center`}>
-      <p className="text-sm text-gray-600 font-medium mb-2">{title}</p>
-      <p className={`text-2xl font-bold ${textColors[color]} mb-1`}>{value}</p>
-      <p className="text-xs text-gray-600">{subtitle}</p>
-    </div>
-  );
-}
-
-function PriceRow({ label, value, bold = false, isDiscount = false }: any) {
-  return (
-    <div className="flex justify-between items-center py-2">
-      <span className={`${bold ? 'text-xl font-bold' : 'text-lg'}`}>{label}:</span>
-      <span className={`${bold ? 'text-2xl font-bold' : 'text-xl font-semibold'} ${isDiscount ? 'text-green-300' : ''}`}>
-        ₹{Math.abs(value).toLocaleString('en-IN')}
-      </span>
     </div>
   );
 }
