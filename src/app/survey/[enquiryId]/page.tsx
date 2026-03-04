@@ -207,7 +207,11 @@ export default function SurveyDetailPage() {
         </div>
       </div>
 
-      <div className="p-4 max-w-4xl mx-auto pb-32">
+      <div className={`p-4 max-w-4xl mx-auto md:pb-8 ${
+  isAdmin && !survey.surveyApproved && !survey.surveyNotes?.includes('Rejected')
+    ? 'pb-56'
+    : 'pb-24'
+}`}>
         {/* Customer Info */}
         {enquiry && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
@@ -421,8 +425,8 @@ export default function SurveyDetailPage() {
 
       {/* Fixed Bottom Actions - Only for Admin */}
       {isAdmin && !survey.surveyApproved && !survey.surveyNotes?.includes('Rejected') && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-          <div className="max-w-4xl mx-auto flex gap-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-lg">
+        <div className="max-w-4xl mx-auto flex gap-3 mb-14 md:mb-0">      
             <button
               onClick={() => setShowRejectModal(true)}
               disabled={actionLoading}
