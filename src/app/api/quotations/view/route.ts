@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { fetchQuotation, updateQuotation } from '@/lib/googleSheets';
 import { validateQuotationToken, isQuotationExpired } from '@/lib/quotations';
+import { redis } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
 
     // ✅ FIX 2: Fetch quotation
     const quotation = await fetchQuotation(orgId, quotationId);
+    const orgInfo: any = await redis.get(`org:${orgId}:info`);
+const enrichedQuotation = {
+  ...quotation,
+  orgLogoUrl: orgInfo?.orgLogoUrl || null,
+};
 
     if (!quotation) {
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 });
@@ -53,7 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      quotation,
+      enrichedQuotation,
     });
   } catch (error: any) {
     console.error('❌ Error viewing quotation:', error);

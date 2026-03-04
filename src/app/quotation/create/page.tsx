@@ -199,7 +199,7 @@ export default function QuotationBuilderPage() {
     setFormData(prev => ({
       ...prev,
       leadId: lead.id,
-      customerName: lead.name,
+      customerName: lead.customerName || lead.name,
       customerPhone: lead.phone,
       customerEmail: lead.email || '',
       customerAddress: lead.address || '',
@@ -343,10 +343,10 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
             >
               <option value="">-- Create without lead --</option>
               {leads.map(lead => (
-                <option key={lead.id} value={lead.id}>
-                  {lead.name} - {lead.phone} ({lead.capacity || 'N/A'} kW)
-                </option>
-              ))}
+  <option key={lead.id} value={lead.id}>
+    {lead.customerName || lead.name} — {lead.phone} · {lead.capacity || 'N/A'} kW · {lead.area || lead.location || ''}
+  </option>
+))}
             </select>
           </div>
         )}

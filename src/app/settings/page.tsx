@@ -387,7 +387,7 @@ const saveConfig = async (id?: string, name?: string) => {
             )}
           </div>
   {/* ── Organization Logo ── */}
-{(session?.user?.accountType === 'admin' || session?.user?.accountType === 'owner') && (
+  {(session?.user?.accountType === 'admin' || session?.user?.role === 'owner' || session?.user?.role === 'admin') && (
   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4">
     <h2 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm">
       <Building2 size={16} className="text-blue-600" />
