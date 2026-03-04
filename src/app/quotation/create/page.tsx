@@ -204,7 +204,7 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
 
   const fetchEnquiries = async () => {
     try {
-      const response = await fetch('/api/enquiries/list');
+      const response = await fetch('/api/enquiries');
       if (response.ok) {
         const data = await response.json();
         setEnquiries(data.enquiries || []);
