@@ -76,6 +76,9 @@ export default function SubmitSurveyPage() {
     surveyNotes: '',
     surveyPhotos: '',
   });
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+const [photoUploading, setPhotoUploading] = useState(false);
+
 
   useEffect(() => {
     fetchEnquiry();
@@ -137,6 +140,43 @@ export default function SubmitSurveyPage() {
         : [...prev.shadowSources, source],
     }));
   };
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+    if (!files.length) return;
+  
+    setPhotoUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('folder', 'solar-arrow/surveys');
+        fd.append('publicId', `${params.enquiryId}_${Date.now()}`);
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Upload failed');
+        urls.push(data.url);
+      }
+      setUploadedPhotos(prev => [...prev, ...urls]);
+      // keep formData.surveyPhotos in sync
+      setFormData(prev => ({
+        ...prev,
+        surveyPhotos: [...uploadedPhotos, ...urls].join(','),
+      }));
+    } catch (err: any) {
+      alert(`❌ Photo upload failed: ${err.message}`);
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = '';
+    }
+  };
+  
+  const removePhoto = (idx: number) => {
+    const updated = uploadedPhotos.filter((_, i) => i !== idx);
+    setUploadedPhotos(updated);
+    setFormData(prev => ({ ...prev, surveyPhotos: updated.join(',') }));
+  };
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -629,17 +669,71 @@ export default function SubmitSurveyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Photo URLs (comma separated)
-              </label>
-              <input
-                type="text"
-                value={formData.surveyPhotos}
-                onChange={(e) => setFormData({ ...formData, surveyPhotos: e.target.value })}
-                placeholder="/photos/survey/site1.jpg, /photos/survey/site2.jpg"
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+    <Camera size={16} />
+    Site Photos
+  </label>
+
+  {/* Upload trigger */}
+  <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl transition
+    ${photoUploading
+      ? 'border-blue-300 bg-blue-50 cursor-wait'
+      : 'border-gray-300 bg-gray-50 cursor-pointer hover:border-blue-400 active:bg-gray-100'
+    }`}>
+    {photoUploading ? (
+      <div className="flex items-center gap-2 text-blue-600">
+        <Loader2 className="animate-spin" size={20} />
+        <span className="text-sm font-semibold">Uploading...</span>
+      </div>
+    ) : (
+      <>
+        <Camera size={24} className="text-gray-400 mb-1" />
+        <span className="text-sm font-semibold text-gray-600">Tap to add site photos</span>
+        <span className="text-xs text-gray-400 mt-0.5">Multiple files supported</span>
+      </>
+    )}
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      className="hidden"
+      onChange={handlePhotoUpload}
+      disabled={photoUploading}
+    />
+  </label>
+
+  {/* Preview grid */}
+  {uploadedPhotos.length > 0 && (
+    <div className="grid grid-cols-3 gap-2 mt-3">
+      {uploadedPhotos.map((url, idx) => (
+        <div key={url} className="relative group">
+          <img
+            src={url}
+            alt={`Site photo ${idx + 1}`}
+            className="w-full h-24 object-cover rounded-xl border-2 border-gray-200"
+          />
+          <button
+            type="button"
+            onClick={() => removePhoto(idx)}
+            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md active:scale-95 transition"
+            aria-label="Remove photo"
+          >
+            ✕
+          </button>
+          <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+            {idx + 1}
+          </span>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* Counter */}
+  <p className="text-xs text-gray-400 mt-2">
+    {uploadedPhotos.length} photo{uploadedPhotos.length !== 1 ? 's' : ''} uploaded
+    {uploadedPhotos.length > 0 && ' · tap ✕ to remove'}
+  </p>
+</div>
           </div>
         </div>
       </form>
@@ -648,7 +742,7 @@ export default function SubmitSurveyPage() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || photoUploading}
           className="w-full bg-blue-600 active:bg-blue-700 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 disabled:opacity-50 active:scale-95 transition-transform shadow-lg max-w-2xl mx-auto"
         >
           {loading ? (
