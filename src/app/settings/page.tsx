@@ -407,7 +407,7 @@ const saveConfig = async (id?: string, name?: string) => {
         </div>
       )}
       <label className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-gray-300 font-semibold text-sm cursor-pointer transition
-        ${logoUploading ? 'opacity-50 cursor-wait bg-gray-50' : 'bg-white hover:bg-gray-50 hover:border-blue-400'}`}>
+        ${logoUploading ? 'opacity-50 cursor-wait bg-gray-50 text-gray-500' : 'bg-white text-gray-700 hover:bg-gray-50 hover:border-blue-400'}`}>
         {logoUploading
           ? <><RefreshCw size={14} className="animate-spin" /> Uploading...</>
           : <><Camera size={14} /> {orgLogoUrl ? 'Change Logo' : 'Upload Logo'}</>}
