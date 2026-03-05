@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
+import { updateEnquiryInSheet, fetchEnquiryById, updateLead } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { invalidateEnquiriesCache } from '@/lib/redis';
 
@@ -85,12 +85,20 @@ export async function POST(request: Request) {
       status: 'survey-scheduled',
     });
     console.log('✅ Enquiry updated');
-    await invalidateEnquiriesCache(session.user.organizationId || 'default-org');
+    const orgId = session.user.organizationId || 'default-org';
+    await invalidateEnquiriesCache(orgId);
+
+    // ✅ Backpropagate status to parent lead if linked
+    if (enquiry.leadId) {
+      await updateLead(orgId, enquiry.leadId, 'Survey Scheduled');
+      await redis.del(`org:${orgId}:leads`);
+      console.log(`✅ Lead ${enquiry.leadId} status synced → Survey Scheduled`);
+    }
 
 
     // Send notification
     console.log('📝 Sending telegram notification...');
-    await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo, session.user.organizationId || 'default-org');
+    await sendTelegramNotification(enquiry, surveyDate, assignedToName || assignedTo, orgId);
     console.log('✅ Telegram sent (or skipped if not configured)');
 
     return NextResponse.json({ 

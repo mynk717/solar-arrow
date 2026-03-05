@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateSurvey, updateEnquiryInSheet, fetchEnquiryById, fetchSurveyByEnquiryId } from '@/lib/googleSheets';
+import { updateSurvey, updateEnquiryInSheet, fetchEnquiryById, fetchSurveyByEnquiryId, updateLead } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
 async function sendTelegramNotification(enquiry: any, approved: boolean, reason?: string) {
@@ -97,12 +97,22 @@ await updateSurvey(
       });
     }
 
-    // Get enquiry for notification
-    const enquiry = await fetchEnquiryById(enquiryId);
+        // Get enquiry for notification + lead backpropagation
+        const enquiry = await fetchEnquiryById(enquiryId);
 
-    if (enquiry) {
-      await sendTelegramNotification(enquiry, approved, rejectionReason);
-    }
+        if (enquiry) {
+          // ✅ Backpropagate status to parent lead if linked
+          if (enquiry.leadId) {
+            const orgId = (session.user as any).organizationId || 'default-org';
+            await updateLead(orgId, enquiry.leadId, approved ? 'Survey Approved' : 'Survey Rejected');
+            // Invalidate leads cache so list reflects new status
+            await redis.del(`org:${orgId}:leads`);
+            console.log(`✅ Lead ${enquiry.leadId} status synced → ${approved ? 'Survey Approved' : 'Survey Rejected'}`);
+          }
+    
+          await sendTelegramNotification(enquiry, approved, rejectionReason);
+        }
+    
 
     return NextResponse.json({
       success: true,

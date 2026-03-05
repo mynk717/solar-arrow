@@ -36,13 +36,28 @@ export default function ScheduleSurveyPage() {
     try {
       setLoadingData(true);
 
-      // Fetch enquiries that need survey (status: new, contacted, qualified)
-      const enquiriesRes = await fetch('/api/enquiries');
-      const enquiriesData = await enquiriesRes.json();
-      const needsSurvey = enquiriesData.filter((e: any) =>
-        ['new', 'contacted', 'qualified', 'survey-pending'].includes(e.status)
-      );
-      setEnquiries(needsSurvey);
+      // Fetch enquiries that need survey
+const enquiriesRes = await fetch('/api/enquiries');
+const enquiriesData = await enquiriesRes.json();
+const needsSurvey = enquiriesData.filter((e: any) =>
+  ['new', 'contacted', 'qualified', 'survey-pending'].includes(e.status)
+);
+
+// Also fetch qualified leads without an enquiry
+const leadsRes = await fetch('/api/leads/list?status=qualified');
+const leadsData = leadsRes.ok ? (await leadsRes.json()).leads || [] : [];
+
+// Convert leads to enquiry-like shape for the dropdown
+const leadsAsEnquiries = leadsData
+  .filter((lead: any) => !needsSurvey.find((e: any) => e.leadId === lead.id))
+  .map((lead: any) => ({
+    id: lead.id,           // leadId used as fallback
+    customerName: lead.customerName || lead.name,
+    capacity: lead.capacity || 'N/A',
+    isFromLead: true,      // flag to handle in schedule API
+  }));
+
+setEnquiries([...needsSurvey, ...leadsAsEnquiries]);
 
       // Fetch users (surveyors)
       const usersRes = await fetch('/api/users');
@@ -145,8 +160,9 @@ router.push('/survey');
               <option value="">-- Select Enquiry --</option>
               {enquiries.map((enq) => (
                 <option key={enq.id} value={enq.id}>
-                  {enq.id} - {enq.customerName} ({enq.capacity} kW)
-                </option>
+                {enq.isFromLead ? '📋 ' : '📝 '}{enq.id} - {enq.customerName} ({enq.capacity} kW)
+                {enq.isFromLead ? ' [Lead]' : ' [Enquiry]'}
+              </option>              
               ))}
             </select>
             {enquiries.length === 0 && (
