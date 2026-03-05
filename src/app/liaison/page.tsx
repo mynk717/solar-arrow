@@ -237,6 +237,7 @@ export default function LiaisonPage() {
               }
               onSchedule={() => handleSchedule(liaison)}
               onComplete={() => handleComplete(liaison)}
+              onApprove={() => handleApprove(liaison)}
             />
           ))
         )}
@@ -336,6 +337,27 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
       );
     }
     if (liaison.inspectionScheduledDate && liaison.inspectionScheduledDate.trim() !== '') {
+      // Check if any doc is collected/submitted
+      const docKeys = ['docCoveringLetter','docEStamp300','docPpa','docEStamp50','docVendorAgreement',
+        'docSolarAppAck','docFeasibility','docEToken','docDcr','docWcr','docPlantPhotos',
+        'docKycDocuments','docWitness1Aadhaar','docWitness2Aadhaar'];
+      const hasDocsProgress = docKeys.some(k => (liaison as any)[k] === 'collected' || (liaison as any)[k] === 'submitted');
+      const allDocsSubmitted = docKeys.every(k => (liaison as any)[k] === 'submitted');
+
+      if (allDocsSubmitted) {
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+            DOCS READY
+          </span>
+        );
+      }
+      if (hasDocsProgress) {
+        return (
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+            DOCS IN PROGRESS
+          </span>
+        );
+      }
       return (
         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
           SCHEDULED
@@ -463,10 +485,9 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
       </div>
 
       {/* NEW: Separate Approval Button */}
-{liaison.inspectionDate && 
+      {liaison.inspectionDate && 
  liaison.inspectionDate.trim() !== '' && 
- liaison.inspectionApproved !== 'TRUE' && 
- !liaison.meterNumber && (
+ liaison.inspectionApproved !== 'TRUE' && (
   <button
     onClick={() => onApprove(liaison)}
     className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium transition-colors"
@@ -977,6 +998,13 @@ function DocumentChecklist({ liaison, onUpdate }: { liaison: Liaison; onUpdate: 
   const total = LIAISON_DOCS.length;
 
   const cycleStatus = (key: string) => {
+    const current = docs[key];
+    // Only confirm when reverting back to pending (submitted → pending)
+    if (current === 'submitted') {
+      const docLabel = LIAISON_DOCS.find(d => d.key === key)?.label || key;
+      const confirmed = window.confirm(`Reset "${docLabel}" back to Pending?`);
+      if (!confirmed) return;
+    }
     setDocs(prev => ({
       ...prev,
       [key]: prev[key] === 'pending' ? 'collected' : prev[key] === 'collected' ? 'submitted' : 'pending',
