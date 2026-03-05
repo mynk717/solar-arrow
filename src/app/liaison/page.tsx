@@ -238,6 +238,7 @@ export default function LiaisonPage() {
               onSchedule={() => handleSchedule(liaison)}
               onComplete={() => handleComplete(liaison)}
               onApprove={() => handleApprove(liaison)}
+              onRefresh={() => fetchLiaisons(true)}
             />
           ))
         )}
@@ -320,7 +321,7 @@ function StatCard({ icon, label, value, color }: any) {
   );
 }
 
-function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete, onApprove  }: any) {
+function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete, onApprove, onRefresh }: any) {
   const getStatusBadge = () => {
     if (liaison.inspectionApproved === 'TRUE') {
       return (
@@ -509,7 +510,7 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
 {expanded && (
   <div className="mt-4 pt-4 border-t border-slate-200">
     {/* Document Checklist first */}
-    <DocumentChecklist liaison={liaison} onUpdate={onToggleExpand} />
+    <DocumentChecklist liaison={liaison} onUpdate={onRefresh} />
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
             <div>
@@ -1020,8 +1021,8 @@ function DocumentChecklist({ liaison, onUpdate }: { liaison: Liaison; onUpdate: 
         body: JSON.stringify({ enquiryId: liaison.enquiryId, ...docs }),
       });
       if (!res.ok) throw new Error('Failed to save');
-      await onUpdate();
       alert('✅ Documents saved!');
+      onUpdate();
     } catch (err: any) {
       alert('❌ ' + err.message);
     } finally {
