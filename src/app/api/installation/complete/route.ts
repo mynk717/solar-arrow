@@ -2,9 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { getGoogleSheetsClient } from '@/lib/googleSheets';
+import { getGoogleSheetsClient, getLiaisonRow, createLiaisonRow, fetchEnquiryById  } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { sendOrgGroupNotification } from '@/lib/telegram';
+
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -97,6 +99,23 @@ export async function POST(request: NextRequest) {
     await redis.del(`org:${orgId}:installations`);
     await redis.del(`org:${orgId}:enquiries`);
 
+    // Inside POST, after cache clears:
+try {
+  const existingLiaison = await getLiaisonRow(enquiryId);
+  if (!existingLiaison) {
+    await createLiaisonRow({
+      enquiryId,
+      customerName,
+      capacity: '', // fetched below if needed
+      area: '',
+      meterNumber: meterNumber || '',
+      liaisonStage: 'pending',
+    });
+    console.log('✅ LIAISON row auto-created for', enquiryId);
+  }
+} catch (liaisonErr) {
+  console.error('⚠️ LIAISON row creation failed (non-blocking):', liaisonErr);
+}
     // Send Telegram notification
     try {
       const message = `✅ *INSTALLATION COMPLETED*

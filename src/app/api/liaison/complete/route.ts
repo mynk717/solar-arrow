@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
+import { updateLiaisonInSheet, getLiaisonRow } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { sendOrgGroupNotification } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -23,16 +23,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { 
-      enquiryId, 
-      inspectionDate, 
+    const {
+      enquiryId,
+      inspectionDate,
       inspectionOfficer,
       inspectionApproved,
       inspectionReportPath,
-      inspectionNotes 
+      inspectionNotes,
     } = await request.json();
 
-    // ✅ FIX: More flexible validation - only enquiryId is required
+    // Only enquiryId is required
     if (!enquiryId) {
       return NextResponse.json(
         { error: 'Missing required fields: enquiryId is required' },
@@ -40,17 +40,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get enquiry details
-    const enquiry = await fetchEnquiryById(enquiryId);
-    if (!enquiry) {
-      return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
+    // Get LIAISON row (replaces fetchEnquiryById)
+    const liaison = await getLiaisonRow(enquiryId);
+    if (!liaison) {
+      return NextResponse.json({ error: 'LIAISON row not found for this enquiry' }, { status: 404 });
     }
 
-    // Update enquiry with inspection completion
+    // Build updates — conditionally include optional fields
     const updates: any = {
       inspectionDate: inspectionDate || new Date().toISOString().split('T')[0],
       inspectionOfficer: inspectionOfficer || session.user.email,
-      inspectionApproved: inspectionApproved !== undefined ? inspectionApproved : true,
+      inspectionApproved: inspectionApproved !== false ? 'TRUE' : 'FALSE',
       liaisonStage: inspectionApproved === false ? 'inspection-rejected' : 'inspection-completed',
       updatedAt: new Date().toISOString(),
     };
@@ -67,12 +67,12 @@ export async function POST(request: NextRequest) {
       updates.inspectionRejectedReason = inspectionNotes;
     }
 
-    await updateEnquiryInSheet(enquiryId, updates);
+    await updateLiaisonInSheet(enquiryId, updates);
 
-    // Send Telegram notification
+    // Send Telegram notification — full rich message preserved
     try {
       const statusText = inspectionApproved === false ? '❌ REJECTED' : '✅ APPROVED';
-      const message = `🔍 *INSPECTION COMPLETED* ${statusText}\n\n*Enquiry:* ${enquiryId}\n*Customer:* ${enquiry.customerName}\n*Phone:* ${enquiry.phone}\n*Location:* ${enquiry.area || 'N/A'}\n*Capacity:* ${enquiry.capacity} kW\n\n*Inspection Details:*\n📅 *Date:* ${new Date(inspectionDate || Date.now()).toLocaleDateString('en-IN')}\n👮 *Officer:* ${inspectionOfficer || session.user.email}\n${inspectionNotes ? `📝 *Notes:* ${inspectionNotes}` : ''}\n\n${inspectionApproved === false ? '*Status:* Requires rectification' : '*Status:* Approved - Ready for net meter installation'}`;
+      const message = `🔍 *INSPECTION COMPLETED* ${statusText}\n\n*Enquiry:* ${enquiryId}\n*Customer:* ${liaison.customerName}\n*Location:* ${liaison.area || 'N/A'}\n*Capacity:* ${liaison.capacity || 'N/A'} kW\n\n*Inspection Details:*\n📅 *Date:* ${new Date(inspectionDate || Date.now()).toLocaleDateString('en-IN')}\n👮 *Officer:* ${inspectionOfficer || session.user.email}\n${inspectionNotes ? `📝 *Notes:* ${inspectionNotes}` : ''}\n\n${inspectionApproved === false ? '*Status:* Requires rectification' : '*Status:* Approved - Ready for net meter installation'}`;
 
       await sendOrgGroupNotification(orgId, {
         text: message,

@@ -2440,3 +2440,137 @@ export async function fetchBOMsByEnquiryId(enquiryId: string): Promise<BOMLineIt
   const allBOMs = await fetchBOMs();
   return allBOMs.filter(bom => bom.enquiryId === enquiryId);
 }
+
+// ============================================
+// LIAISON SHEET OPERATIONS
+// ============================================
+
+const LIAISON_COLUMNS = [
+  'enquiryId',         // A
+  'customerName',      // B
+  'capacity',          // C
+  'area',              // D
+  'meterNumber',       // E
+  'liaisonStage',      // F
+  'createdAt',         // G
+  'updatedAt',         // H
+  'inspectionScheduledDate', // I
+  'inspectionOfficer', // J
+  'inspectionDate',    // K
+  'inspectionApproved', // L
+  'inspectionRejectedReason', // M
+  'inspectionReportPath', // N
+  'inspectionApprovalDate', // O
+  'inspectionApprovedBy', // P
+  'inspectionApprovalNotes', // Q
+  'docCoveringLetter', // R
+  'docEStamp300',      // S
+  'docPpa',            // T
+  'docEStamp50',       // U
+  'docVendorAgreement', // V
+  'docSolarAppAck',    // W
+  'docFeasibility',    // X
+  'docEToken',         // Y
+  'docDcr',            // Z
+  'docWcr',            // AA
+  'docPlantPhotos',    // AB
+  'docKycDocuments',   // AC
+  'docWitness1Aadhaar', // AD
+  'docWitness2Aadhaar', // AE
+  'wcrStatus',         // AF
+  'wcrSubmittedDate',  // AG
+  'wcrSubmittedBy',    // AH
+  'wcrApprovedDate',   // AI
+  'wcrApprovedBy',     // AJ
+  'wcrRejectedReason', // AK
+  'wcrNotes',          // AL
+  'wcrWorkQuality',    // AM
+  'wcrSafetyCompliance', // AN
+  'wcrPhotos',         // AO
+  'wcrCustomerSignature', // AP
+];
+
+function rowToLiaison(row: any[]): any | null {
+  if (!row || !row[0]) return null;
+  const obj: any = {};
+  LIAISON_COLUMNS.forEach((key, i) => {
+    obj[key] = row[i] || '';
+  });
+  return obj;
+}
+
+function liaisonToRow(data: Record<string, any>): any[] {
+  return LIAISON_COLUMNS.map(key => data[key] ?? '');
+}
+
+export async function getLiaisonRow(enquiryId: string): Promise<any | null> {
+  const sheets = await getSheets();
+  const sheetId = await getSheetId();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'LIAISON!A2:AP',
+  });
+  const rows = response.data.values || [];
+  const row = rows.find((r: any[]) => r[0] === enquiryId);
+  return row ? rowToLiaison(row) : null;
+}
+
+export async function createLiaisonRow(data: Record<string, any>): Promise<void> {
+  const sheets = await getSheets();
+  const sheetId = await getSheetId();
+  const now = new Date().toISOString();
+  const row = liaisonToRow({
+    ...data,
+    createdAt: now,
+    updatedAt: now,
+    liaisonStage: data.liaisonStage || 'pending',
+  });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: sheetId,
+    range: 'LIAISON!A:AP',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] },
+  });
+}
+
+export async function updateLiaisonInSheet(
+  enquiryId: string,
+  updates: Record<string, any>
+): Promise<void> {
+  const sheets = await getSheets();
+  const sheetId = await getSheetId();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'LIAISON!A2:AP',
+  });
+  const rows = response.data.values || [];
+  const rowIndex = rows.findIndex((r: any[]) => r[0] === enquiryId);
+  if (rowIndex === -1) throw new Error(`No LIAISON row found for ${enquiryId}`);
+
+  const existing = rowToLiaison(rows[rowIndex]) || {};
+  const merged = liaisonToRow({
+    ...existing,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `LIAISON!A${rowIndex + 2}:AP${rowIndex + 2}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [merged] },
+  });
+}
+
+export async function fetchAllLiaisons(): Promise<any[]> {
+  const orgId = await getOrgId();
+  const sheets = await getSheets();
+  const sheetId = await getSheetId();
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'LIAISON!A2:AP',
+  });
+  return (response.data.values || [])
+    .map(rowToLiaison)
+    .filter(Boolean);
+}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
+import { updateLiaisonInSheet, getLiaisonRow, updateEnquiryInSheet } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { sendOrgGroupNotification } from '@/lib/telegram';
 
@@ -36,14 +36,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get enquiry details
-    const enquiry = await fetchEnquiryById(enquiryId);
-    if (!enquiry) {
-      return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
+    // Get LIAISON row (replaces fetchEnquiryById)
+    const liaison = await getLiaisonRow(enquiryId);
+    if (!liaison) {
+      return NextResponse.json({ error: 'LIAISON row not found for this enquiry' }, { status: 404 });
     }
 
-    // Update enquiry with approval status
-    const updates: any = {
+    // Build LIAISON updates
+    const liaisonUpdates: any = {
       inspectionApproved: approved ? 'TRUE' : 'FALSE',
       inspectionApprovalDate: new Date().toISOString().split('T')[0],
       inspectionApprovedBy: session.user.email,
@@ -52,36 +52,40 @@ export async function POST(request: NextRequest) {
     };
 
     if (!approved) {
-      updates.inspectionRejectedReason = rejectionReason;
-      updates.status = 'installation-rework-required'; // Send back to installation
-    } else {
-      updates.status = 'meter-installation-pending';
+      liaisonUpdates.inspectionRejectedReason = rejectionReason;
     }
 
     if (approvalNotes) {
-      updates.inspectionApprovalNotes = approvalNotes;
+      liaisonUpdates.inspectionApprovalNotes = approvalNotes;
     }
 
-    await updateEnquiryInSheet(enquiryId, updates);
+    // Write liaison fields to LIAISON sheet
+    await updateLiaisonInSheet(enquiryId, liaisonUpdates);
 
-    // Send Telegram notification
+    // ⚠️ Also update ENQUIRIES status — keeps main pipeline in sync
+    await updateEnquiryInSheet(enquiryId, {
+      status: approved ? 'meter-installation-pending' : 'installation-rework-required',
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Send Telegram notification — original format preserved exactly
     try {
       const statusText = approved ? '✅ APPROVED' : '❌ REJECTED';
       const message = `
 🔍 **INSPECTION ${statusText}**
 
 📋 **Enquiry:** ${enquiryId}
-👤 **Customer:** ${enquiry.customerName}
-📍 **Location:** ${enquiry.area || 'N/A'}
-⚡ **Capacity:** ${enquiry.capacity} kW
+👤 **Customer:** ${liaison.customerName}
+📍 **Location:** ${liaison.area || 'N/A'}
+⚡ **Capacity:** ${liaison.capacity || 'N/A'} kW
 
 **Approval Details:**
 👨‍💼 Approved By: ${session.user.email}
 📅 Date: ${new Date().toLocaleDateString('en-IN')}
 ${approvalNotes ? `📝 Notes: ${approvalNotes}` : ''}
 
-${approved 
-  ? '✅ **Status:** Ready for net meter installation\n🔄 **Next Step:** Schedule meter installation' 
+${approved
+  ? '✅ **Status:** Ready for net meter installation\n🔄 **Next Step:** Schedule meter installation'
   : `⚠️ **Rejection Reason:** ${rejectionReason}\n🔄 **Action Required:** Installation team to rectify and re-schedule inspection`
 }
       `.trim();
@@ -95,7 +99,7 @@ ${approved
       // Don't fail the approval if notification fails
     }
 
-    // Invalidate cache
+    // Invalidate both caches
     await redis.del(`org:${orgId}:liaisons:all`);
     await redis.del(`org:${orgId}:enquiries`);
 
