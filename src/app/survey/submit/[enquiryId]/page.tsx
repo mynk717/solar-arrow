@@ -249,9 +249,9 @@ const [photoUploading, setPhotoUploading] = useState(false);
                 onChange={(e) => setFormData({ ...formData, installationSurface: e.target.value as any })}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="ROOFTOP">Rooftop</option>
-                <option value="GROUND">Ground</option>
-                <option value="TERRACE">Terrace</option>
+                <option value="ROOFTOP">Rooftop (RCC)</option>
+<option value="SHED_MOUNTED">Shed Mounted</option>
+<option value="GROUND_MOUNTED">Ground Mounted</option>
               </select>
             </div>
 
@@ -304,32 +304,42 @@ const [photoUploading, setPhotoUploading] = useState(false);
                 onChange={(e) => setFormData({ ...formData, structureStyle: e.target.value as any })}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="STANDARD">Standard</option>
-                <option value="ELEVATED">Elevated</option>
-                <option value="BALLAST">Ballast</option>
-                <option value="FLAT_ROOF">Flat Roof</option>
+                <option value="STANDARD">Standard (RCC Rooftop)</option>
+<option value="ELEVATED">Elevated</option>
+<option value="BALLAST">Ballast (Flat Surface)</option>
+<option value="SHED_COPLANAR">Shed — Coplanar (Along Slope)</option>
+<option value="SHED_ELEVATED">Shed — Elevated (Against Slope)</option>
+<option value="GROUND_FIXED">Ground Mounted — Fixed Tilt</option>
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Slope Direction
-                </label>
-                <select
-                  value={formData.slopeDirection}
-                  onChange={(e) => setFormData({ ...formData, slopeDirection: e.target.value as any })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="SOUTH">South</option>
-                  <option value="SOUTH_EAST">South-East</option>
-                  <option value="SOUTH_WEST">South-West</option>
-                  <option value="EAST">East</option>
-                  <option value="WEST">West</option>
-                  <option value="NORTH">North</option>
-                </select>
-              </div>
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">
+      {formData.installationSurface === 'SHED_MOUNTED'
+        ? 'Shed Slope Direction'
+        : 'Panel Facing Direction'}
+    </label>
+    <select
+      value={formData.slopeDirection}
+      onChange={(e) => setFormData({ ...formData, slopeDirection: e.target.value as any })}
+      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    >
+      <option value="SOUTH">South ↓</option>
+      <option value="SOUTH_EAST">South-East ↘</option>
+      <option value="SOUTH_WEST">South-West ↙</option>
+      <option value="EAST">East →</option>
+      <option value="WEST">West ←</option>
+      <option value="NORTH">North ↑</option>
+      <option value="EAST_WEST">East-West (Dual) ↔</option>
+    </select>
+  </div>
 
+  {formData.installationSurface === 'SHED_MOUNTED' && (
+    <div className="col-span-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-semibold -mt-2">
+      📐 Shed installation: slope direction = direction water flows off the shed roof
+    </div>
+  )}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   Inclination (°)

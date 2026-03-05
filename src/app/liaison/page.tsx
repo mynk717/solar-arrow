@@ -44,6 +44,21 @@ interface Liaison {
   panelMake: string;
   inverterMake: string;
   meterNumber?: string;
+    // CSPDCL Document Checklist
+    docCoveringLetter?: string;    // 'pending' | 'collected' | 'submitted'
+    docEStamp300?: string;
+    docPpa?: string;
+    docEStamp50?: string;
+    docVendorAgreement?: string;
+    docSolarAppAck?: string;
+    docFeasibility?: string;
+    docEToken?: string;
+    docDcr?: string;
+    docWcr?: string;
+    docPlantPhotos?: string;
+    docKycDocuments?: string;
+    docWitness1Aadhaar?: string;
+    docWitness2Aadhaar?: string;
   
   createdAt: string;
   updatedAt: string;
@@ -470,9 +485,12 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
 )}
 
       {/* Expanded Details */}
-      {expanded && (
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+{expanded && (
+  <div className="mt-4 pt-4 border-t border-slate-200">
+    {/* Document Checklist first */}
+    <DocumentChecklist liaison={liaison} onUpdate={onToggleExpand} />
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
             <div>
               <h4 className="font-semibold text-slate-900 mb-2">Site Details</h4>
               <div className="space-y-1 text-slate-700">
@@ -609,7 +627,7 @@ function ScheduleModal({ liaison, onClose, onSuccess, onRefresh }: any) {
               Cancel
             </button>
           </div>
-        </form>
+          </form>
       </div>
     </div>
   );
@@ -931,3 +949,112 @@ function ApprovalModal({
     </div>
   );
 }
+const LIAISON_DOCS = [
+  { key: 'docCoveringLetter',  label: 'Covering Letter',              icon: '📄' },
+  { key: 'docEStamp300',       label: 'E-Stamp ₹300',                 icon: '🔖' },
+  { key: 'docPpa',             label: 'PPA (Power Purchase Agreement)',icon: '📝' },
+  { key: 'docEStamp50',        label: 'E-Stamp ₹50',                  icon: '🔖' },
+  { key: 'docVendorAgreement', label: 'Vendor Agreement',             icon: '🤝' },
+  { key: 'docSolarAppAck',     label: 'Acknowledgement (Solar App)',   icon: '📱' },
+  { key: 'docFeasibility',     label: 'Feasibility Report',           icon: '📊' },
+  { key: 'docEToken',          label: 'E-Token (CSPDCL)',             icon: '🎫' },
+  { key: 'docDcr',             label: 'DCR Certificate',              icon: '✅' },
+  { key: 'docWcr',             label: 'WCR (Work Completion Report)', icon: '🏗️' },
+  { key: 'docPlantPhotos',     label: 'Plant Photos (Jio Tagging)',   icon: '📸' },
+  { key: 'docKycDocuments',    label: 'Bill + Aadhaar + PAN',         icon: '🪪' },
+  { key: 'docWitness1Aadhaar', label: 'Witness 1 — Aadhaar',         icon: '👤' },
+  { key: 'docWitness2Aadhaar', label: 'Witness 2 — Aadhaar',         icon: '👤' },
+];
+
+function DocumentChecklist({ liaison, onUpdate }: { liaison: Liaison; onUpdate: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [docs, setDocs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(LIAISON_DOCS.map(d => [d.key, (liaison as any)[d.key] || 'pending']))
+  );
+
+  const collected = Object.values(docs).filter(v => v === 'collected').length;
+  const submitted = Object.values(docs).filter(v => v === 'submitted').length;
+  const total = LIAISON_DOCS.length;
+
+  const cycleStatus = (key: string) => {
+    setDocs(prev => ({
+      ...prev,
+      [key]: prev[key] === 'pending' ? 'collected' : prev[key] === 'collected' ? 'submitted' : 'pending',
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/liaison/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enquiryId: liaison.enquiryId, ...docs }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      await onUpdate();
+      alert('✅ Documents saved!');
+    } catch (err: any) {
+      alert('❌ ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const statusStyle = (status: string) => {
+    if (status === 'submitted') return 'bg-green-100 text-green-800 border-green-300';
+    if (status === 'collected') return 'bg-blue-100 text-blue-800 border-blue-300';
+    return 'bg-gray-100 text-gray-500 border-gray-200';
+  };
+
+  const statusLabel = (s: string) =>
+    s === 'submitted' ? '✅ Submitted' : s === 'collected' ? '📥 Collected' : '⏳ Pending';
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-200">
+      {/* Progress bar */}
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-bold text-slate-900 text-sm">📋 CSPDCL Documents</h4>
+        <span className="text-xs font-semibold text-slate-600">
+          {submitted} submitted · {collected} collected · {total - collected - submitted} pending
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+        <div
+          className="bg-green-500 h-2 rounded-full transition-all"
+          style={{ width: `${(submitted / total) * 100}%` }}
+        />
+      </div>
+
+      {/* Document list */}
+      <div className="space-y-2">
+        {LIAISON_DOCS.map(doc => (
+          <button
+            key={doc.key}
+            type="button"
+            onClick={() => cycleStatus(doc.key)}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition active:scale-95 ${statusStyle(docs[doc.key])}`}
+          >
+            <span className="text-sm font-semibold flex items-center gap-2">
+              {doc.icon} {doc.label}
+            </span>
+            <span className="text-xs font-bold">{statusLabel(docs[doc.key])}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tap hint */}
+      <p className="text-xs text-slate-400 mt-2 text-center">
+        Tap to cycle: Pending → Collected → Submitted
+      </p>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full mt-4 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50"
+      >
+        {saving ? 'Saving...' : '💾 Save Document Status'}
+      </button>
+    </div>
+  );
+}   
