@@ -2,12 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
-import { getGoogleSheetsClient } from '@/lib/googleSheets';
+import { getGoogleSheetsClient, fetchAllLiaisons } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
-const SHEET_NAME = 'ENQUIRIES';
 const CACHE_KEY = 'liaisons:all';
-const CACHE_TTL = 300; // 5 minutes
+const CACHE_TTL = 300;
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,141 +22,132 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
     }
 
-    // Check for force refresh
     const { searchParams } = new URL(request.url);
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    // Try cache first (unless force refresh)
     const cacheKey = `org:${orgId}:${CACHE_KEY}`;
     if (!forceRefresh) {
       const cached = await redis.get(cacheKey);
       if (cached) {
-        // ✅ FIX: Redis already returns parsed object, don't parse again
         const liaisons = typeof cached === 'string' ? JSON.parse(cached) : cached;
-        return NextResponse.json({ liaisons, cached: true });
+        return NextResponse.json({ liaisons, cached: true, count: liaisons.length });
       }
     }
 
-    const sheets = await getGoogleSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: `${SHEET_NAME}!A2:CZ1000`,
-    });
+    // ── 1. Read LIAISON sheet (source of truth for docs + inspection) ──
+    const liaisonRows = await fetchAllLiaisons();
 
-    const rows = response.data.values || [];
-    if (rows.length === 0) {
-      return NextResponse.json({ liaisons: [] });
+    if (liaisonRows.length === 0) {
+      return NextResponse.json({ liaisons: [], cached: false, count: 0 });
     }
 
-    // Get headers from first row
+    // ── 2. Read ENQUIRIES sheet for rich display fields ──
+    const sheets = await getGoogleSheetsClient();
+
     const headerResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: `${SHEET_NAME}!A1:CZ1`,
+      range: 'ENQUIRIES!A1:CZ1',
     });
     const headers = headerResponse.data.values?.[0] || [];
 
-    // Column indices
-    const idIndex = headers.indexOf('id');
-    const customerNameIndex = headers.indexOf('customerName');
-    const phoneIndex = headers.indexOf('phone');
-    const emailIndex = headers.indexOf('email');
-    const addressIndex = headers.indexOf('address');
-    const areaIndex = headers.indexOf('area');
-    const capacityIndex = headers.indexOf('capacity');
-    const statusIndex = headers.indexOf('status');
-    
-    // System details
-    const systemCapacityIndex = headers.indexOf('systemCapacity');
-    const panelTypeIndex = headers.indexOf('panelType');
-    const panelMakeIndex = headers.indexOf('panelMake');
-    const inverterMakeIndex = headers.indexOf('inverterMake');
-    
-    // Installation fields
-    const installationCompletedDateIndex = headers.indexOf('installationCompletedDate');
-    const installationTeamIndex = headers.indexOf('installationTeam');
-    const installationNotesIndex = headers.indexOf('installationNotes');
-    
-    // Liaison/Inspection fields
-    const inspectionScheduledDateIndex = headers.indexOf('inspectionScheduledDate');
-    const inspectionDateIndex = headers.indexOf('inspectionDate');
-    const inspectionOfficerIndex = headers.indexOf('inspectionOfficer');
-    const inspectionStatusIndex = headers.indexOf('inspectionStatus');
-    const inspectionApprovedIndex = headers.indexOf('inspectionApproved');
-    const inspectionRejectedReasonIndex = headers.indexOf('inspectionRejectedReason');
-    const inspectionReportPathIndex = headers.indexOf('inspectionReportPath');
-    
-    // Net metering fields
-    const meterNumberIndex = headers.indexOf('meterNumber');
-    const meterInstallationDateIndex = headers.indexOf('meterInstallationDate');
-    const netMeteringAgreementIndex = headers.indexOf('netMeteringAgreement');
-    
-    // Grid sync fields
-    const gridSyncDateIndex = headers.indexOf('gridSyncDate');
-    const activationDateIndex = headers.indexOf('activationDate');
-    const liaisonStageIndex = headers.indexOf('liaisonStage');
-    
-    // Registration fields
-    const registrationIdIndex = headers.indexOf('registrationId');
-    const consumerRegistrationNumberIndex = headers.indexOf('consumerRegistrationNumber');
-    const applicationNumberIndex = headers.indexOf('applicationNumber');
-    
-    const createdAtIndex = headers.indexOf('createdAt');
-    const updatedAtIndex = headers.indexOf('updatedAt');
+    const enquiryResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: 'ENQUIRIES!A2:CZ1000',
+    });
+    const enquiryRows = enquiryResponse.data.values || [];
 
-    // Filter: Only show enquiries with installation completed
-    const liaisons = rows
-      .filter((row) => {
-        const installationCompletedDate = row[installationCompletedDateIndex] || '';
-        if (!installationCompletedDate || installationCompletedDate.trim() === '') return false;
-        
-        // Check if it's a valid date
-        const date = new Date(installationCompletedDate);
-        return !isNaN(date.getTime());
-      })
-      .map((row) => ({
-        enquiryId: row[idIndex] || '',
-        customerName: row[customerNameIndex] || '',
-        phone: row[phoneIndex] || '',
-        email: row[emailIndex] || '',
-        address: row[addressIndex] || '',
-        area: row[areaIndex] || '',
-        capacity: row[capacityIndex] || '',
-        status: row[statusIndex] || '',
-        systemCapacity: row[systemCapacityIndex] || '',
-        panelType: row[panelTypeIndex] || '',
-        panelMake: row[panelMakeIndex] || '',
-        inverterMake: row[inverterMakeIndex] || '',
-        installationCompletedDate: row[installationCompletedDateIndex] || '',
-        installationTeam: row[installationTeamIndex] || '',
-        installationNotes: row[installationNotesIndex] || '',
-        inspectionScheduledDate: row[inspectionScheduledDateIndex] || '',
-        inspectionDate: row[inspectionDateIndex] || '',
-        inspectionOfficer: row[inspectionOfficerIndex] || '',
-        inspectionStatus: row[inspectionStatusIndex] || 'pending',
-        inspectionApproved: row[inspectionApprovedIndex] || '',
-        inspectionRejectedReason: row[inspectionRejectedReasonIndex] || '',
-        inspectionReportPath: row[inspectionReportPathIndex] || '',
-        meterNumber: row[meterNumberIndex] || '',
-        meterInstallationDate: row[meterInstallationDateIndex] || '',
-        netMeteringAgreement: row[netMeteringAgreementIndex] || '',
-        gridSyncDate: row[gridSyncDateIndex] || '',
-        activationDate: row[activationDateIndex] || '',
-        liaisonStage: row[liaisonStageIndex] || 'inspection-pending',
-        registrationId: row[registrationIdIndex] || '',
-        consumerRegistrationNumber: row[consumerRegistrationNumberIndex] || '',
-        applicationNumber: row[applicationNumberIndex] || '',
-        createdAt: row[createdAtIndex] || '',
-        updatedAt: row[updatedAtIndex] || '',
-      }));
+    // Index helpers
+    const col = (name: string) => headers.indexOf(name);
 
-    // ✅ FIX: Cache as JSON string for consistency
+    // Build a map: enquiryId → ENQUIRIES row for O(1) join
+    const enquiryMap: Record<string, any[]> = {};
+    enquiryRows.forEach((row) => {
+      const id = row[col('id')];
+      if (id) enquiryMap[id] = row;
+    });
+
+    // ── 3. Join: LIAISON rows + ENQUIRIES display fields ──
+    const liaisons = liaisonRows.map((liaison: any) => {
+      const eq = enquiryMap[liaison.enquiryId] || [];
+
+      return {
+        // Core IDs
+        enquiryId: liaison.enquiryId,
+
+        // Display fields from ENQUIRIES (fallback to LIAISON if present)
+        customerName: liaison.customerName || eq[col('customerName')] || '',
+        phone:        eq[col('phone')] || '',
+        email:        eq[col('email')] || '',
+        address:      eq[col('address')] || '',
+        area:         liaison.area || eq[col('area')] || '',
+        capacity:     liaison.capacity || eq[col('capacity')] || '',
+        status:       eq[col('status')] || '',
+        systemCapacity: eq[col('systemCapacity')] || '',
+        panelMake:    eq[col('panelMake')] || '',
+        inverterMake: eq[col('inverterMake')] || '',
+
+        // Installation info from ENQUIRIES
+        installationCompletedDate: eq[col('installationCompletedDate')] || '',
+        installationTeam:          eq[col('installationTeam')] || '',
+        installationNotes:         eq[col('installationNotes')] || '',
+
+        // Meter from LIAISON (most up to date) or ENQUIRIES fallback
+        meterNumber: liaison.meterNumber || eq[col('meterNumber')] || '',
+
+        // Registration
+        registrationId:               eq[col('registrationId')] || '',
+        consumerRegistrationNumber:   eq[col('consumerRegistrationNumber')] || '',
+        applicationNumber:            eq[col('applicationNumber')] || '',
+
+        // ── All from LIAISON sheet (source of truth) ──
+        liaisonStage:              liaison.liaisonStage || 'pending',
+        inspectionScheduledDate:   liaison.inspectionScheduledDate || '',
+        inspectionDate:            liaison.inspectionDate || '',
+        inspectionOfficer:         liaison.inspectionOfficer || '',
+        inspectionApproved:        liaison.inspectionApproved || '',
+        inspectionRejectedReason:  liaison.inspectionRejectedReason || '',
+        inspectionReportPath:      liaison.inspectionReportPath || '',
+        inspectionApprovalDate:    liaison.inspectionApprovalDate || '',
+        inspectionApprovedBy:      liaison.inspectionApprovedBy || '',
+        inspectionApprovalNotes:   liaison.inspectionApprovalNotes || '',
+
+        // Doc checklist — all from LIAISON sheet
+        docCoveringLetter:  liaison.docCoveringLetter || '',
+        docEStamp300:       liaison.docEStamp300 || '',
+        docPpa:             liaison.docPpa || '',
+        docEStamp50:        liaison.docEStamp50 || '',
+        docVendorAgreement: liaison.docVendorAgreement || '',
+        docSolarAppAck:     liaison.docSolarAppAck || '',
+        docFeasibility:     liaison.docFeasibility || '',
+        docEToken:          liaison.docEToken || '',
+        docDcr:             liaison.docDcr || '',
+        docWcr:             liaison.docWcr || '',
+        docPlantPhotos:     liaison.docPlantPhotos || '',
+        docKycDocuments:    liaison.docKycDocuments || '',
+        docWitness1Aadhaar: liaison.docWitness1Aadhaar || '',
+        docWitness2Aadhaar: liaison.docWitness2Aadhaar || '',
+
+        // WCR stage fields
+        wcrStatus:            liaison.wcrStatus || '',
+        wcrSubmittedDate:     liaison.wcrSubmittedDate || '',
+        wcrSubmittedBy:       liaison.wcrSubmittedBy || '',
+        wcrApprovedDate:      liaison.wcrApprovedDate || '',
+        wcrApprovedBy:        liaison.wcrApprovedBy || '',
+        wcrNotes:             liaison.wcrNotes || '',
+        wcrWorkQuality:       liaison.wcrWorkQuality || '',
+        wcrSafetyCompliance:  liaison.wcrSafetyCompliance || '',
+        wcrPhotos:            liaison.wcrPhotos || '',
+        wcrCustomerSignature: liaison.wcrCustomerSignature || '',
+
+        // Timestamps
+        createdAt: liaison.createdAt || eq[col('createdAt')] || '',
+        updatedAt: liaison.updatedAt || eq[col('updatedAt')] || '',
+      };
+    });
+
     await redis.set(cacheKey, JSON.stringify(liaisons), { ex: CACHE_TTL });
 
-    return NextResponse.json({ 
-      liaisons, 
-      cached: false,
-      count: liaisons.length 
-    });
+    return NextResponse.json({ liaisons, cached: false, count: liaisons.length });
   } catch (error: any) {
     console.error('Error fetching liaisons:', error);
     return NextResponse.json(

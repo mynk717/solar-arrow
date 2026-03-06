@@ -47,7 +47,16 @@ if (!existing) {
   });
 }
 
-await updateLiaisonInSheet(enquiryId, updatePayload);
+// Check if all docs are at least 'submitted' to auto-advance stage
+const allSubmitted = DOC_FIELDS.every(
+  (k) => (updatePayload[k] || existing?.[k] || '') === 'submitted'
+);
+
+await updateLiaisonInSheet(enquiryId, {
+  ...updatePayload,
+  liaisonStage: allSubmitted ? 'docs-ready' : 'docs-in-progress',
+});
+
 
 
     const orgId = (session.user as any).organizationId || 'default-org';
