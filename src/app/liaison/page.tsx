@@ -20,8 +20,8 @@ import {
 interface Liaison {
   enquiryId: string;
   customerName: string;
-  phone: string;
-  address: string;
+  phone?: string;
+  address?: string;
   area: string;
   capacity: string;
   status: string;
@@ -60,8 +60,8 @@ interface Liaison {
     docWitness1Aadhaar?: string;
     docWitness2Aadhaar?: string;
   
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function LiaisonPage() {
@@ -516,15 +516,15 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
             <div>
               <h4 className="font-semibold text-slate-900 mb-2">Site Details</h4>
               <div className="space-y-1 text-slate-700">
-                <p>
-                  <strong>Address:</strong> {liaison.address}
-                </p>
-                <p>
-                  <strong>Area:</strong> {liaison.area}
-                </p>
-                <p>
-                  <strong>Phone:</strong> {liaison.phone}
-                </p>
+              <p>
+  <strong>Address:</strong> {liaison.address || 'N/A'}
+</p>
+<p>
+  <strong>Area:</strong> {liaison.area || 'N/A'}
+</p>
+<p>
+  <strong>Phone:</strong> {liaison.phone || 'N/A'}
+</p>
               </div>
             </div>
             <div>
