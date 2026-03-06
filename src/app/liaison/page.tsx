@@ -365,11 +365,32 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
         </span>
       );
     }
-    return (
-      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-        PENDING
-      </span>
-    );
+    // Show doc progress even before scheduling
+const docKeys = ['docCoveringLetter','docEStamp300','docPpa','docEStamp50','docVendorAgreement',
+  'docSolarAppAck','docFeasibility','docEToken','docDcr','docWcr','docPlantPhotos',
+  'docKycDocuments','docWitness1Aadhaar','docWitness2Aadhaar'];
+const allDocsSubmitted = docKeys.every(k => (liaison as any)[k] === 'submitted');
+const hasDocsProgress = docKeys.some(k => (liaison as any)[k] === 'collected' || (liaison as any)[k] === 'submitted');
+
+if (allDocsSubmitted) {
+  return (
+    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+      DOCS READY
+    </span>
+  );
+}
+if (hasDocsProgress) {
+  return (
+    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800">
+      DOCS IN PROGRESS
+    </span>
+  );
+}
+return (
+  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+    PENDING
+  </span>
+);
   };
 
   return (
@@ -464,15 +485,15 @@ function LiaisonCard({ liaison, expanded, onToggleExpand, onSchedule, onComplete
             <Eye size={16} className="inline mr-1" />
             {expanded ? 'Hide' : 'View'} Details
           </button>
-          {!liaison.inspectionScheduledDate && (
-            <button
-              onClick={onSchedule}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
-            >
-              <Calendar size={16} className="inline mr-1" />
-              Schedule
-            </button>
-          )}
+          {!liaison.inspectionScheduledDate && liaison.inspectionApproved !== 'TRUE' && (
+  <button
+    onClick={onSchedule}
+    className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm transition-colors"
+  >
+    <Calendar size={16} className="inline mr-1" />
+    {liaison.liaisonStage === 'docs-ready' ? '📋 Schedule Inspection' : 'Schedule'}
+  </button>
+)}
           {liaison.inspectionScheduledDate && liaison.inspectionApproved !== 'TRUE' && (
             <button
               onClick={onComplete}
@@ -990,9 +1011,14 @@ const LIAISON_DOCS = [
 
 function DocumentChecklist({ liaison, onUpdate }: { liaison: Liaison; onUpdate: () => void }) {
   const [saving, setSaving] = useState(false);
-  const [docs, setDocs] = useState<Record<string, string>>(() =>
-    Object.fromEntries(LIAISON_DOCS.map(d => [d.key, (liaison as any)[d.key] || 'pending']))
+  const [docs, setDocs] = useState<Record<string, string>>(
+    () => Object.fromEntries(LIAISON_DOCS.map(d => [d.key, (liaison as any)[d.key] || 'pending']))
   );
+  
+  // Re-sync when parent refetches and passes new liaison prop
+  useEffect(() => {
+    setDocs(Object.fromEntries(LIAISON_DOCS.map(d => [d.key, (liaison as any)[d.key] || 'pending'])));
+  }, [liaison.enquiryId, liaison.updatedAt]);  
 
   const collected = Object.values(docs).filter(v => v === 'collected').length;
   const submitted = Object.values(docs).filter(v => v === 'submitted').length;
