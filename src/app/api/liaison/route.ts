@@ -34,116 +34,118 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── 1. Read LIAISON sheet (source of truth for docs + inspection) ──
-    const liaisonRows = await fetchAllLiaisons();
+    // ── 1. Read ENQUIRIES sheet (source of records — always has data) ──
+const sheets = await getGoogleSheetsClient();
 
-    if (liaisonRows.length === 0) {
-      return NextResponse.json({ liaisons: [], cached: false, count: 0 });
-    }
+const headerResponse = await sheets.spreadsheets.values.get({
+  spreadsheetId: sheetId,
+  range: 'ENQUIRIES!A1:CZ1',
+});
+const headers = headerResponse.data.values?.[0] || [];
 
-    // ── 2. Read ENQUIRIES sheet for rich display fields ──
-    const sheets = await getGoogleSheetsClient();
+const enquiryResponse = await sheets.spreadsheets.values.get({
+  spreadsheetId: sheetId,
+  range: 'ENQUIRIES!A2:CZ1000',
+});
+const enquiryRows = enquiryResponse.data.values || [];
 
-    const headerResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A1:CZ1',
-    });
-    const headers = headerResponse.data.values?.[0] || [];
+if (enquiryRows.length === 0) {
+  return NextResponse.json({ liaisons: [], cached: false, count: 0 });
+}
 
-    const enquiryResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:CZ1000',
-    });
-    const enquiryRows = enquiryResponse.data.values || [];
+const col = (name: string) => headers.indexOf(name);
 
-    // Index helpers
-    const col = (name: string) => headers.indexOf(name);
+// Filter: only enquiries with installationCompletedDate
+const installedRows = enquiryRows.filter((row) => {
+  const d = row[col('installationCompletedDate')] || '';
+  return d.trim() !== '' && !isNaN(new Date(d).getTime());
+});
 
-    // Build a map: enquiryId → ENQUIRIES row for O(1) join
-    const enquiryMap: Record<string, any[]> = {};
-    enquiryRows.forEach((row) => {
-      const id = row[col('id')];
-      if (id) enquiryMap[id] = row;
-    });
+// ── 2. Read LIAISON sheet (optional — docs + inspection data) ──
+const liaisonRows = await fetchAllLiaisons();
 
-    // ── 3. Join: LIAISON rows + ENQUIRIES display fields ──
-    const liaisons = liaisonRows.map((liaison: any) => {
-      const eq = enquiryMap[liaison.enquiryId] || [];
+// Build LIAISON map: enquiryId → liaison object
+const liaisonMap: Record<string, any> = {};
+liaisonRows.forEach((l: any) => {
+  if (l.enquiryId) liaisonMap[l.enquiryId] = l;
+});
 
-      return {
-        // Core IDs
-        enquiryId: liaison.enquiryId,
+// ── 3. Join: ENQUIRIES (base) + LIAISON (docs/inspection overlay) ──
+const liaisons = installedRows.map((row) => {
+  const enquiryId = row[col('id')] || '';
+  const liaison = liaisonMap[enquiryId] || {}; // empty if no LIAISON row yet
 
-        // Display fields from ENQUIRIES (fallback to LIAISON if present)
-        customerName: liaison.customerName || eq[col('customerName')] || '',
-        phone:        eq[col('phone')] || '',
-        email:        eq[col('email')] || '',
-        address:      eq[col('address')] || '',
-        area:         liaison.area || eq[col('area')] || '',
-        capacity:     liaison.capacity || eq[col('capacity')] || '',
-        status:       eq[col('status')] || '',
-        systemCapacity: eq[col('systemCapacity')] || '',
-        panelMake:    eq[col('panelMake')] || '',
-        inverterMake: eq[col('inverterMake')] || '',
+  return {
+    enquiryId,
+    customerName: row[col('customerName')] || '',
+    phone:        row[col('phone')] || '',
+    email:        row[col('email')] || '',
+    address:      row[col('address')] || '',
+    area:         row[col('area')] || '',
+    capacity:     row[col('capacity')] || '',
+    status:       row[col('status')] || '',
+    systemCapacity: row[col('systemCapacity')] || '',
+    panelMake:    row[col('panelMake')] || '',
+    inverterMake: row[col('inverterMake')] || '',
 
-        // Installation info from ENQUIRIES
-        installationCompletedDate: eq[col('installationCompletedDate')] || '',
-        installationTeam:          eq[col('installationTeam')] || '',
-        installationNotes:         eq[col('installationNotes')] || '',
+    // Installation info from ENQUIRIES
+    installationCompletedDate: row[col('installationCompletedDate')] || '',
+    installationTeam:          row[col('installationTeam')] || '',
+    installationNotes:         row[col('installationNotes')] || '',
 
-        // Meter from LIAISON (most up to date) or ENQUIRIES fallback
-        meterNumber: liaison.meterNumber || eq[col('meterNumber')] || '',
+    // Meter — LIAISON is more up to date if present
+    meterNumber: liaison.meterNumber || row[col('meterNumber')] || '',
 
-        // Registration
-        registrationId:               eq[col('registrationId')] || '',
-        consumerRegistrationNumber:   eq[col('consumerRegistrationNumber')] || '',
-        applicationNumber:            eq[col('applicationNumber')] || '',
+    // Registration
+    registrationId:             row[col('registrationId')] || '',
+    consumerRegistrationNumber: row[col('consumerRegistrationNumber')] || '',
+    applicationNumber:          row[col('applicationNumber')] || '',
 
-        // ── All from LIAISON sheet (source of truth) ──
-        liaisonStage:              liaison.liaisonStage || 'pending',
-        inspectionScheduledDate:   liaison.inspectionScheduledDate || '',
-        inspectionDate:            liaison.inspectionDate || '',
-        inspectionOfficer:         liaison.inspectionOfficer || '',
-        inspectionApproved:        liaison.inspectionApproved || '',
-        inspectionRejectedReason:  liaison.inspectionRejectedReason || '',
-        inspectionReportPath:      liaison.inspectionReportPath || '',
-        inspectionApprovalDate:    liaison.inspectionApprovalDate || '',
-        inspectionApprovedBy:      liaison.inspectionApprovedBy || '',
-        inspectionApprovalNotes:   liaison.inspectionApprovalNotes || '',
+    // ── LIAISON overlay — empty strings if no LIAISON row yet ──
+    liaisonStage:            liaison.liaisonStage || 'pending',
+    inspectionScheduledDate: liaison.inspectionScheduledDate || '',
+    inspectionDate:          liaison.inspectionDate || '',
+    inspectionOfficer:       liaison.inspectionOfficer || '',
+    inspectionApproved:      liaison.inspectionApproved || '',
+    inspectionRejectedReason: liaison.inspectionRejectedReason || '',
+    inspectionReportPath:    liaison.inspectionReportPath || '',
+    inspectionApprovalDate:  liaison.inspectionApprovalDate || '',
+    inspectionApprovedBy:    liaison.inspectionApprovedBy || '',
+    inspectionApprovalNotes: liaison.inspectionApprovalNotes || '',
 
-        // Doc checklist — all from LIAISON sheet
-        docCoveringLetter:  liaison.docCoveringLetter || '',
-        docEStamp300:       liaison.docEStamp300 || '',
-        docPpa:             liaison.docPpa || '',
-        docEStamp50:        liaison.docEStamp50 || '',
-        docVendorAgreement: liaison.docVendorAgreement || '',
-        docSolarAppAck:     liaison.docSolarAppAck || '',
-        docFeasibility:     liaison.docFeasibility || '',
-        docEToken:          liaison.docEToken || '',
-        docDcr:             liaison.docDcr || '',
-        docWcr:             liaison.docWcr || '',
-        docPlantPhotos:     liaison.docPlantPhotos || '',
-        docKycDocuments:    liaison.docKycDocuments || '',
-        docWitness1Aadhaar: liaison.docWitness1Aadhaar || '',
-        docWitness2Aadhaar: liaison.docWitness2Aadhaar || '',
+    // Doc checklist
+    docCoveringLetter:  liaison.docCoveringLetter || '',
+    docEStamp300:       liaison.docEStamp300 || '',
+    docPpa:             liaison.docPpa || '',
+    docEStamp50:        liaison.docEStamp50 || '',
+    docVendorAgreement: liaison.docVendorAgreement || '',
+    docSolarAppAck:     liaison.docSolarAppAck || '',
+    docFeasibility:     liaison.docFeasibility || '',
+    docEToken:          liaison.docEToken || '',
+    docDcr:             liaison.docDcr || '',
+    docWcr:             liaison.docWcr || '',
+    docPlantPhotos:     liaison.docPlantPhotos || '',
+    docKycDocuments:    liaison.docKycDocuments || '',
+    docWitness1Aadhaar: liaison.docWitness1Aadhaar || '',
+    docWitness2Aadhaar: liaison.docWitness2Aadhaar || '',
 
-        // WCR stage fields
-        wcrStatus:            liaison.wcrStatus || '',
-        wcrSubmittedDate:     liaison.wcrSubmittedDate || '',
-        wcrSubmittedBy:       liaison.wcrSubmittedBy || '',
-        wcrApprovedDate:      liaison.wcrApprovedDate || '',
-        wcrApprovedBy:        liaison.wcrApprovedBy || '',
-        wcrNotes:             liaison.wcrNotes || '',
-        wcrWorkQuality:       liaison.wcrWorkQuality || '',
-        wcrSafetyCompliance:  liaison.wcrSafetyCompliance || '',
-        wcrPhotos:            liaison.wcrPhotos || '',
-        wcrCustomerSignature: liaison.wcrCustomerSignature || '',
+    // WCR
+    wcrStatus:           liaison.wcrStatus || '',
+    wcrSubmittedDate:    liaison.wcrSubmittedDate || '',
+    wcrSubmittedBy:      liaison.wcrSubmittedBy || '',
+    wcrApprovedDate:     liaison.wcrApprovedDate || '',
+    wcrApprovedBy:       liaison.wcrApprovedBy || '',
+    wcrNotes:            liaison.wcrNotes || '',
+    wcrWorkQuality:      liaison.wcrWorkQuality || '',
+    wcrSafetyCompliance: liaison.wcrSafetyCompliance || '',
+    wcrPhotos:           liaison.wcrPhotos || '',
+    wcrCustomerSignature: liaison.wcrCustomerSignature || '',
 
-        // Timestamps
-        createdAt: liaison.createdAt || eq[col('createdAt')] || '',
-        updatedAt: liaison.updatedAt || eq[col('updatedAt')] || '',
-      };
-    });
+    createdAt: row[col('createdAt')] || '',
+    updatedAt: liaison.updatedAt || row[col('updatedAt')] || '',
+  };
+});
+
 
     await redis.set(cacheKey, JSON.stringify(liaisons), { ex: CACHE_TTL });
 
