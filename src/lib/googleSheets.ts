@@ -2547,12 +2547,24 @@ export async function updateLiaisonInSheet(
   const rowIndex = rows.findIndex((r: any[]) => r[0] === enquiryId);
   if (rowIndex === -1) throw new Error(`No LIAISON row found for ${enquiryId}`);
 
-  const existing = rowToLiaison(rows[rowIndex]) || {};
-  const merged = liaisonToRow({
-    ...existing,
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  });
+  const existingObj = rowToLiaison(rows[rowIndex]);
+// If rowToLiaison returns null (malformed row), build base from raw array
+const existing = existingObj || {
+  enquiryId: rows[rowIndex][0] || enquiryId,
+  customerName: rows[rowIndex][1] || '',
+  capacity: rows[rowIndex][2] || '',
+  area: rows[rowIndex][3] || '',
+  meterNumber: rows[rowIndex][4] || '',
+  liaisonStage: rows[rowIndex][5] || 'pending',
+  createdAt: rows[rowIndex][6] || '',
+};
+
+const merged = liaisonToRow({
+  ...existing,
+  ...updates,
+  enquiryId: enquiryId, // always force correct enquiryId in col A
+  updatedAt: new Date().toISOString(),
+});
 
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,

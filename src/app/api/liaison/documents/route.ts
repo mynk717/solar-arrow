@@ -34,23 +34,25 @@ export async function POST(request: Request) {
     });
 
     // Auto-create LIAISON row if missing (handles enquiries created before this refactor)
-const existing = await getLiaisonRow(enquiryId);
-if (!existing) {
-  const enquiry = await fetchEnquiryById(enquiryId);
-  await createLiaisonRow({
-    enquiryId,
-    customerName: enquiry?.customerName || '',
-    capacity: enquiry?.capacity ? String(enquiry.capacity) : '',
-    area: enquiry?.area || '',
-    meterNumber: enquiry?.meterNumber || '',
-    liaisonStage: 'pending',
-  });
-}
-
-// Check if all docs are at least 'submitted' to auto-advance stage
-const allSubmitted = DOC_FIELDS.every(
-  (k) => (updatePayload[k] || existing?.[k] || '') === 'submitted'
-);
+    let existing = await getLiaisonRow(enquiryId);
+    if (!existing) {
+      const enquiry = await fetchEnquiryById(enquiryId);
+      await createLiaisonRow({
+        enquiryId,
+        customerName: enquiry?.customerName || '',
+        capacity: enquiry?.capacity ? String(enquiry.capacity) : '',
+        area: enquiry?.area || '',
+        meterNumber: enquiry?.meterNumber || '',
+        liaisonStage: 'pending',
+      });
+      existing = await getLiaisonRow(enquiryId); // re-fetch after create ✅
+    }
+    
+    // Now existing has the freshly created row — allSubmitted check is accurate
+    const allSubmitted = DOC_FIELDS.every(
+      (k) => (updatePayload[k] || existing?.[k] || '') === 'submitted'
+    );
+    
 
 await updateLiaisonInSheet(enquiryId, {
   ...updatePayload,
