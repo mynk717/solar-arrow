@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateLiaisonInSheet } from '@/lib/googleSheets';
+import { updateLiaisonInSheet, getLiaisonRow, createLiaisonRow, fetchEnquiryById } from '@/lib/googleSheets';
 import { invalidateEnquiriesCache, redis } from '@/lib/redis';
 
 const DOC_FIELDS = [
@@ -33,7 +33,22 @@ export async function POST(request: Request) {
       }
     });
 
-    await updateLiaisonInSheet(enquiryId, updatePayload);
+    // Auto-create LIAISON row if missing (handles enquiries created before this refactor)
+const existing = await getLiaisonRow(enquiryId);
+if (!existing) {
+  const enquiry = await fetchEnquiryById(enquiryId);
+  await createLiaisonRow({
+    enquiryId,
+    customerName: enquiry?.customerName || '',
+    capacity: enquiry?.capacity ? String(enquiry.capacity) : '',
+    area: enquiry?.area || '',
+    meterNumber: enquiry?.meterNumber || '',
+    liaisonStage: 'pending',
+  });
+}
+
+await updateLiaisonInSheet(enquiryId, updatePayload);
+
 
     const orgId = (session.user as any).organizationId || 'default-org';
 
