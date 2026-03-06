@@ -34,31 +34,33 @@ export async function POST(request: Request) {
     });
 
     // Auto-create LIAISON row if missing (handles enquiries created before this refactor)
-    let existing = await getLiaisonRow(enquiryId);
-    if (!existing) {
-      const enquiry = await fetchEnquiryById(enquiryId);
-      await createLiaisonRow({
-        enquiryId,
-        customerName: enquiry?.customerName || '',
-        capacity: enquiry?.capacity ? String(enquiry.capacity) : '',
-        area: enquiry?.area || '',
-        meterNumber: enquiry?.meterNumber || '',
-        liaisonStage: 'pending',
-      });
-      existing = await getLiaisonRow(enquiryId); // re-fetch after create ✅
-    }
-    
-    // Now existing has the freshly created row — allSubmitted check is accurate
-    const allSubmitted = DOC_FIELDS.every(
-      (k) => (updatePayload[k] || existing?.[k] || '') === 'submitted'
-    );
-    
+    const existing = await getLiaisonRow(enquiryId);
 
-await updateLiaisonInSheet(enquiryId, {
-  ...updatePayload,
-  liaisonStage: allSubmitted ? 'docs-ready' : 'docs-in-progress',
-});
+const allSubmitted = DOC_FIELDS.every(
+  (k) => (updatePayload[k] || existing?.[k] || '') === 'submitted'
+);
 
+const liaisonStage = allSubmitted ? 'docs-ready' : 'docs-in-progress';
+
+if (!existing) {
+  // No LIAISON row yet — create with doc fields included in one shot
+  const enquiry = await fetchEnquiryById(enquiryId);
+  await createLiaisonRow({
+    enquiryId,
+    customerName: enquiry?.customerName || '',
+    capacity: enquiry?.capacity ? String(enquiry.capacity) : '',
+    area: enquiry?.area || '',
+    meterNumber: enquiry?.meterNumber || '',
+    liaisonStage,
+    ...updatePayload, // doc fields included at creation time ✅
+  });
+} else {
+  // Row exists — just update
+  await updateLiaisonInSheet(enquiryId, {
+    ...updatePayload,
+    liaisonStage,
+  });
+}
 
 
     const orgId = (session.user as any).organizationId || 'default-org';
