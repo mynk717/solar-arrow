@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Kanban,
   Shield,
-  Download
+  Download,
+  BarChart2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -42,6 +43,7 @@ const ALL_NAV = [
   { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: '/liaison' },
   { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: '/wcr' },
   { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: '/subsidy' },
+  { name: 'Reports', href: '/reports', icon: BarChart2, permPath: '/reports' },
   { name: 'Settings',     href: '/settings',     icon: Settings,        alwaysShow: true },
 ];
 
@@ -330,6 +332,26 @@ const navigation = ALL_NAV.filter(item => {
         Admin
       </span>
     </Link>
+    <Link
+  href="/reports"
+  className={`
+    flex items-center gap-3 px-6 py-3.5 
+    transition-all duration-200
+    touch-manipulation
+    active:scale-98
+    ${
+      pathname === '/reports'
+        ? 'bg-blue-700 border-l-4 border-white font-semibold'
+        : 'hover:bg-blue-700/50 active:bg-blue-700/70'
+    }
+  `}
+>
+  <BarChart2 size={20} className="flex-shrink-0" />
+  <span className="text-sm">Reports</span>
+  <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
+    Admin
+  </span>
+</Link>
   </div>
 )}
         </nav>
