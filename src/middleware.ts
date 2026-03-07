@@ -14,6 +14,8 @@ const publicRoutes = [
   '/privacy',
   '/terms',
   '/q',
+  '/api/quotations/view',    // ← public API — no auth needed
+  '/api/quotations/approve',
 ];
 
 const alwaysAllowedRoutes = [
@@ -113,11 +115,12 @@ if (isAlwaysAllowed(path)) {
     callbacks: {
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
-        if (isPublicRoute(path)) return true;
+        if (isPublicRoute(path)) return true;       // ← now covers /q and /api/quotations/view
+        if (path.startsWith('/api/')) return true;  // ← never block API routes via withAuth
         if (isAlwaysAllowed(path)) return !!token;
         return !!token;
       },
-    },    
+    },       
   }
 );
 
