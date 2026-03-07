@@ -1,0 +1,61 @@
+# Solar Arrow — AI/LLM Context File
+# https://sa.mktgdime.com/llms.txt
+
+> Solar Arrow is a solar business management SaaS platform built for Indian solar installation vendors, specifically CSPDCL-empaneled vendors in Chhattisgarh, India.
+
+## What is Solar Arrow?
+
+Solar Arrow is a web-based Progressive Web App (PWA) that manages the complete solar panel installation pipeline for Indian vendors. It replaces Excel sheets, WhatsApp follow-ups, and paper registers with a unified digital platform.
+
+## Who is it for?
+
+- Solar installation vendors in India
+- CSPDCL (Chhattisgarh State Power Distribution Company) empaneled vendors
+- Solar companies managing PM Surya Ghar rooftop solar subsidy projects
+- Field survey teams and sales executives
+
+## Pipeline Stages Covered
+
+1. Leads — Capture and qualify prospects
+2. Enquiry — Customer interest and site details
+3. Survey — Site assessment and technical survey
+4. Quotation — Shareable digital quotation links
+5. Registration — Government registration and paperwork
+6. Payment — Payment tracking and verification
+7. BOM — Bill of Materials planning
+8. Dispatch — Equipment dispatch tracking
+9. Installation — On-site installation management
+10. Liaison — Net metering and government liaison
+11. WCR — Work Completion Report (mandatory for subsidy)
+12. Subsidy — PM Surya Ghar subsidy application and tracking
+13. Active — Live solar system
+
+## Key Features
+
+- Role-based access: Admin, Owner, Sales, Survey, Installation roles
+- Google Sheets as backend data store (multi-tenant)
+- Shareable public quotation links at /q/[orgId]/[quotationId]
+- PM Surya Ghar subsidy tracker built-in
+- PWA — works offline, installable on Android and iOS without app store
+- Telegram notifications for key pipeline events
+- Mobile-first design optimized for field teams
+
+## Technology
+
+- Built with Next.js 16, TypeScript
+- Hosted on Vercel at https://sa.mktgdime.com
+- Data stored in Google Sheets via Google Sheets API
+- Authentication via NextAuth (Google OAuth + credentials)
+- Caching via Upstash Redis
+
+## Maker
+
+Built by Marketing Dime (https://mktgdime.com), a digital product studio based in Indore, Madhya Pradesh, India.
+
+## URLs
+
+- App: https://sa.mktgdime.com
+- Login: https://sa.mktgdime.com/login
+- Sitemap: https://sa.mktgdime.com/sitemap.xml
+- Robots: https://sa.mktgdime.com/robots.txt
+- Maker: https://mktgdime.com
