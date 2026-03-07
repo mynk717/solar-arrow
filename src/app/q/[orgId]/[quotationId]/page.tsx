@@ -5,6 +5,23 @@ import { useState, useEffect, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle, Phone, Mail, MapPin, Copy, Building2 } from 'lucide-react';
 
+
+// Safe date formatter
+function formatDate(
+  dateStr: string | undefined | null,
+  options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
+): string {
+  if (!dateStr) return 'N/A';
+  // Handle DD/MM/YYYY format from Google Sheets
+  let d = new Date(dateStr);
+  if (isNaN(d.getTime()) && typeof dateStr === 'string') {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+  }
+  return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-IN', options);
+}
+
+
 interface Quotation {
   quotationId: string;
   organizationId: string;
@@ -198,7 +215,7 @@ export default function PublicQuotationPage({
             <div className="text-right">
               <p className="text-xs text-gray-400 font-semibold uppercase tracking-widest">Proposal No.</p>
               <p className="font-bold text-blue-700 text-base">{quotation.referenceNumber}</p>
-              <p className="text-xs text-gray-500 mt-1">Dated: {new Date(quotation.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              <p className="text-xs text-gray-500 mt-1">Dated: {formatDate(quotation.createdAt)}</p>
             </div>
           </div>
 
@@ -245,7 +262,7 @@ export default function PublicQuotationPage({
             </div>
             <div className="text-right">
               <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Valid Until</p>
-              <p className="font-bold text-red-600 text-base">{new Date(quotation.validUntilDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              <p className="font-bold text-red-600 text-base">{formatDate(quotation.validUntilDate)}</p>
               <div className="mt-2">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                   quotation.status === 'Approved' ? 'bg-green-100 text-green-700' :
@@ -424,7 +441,7 @@ export default function PublicQuotationPage({
           <h2 className="font-bold text-gray-900 text-sm mb-3">📤 Share This Quotation</h2>
           <div className="flex gap-3 flex-wrap">
             <a
-              href={`https://wa.me/${quotation.customerPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${quotation.customerName},\n\nPlease find your Solar Installation Quotation:\n🔗 ${window.location.href}\n\nCapacity: ${quotation.systemCapacity} kWp\nFinal Amount: ₹${quotation.finalAmount.toLocaleString('en-IN')}\nValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}\n\n- ${quotation.organizationName}`)}`}
+              href={`https://wa.me/${quotation.customerPhone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${quotation.customerName},\n\nPlease find your Solar Installation Quotation:\n🔗 ${window.location.href}\n\nCapacity: ${quotation.systemCapacity} kWp\nFinal Amount: ₹${quotation.finalAmount.toLocaleString('en-IN')}\nValid Until: ${formatDate(quotation.validUntilDate)}\n\n- ${quotation.organizationName}`)}`}
               target="_blank"
               className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
             >
@@ -432,7 +449,7 @@ export default function PublicQuotationPage({
               WhatsApp
             </a>
             <a
-              href={`mailto:${quotation.customerEmail}?subject=Solar Quotation - ${quotation.referenceNumber}&body=Dear ${quotation.customerName},%0D%0A%0D%0AKindly find your quotation at:%0D%0A${window.location.href}%0D%0A%0D%0AAmount: Rs.${quotation.finalAmount.toLocaleString('en-IN')}%0D%0AValid Until: ${new Date(quotation.validUntilDate).toLocaleDateString('en-IN')}%0D%0A%0D%0ARegards,%0D%0A${quotation.organizationName}`}
+              href={`mailto:${quotation.customerEmail}?subject=Solar Quotation - ${quotation.referenceNumber}&body=Dear ${quotation.customerName},%0D%0A%0D%0AKindly find your quotation at:%0D%0A${window.location.href}%0D%0A%0D%0AAmount: Rs.${quotation.finalAmount.toLocaleString('en-IN')}%0D%0AValid Until: ${formatDate(quotation.validUntilDate)}%0D%0A%0D%0ARegards,%0D%0A${quotation.organizationName}`}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
             >
               <Mail size={18} /> Email
@@ -462,7 +479,7 @@ export default function PublicQuotationPage({
           <p className="font-semibold text-gray-600">{quotation.organizationName}</p>
           {quotation.companyAddress && <p>{quotation.companyAddress}</p>}
           {quotation.companyPhone && <p>📞 {quotation.companyPhone}</p>}
-          <p className="mt-2">Generated on {new Date(quotation.createdAt).toLocaleDateString('en-IN')} · Ref: {quotation.referenceNumber}</p>
+          <p className="mt-2">Generated on {formatDate(quotation.createdAt)} · Ref: {quotation.referenceNumber}</p>
           <p className="text-gray-300">Powered by Solar Arrow</p>
         </div>
 
