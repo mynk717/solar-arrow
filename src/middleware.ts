@@ -13,6 +13,7 @@ const publicRoutes = [
   '/unauthorized',
   '/privacy',
   '/terms',
+  '/q',
 ];
 
 const alwaysAllowedRoutes = [
