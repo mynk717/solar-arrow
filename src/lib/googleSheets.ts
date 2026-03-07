@@ -2139,23 +2139,8 @@ function surveyToRow(survey: Survey): any[] {
 export async function fetchSurveys(orgId: string, userEmail: string): Promise<Survey[]> {
   try {
     // Get org info to find sheet ID
-    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
-    if (!orgInfo?.sheetId) {
-      throw new Error("No sheet configured for organization");
-    }
-    
-    const sheetId = orgInfo.sheetId;
-    
-    // Get valid access token (from admin if user is regular user)
-    const accessToken = await getValidAccessToken(orgId, userEmail);
-    if (!accessToken) {
-      throw new Error("No valid access token available");
-    }
-
-    // Create authenticated Google Sheets client
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
-    const sheets = google.sheets({ version: 'v4', auth });
+    const sheets = await getSheets();
+const sheetId = await getSheetId();
 
     // Fetch from Survey tab (columns A to AO)
     const response = await sheets.spreadsheets.values.get({

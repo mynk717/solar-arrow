@@ -10,7 +10,7 @@ function LoginForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [loginType, setLoginType] = useState<'admin' | 'user'>('user');

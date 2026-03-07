@@ -10,6 +10,8 @@ import Footer from '@/components/Footer';
 import PWAInstaller from '@/components/PWAInstaller';
 import PWARegistration from '@/components/PWARegistration';
 import BottomNav from '@/components/BottomNav';
+import AppShell from '@/components/AppShell';
+
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -160,15 +162,8 @@ export default function RootLayout({
       <PWARegistration />
   <Providers>
     <DemoProvider>
-            <div className="flex flex-col min-h-screen bg-gray-50">
-        <div className="flex flex-1">
-          <Sidebar />
-          <main className="flex-1 pb-16 sm:pb-0">{children}</main>
-        </div>
-        <Footer />
-      </div>
-      <BottomNav />
-      <PWAInstaller />
+    <AppShell>{children}</AppShell> 
+
     </DemoProvider>
   </Providers>
 </body>
