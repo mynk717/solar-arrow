@@ -87,9 +87,33 @@ export default function LandingClient() {
     }
   }, [status, router]);
 
+  const seoBlock = (
+    <section aria-label="Solar Arrow Overview" className="sr-only">
+      <h1>Solar Arrow — Solar CRM &amp; CSPDCL Project Management Software</h1>
+      <p>
+        Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies.
+        Manage CSPDCL rooftop solar projects — leads, surveys, quotations, installations,
+        and compliance — in one dashboard. One-time cost ₹21,700. AMC ₹4,800/yr.
+        Built for solar businesses in Raipur, Chhattisgarh and across India.
+      </p>
+      <ul>
+        <li>Solar CRM India — track leads and follow-ups</li>
+        <li>CSPDCL compliance and liaison document management</li>
+        <li>Solar quotation builder with QR code sharing</li>
+        <li>Survey scheduling and field data capture</li>
+        <li>Installation tracking from dispatch to commissioning</li>
+        <li>PM Surya Ghar subsidy tracking built-in</li>
+        <li>Telegram bot notifications for your team</li>
+        <li>Role-based access: Admin, Sales, Engineer, Finance</li>
+        <li>Progressive Web App — works on Android and iOS</li>
+      </ul>
+    </section>
+  );
   // Authenticated — show redirect screen
   if (status === 'authenticated') {
     return (
+<>
+{seoBlock}
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
@@ -98,12 +122,15 @@ export default function LandingClient() {
           <p className="text-sm text-gray-400 font-medium">Redirecting to dashboard...</p>
         </div>
       </div>
+      </>
     );
   }
 
   // Still loading AND not timed out — show brief spinner
   if (status === 'loading' && !sessionTimedOut) {
     return (
+      <>
+        {seoBlock}
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
@@ -112,12 +139,14 @@ export default function LandingClient() {
           <p className="text-sm text-gray-400 font-medium">Loading...</p>
         </div>
       </div>
+      </>
     );
   }
 
   // unauthenticated OR timed out → render landing page normally
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+            {seoBlock}
 {/* SEO-visible static section — always rendered, no session dependency */}
 <section aria-label="Solar Arrow Overview" className="sr-only">
       <h1>Solar Arrow — Solar CRM & CSPDCL Project Management Software</h1>
@@ -336,7 +365,7 @@ export default function LandingClient() {
   Includes onboarding, Google Sheets setup, and full pipeline access for your team.
 </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="https://wa.me/917999XXXXXX?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+          <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
   target="_blank" rel="noopener noreferrer"
   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
 >
