@@ -130,13 +130,18 @@ export default function LandingClient() {
           </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
-            Login
-          </Link>
-          <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
-            Get Started Free
-          </Link>
-        </div>
+  <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow" 
+    target="_blank" rel="noopener noreferrer"
+    className="hidden sm:block text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">
+    Contact
+  </a>
+  <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+    Login
+  </Link>
+  <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
+    Get Started
+  </Link>
+</div>
       </nav>
 
       {/* ── HERO ── */}
@@ -265,7 +270,7 @@ export default function LandingClient() {
           {[
             { stat: '13 Stages',     label: 'Complete pipeline from lead to active system',   c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
             { stat: 'PM Surya Ghar', label: 'Subsidy tracking built-in for rooftop solar',    c: 'border-blue-200  bg-blue-50',    t: 'text-blue-600' },
-            { stat: '5 Min Setup',   label: 'Onboard your team and start tracking today',     c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
+            { stat: '₹21,700',       label: 'One-time setup · ₹4,800/yr maintenance',         c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
           ].map((item) => (
             <motion.div key={item.stat} variants={cardVariant}
               className={`border-2 ${item.c} rounded-2xl p-6`}
@@ -305,15 +310,19 @@ export default function LandingClient() {
           <motion.h2 variants={fadeUp} className="text-2xl sm:text-3xl font-extrabold text-white mb-4">
             Ready to run a tighter solar operation?
           </motion.h2>
-          <motion.p variants={fadeUp} className="text-blue-100 mb-8 text-sm sm:text-base max-w-xl mx-auto">
-            Join solar vendors replacing Excel chaos with a proper pipeline. Get set up in under 5 minutes.
-          </motion.p>
+          <motion.p variants={fadeUp} className="text-blue-100 mb-2 text-sm sm:text-base max-w-xl mx-auto">
+  One-time setup at ₹21,700 · Annual maintenance ₹4,800/yr
+</motion.p>
+<motion.p variants={fadeUp} className="text-blue-200 mb-8 text-xs max-w-xl mx-auto">
+  Includes onboarding, Google Sheets setup, and full pipeline access for your team.
+</motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/login"
-              className="bg-white text-blue-600 hover:bg-orange-50 hover:text-orange-600 font-bold px-8 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg"
-            >
-              Get Started Free <ArrowRight size={18} />
-            </Link>
+          <a href="https://wa.me/917999XXXXXX?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+  target="_blank" rel="noopener noreferrer"
+  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
+>
+  Contact Us <ArrowRight size={18} />
+</a>
             <Link href="/dashboard"
               className="border-2 border-white/60 text-white hover:bg-white/10 font-semibold px-8 py-3.5 rounded-xl text-base transition-all"
             >
