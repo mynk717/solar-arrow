@@ -1,5 +1,5 @@
 // public/sw.js
-const CACHE_NAME = 'solar-arrow-v1';
+const CACHE_NAME = 'solar-arrow-v2';
 const urlsToCache = [
   '/',
   '/dashboard',

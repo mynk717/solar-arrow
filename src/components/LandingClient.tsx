@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion, type Variants } from 'framer-motion';
@@ -73,27 +73,49 @@ const faqs = [
 // ── component ──────────────────────────────────────────────────
 export default function LandingClient() {
   const { status } = useSession();
-const router = useRouter();
+  const router = useRouter();
+  const [sessionTimedOut, setSessionTimedOut] = useState(false);
 
-useEffect(() => {
-  if (status === 'authenticated') router.replace('/dashboard');
-}, [status, router]);
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard');
+      return;
+    }
+    if (status === 'loading') {
+      const t = setTimeout(() => setSessionTimedOut(true), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [status, router]);
 
-// Show minimal loader while session is being checked or redirect is in progress
-if (status === 'loading' || status === 'authenticated') {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="flex flex-col items-center gap-3">
-        <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
-          <Zap className="text-white" size={24} />
+  // Authenticated — show redirect screen
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
+            <Zap className="text-white" size={24} />
+          </div>
+          <p className="text-sm text-gray-400 font-medium">Redirecting to dashboard...</p>
         </div>
-        <p className="text-sm text-gray-400 font-medium">
-          {status === 'authenticated' ? 'Redirecting to dashboard...' : 'Loading...'}
-        </p>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  // Still loading AND not timed out — show brief spinner
+  if (status === 'loading' && !sessionTimedOut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
+            <Zap className="text-white" size={24} />
+          </div>
+          <p className="text-sm text-gray-400 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // unauthenticated OR timed out → render landing page normally
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
 
