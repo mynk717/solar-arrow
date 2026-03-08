@@ -21,9 +21,9 @@ function LoginForm() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.push(callbackUrl);
+      router.replace(callbackUrl);
     }
-  }, [status, router, callbackUrl]);
+  }, [status, router, callbackUrl]);  
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -52,8 +52,14 @@ function LoginForm() {
         setError('Invalid email or password');
         setLoading(false);
       } else if (result?.ok) {
-        router.push(callbackUrl);
-      }
+        // Don't manually push — let useEffect handle it after session updates
+        // router.push fires before session cookie is set on mobile
+        // useEffect watching status === 'authenticated' will redirect correctly
+        // Add fallback timeout in case useEffect doesn't fire
+        setTimeout(() => {
+          router.push(callbackUrl);
+        }, 1000);
+      }      
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       setLoading(false);
