@@ -73,12 +73,27 @@ const faqs = [
 // ── component ──────────────────────────────────────────────────
 export default function LandingClient() {
   const { status } = useSession();
-  const router = useRouter();
+const router = useRouter();
 
-  useEffect(() => {
-    if (status === 'authenticated') router.replace('/dashboard');
-  }, [status, router]);
+useEffect(() => {
+  if (status === 'authenticated') router.replace('/dashboard');
+}, [status, router]);
 
+// Show minimal loader while session is being checked or redirect is in progress
+if (status === 'loading' || status === 'authenticated') {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
+          <Zap className="text-white" size={24} />
+        </div>
+        <p className="text-sm text-gray-400 font-medium">
+          {status === 'authenticated' ? 'Redirecting to dashboard...' : 'Loading...'}
+        </p>
+      </div>
+    </div>
+  );
+}
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
 
