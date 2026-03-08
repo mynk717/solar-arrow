@@ -149,6 +149,62 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+      <script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{
+    __html: JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Solar Arrow",
+      "alternateName": "Solar Arrow – CSPDCL Solar Panel Management System",
+      "url": "https://sa.mktgdime.com/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web, Android (PWA), iOS (PWA)",
+      "inLanguage": "en-IN",
+      "description": "Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies. It manages CSPDCL rooftop solar projects end-to-end: enquiry capture, survey scheduling, quotation building, installation tracking, CSPDCL compliance, and Telegram notifications.",
+      "featureList": [
+        "Solar CRM with lead and enquiry pipeline",
+        "CSPDCL rooftop solar project management",
+        "Survey scheduling and field data capture",
+        "Quotation builder with QR code and public URL",
+        "Installation workflow tracking and milestones",
+        "CSPDCL liaison and compliance module",
+        "Telegram bot notifications per user and group",
+        "Role-based dynamic dashboard",
+        "Multi-tenant architecture",
+        "Progressive Web App (Android + iOS)"
+      ],
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "One-Time Implementation (OTC)",
+          "price": "21700.00",
+          "priceCurrency": "INR",
+          "description": "Full platform access, onboarding, Google Sheets setup. One-time ownership, no monthly fee.",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "Annual Maintenance Contract (AMC)",
+          "price": "4800.00",
+          "priceCurrency": "INR",
+          "description": "Annual updates, support, and maintenance."
+        }
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "Marketing Dime",
+        "url": "https://mktgdime.com",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Raipur",
+          "addressRegion": "Chhattisgarh",
+          "addressCountry": "IN"
+        }
+      }
+    })
+  }}
+/>
         {/* Additional PWA meta tags */}
         <link rel="apple-touch-icon" href="/ios/180.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -118,7 +118,26 @@ export default function LandingClient() {
   // unauthenticated OR timed out → render landing page normally
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
-
+{/* SEO-visible static section — always rendered, no session dependency */}
+<section aria-label="Solar Arrow Overview" className="sr-only">
+      <h1>Solar Arrow — Solar CRM & CSPDCL Project Management Software</h1>
+      <p>
+        Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies.
+        Manage CSPDCL rooftop solar projects — leads, surveys, quotations, installations,
+        and compliance — in one dashboard. One-time cost ₹21,700. AMC ₹4,800/yr.
+        Built for solar businesses in Raipur, Chhattisgarh and across India.
+      </p>
+      <ul>
+        <li>Solar CRM India — track leads and follow-ups</li>
+        <li>CSPDCL compliance and liaison document management</li>
+        <li>Solar quotation builder with QR code sharing</li>
+        <li>Survey scheduling and field data capture</li>
+        <li>Installation tracking from dispatch to commissioning</li>
+        <li>Telegram bot notifications for your team</li>
+        <li>Role-based access: Admin, Sales, Engineer, Finance</li>
+        <li>Progressive Web App — works on Android and iOS</li>
+      </ul>
+    </section>
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
