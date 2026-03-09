@@ -16,6 +16,7 @@ const publicRoutes = [
   '/q',
   '/api/quotations/view',    // ← public API — no auth needed
   '/api/quotations/approve',
+  '/google4b566dcd00eccdcc.html',
 ];
 
 const alwaysAllowedRoutes = [
@@ -127,6 +128,6 @@ if (isAlwaysAllowed(path)) {
 export const config = {
   matcher: [
     // Match all routes except static files and images
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp|.*\\.html).*)',
   ]
 };
