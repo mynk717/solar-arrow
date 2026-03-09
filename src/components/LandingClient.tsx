@@ -75,6 +75,8 @@ export default function LandingClient() {
   const { status } = useSession();
   const router = useRouter();
   const [sessionTimedOut, setSessionTimedOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -167,47 +169,85 @@ export default function LandingClient() {
         <li>Progressive Web App — works on Android and iOS</li>
       </ul>
     </section>
-      {/* ── NAVBAR ── */}
-<nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
-  <div className="flex items-center gap-2">
-    <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
-      <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
+    // src/components/LandingClient.tsx
+// Replace the entire navbar section with this:
+
+{/* ── NAVBAR ── */}
+<nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
+  <div className="px-4 sm:px-8 py-3 flex items-center justify-between">
+    {/* Logo */}
+    <div className="flex items-center gap-2">
+      <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
+        <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
+      </div>
+      <span className="text-lg font-extrabold text-gray-900">
+        Solar <span className="text-orange-500">Arrow</span>
+      </span>
     </div>
-    <span className="text-lg font-extrabold text-gray-900">
-      Solar <span className="text-orange-500">Arrow</span>
-    </span>
+
+    {/* Right side */}
+    <div className="flex items-center gap-2">
+      {/* Desktop links */}
+      <div className="hidden sm:flex items-center gap-1">
+        <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Features</Link>
+        <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Pricing</Link>
+        <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+          target="_blank" rel="noopener noreferrer"
+          className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">Contact</a>
+        <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Login</Link>
+      </div>
+
+      {/* CTA — always visible */}
+      <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
+        Get Started
+      </Link>
+
+      {/* Mobile hamburger — AFTER Get Started */}
+      <button
+        className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        onClick={() => setMobileMenuOpen(prev => !prev)}
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? (
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
+    </div>
   </div>
-  <div className="flex items-center gap-1 sm:gap-3">
-    {/* Mobile-only hamburger */}
-    <button className="sm:hidden p-1">
-      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
-    
-    {/* Desktop nav + mobile CTA */}
-    <div className="hidden sm:flex items-center gap-2">
-      <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+
+  {/* Mobile dropdown menu */}
+  {mobileMenuOpen && (
+    <div className="sm:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
+      <Link href="/features" onClick={() => setMobileMenuOpen(false)}
+        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
         Features
       </Link>
-      <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+      <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}
+        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
         Pricing
       </Link>
-      <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow" 
+      <Link href="/demo" onClick={() => setMobileMenuOpen(false)}
+        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
+        Request Demo
+      </Link>
+      <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
         target="_blank" rel="noopener noreferrer"
-        className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">
+        onClick={() => setMobileMenuOpen(false)}
+        className="text-sm font-medium text-gray-700 hover:text-green-600 py-2.5 border-b border-gray-50 transition-colors">
         Contact
       </a>
-      <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+      <Link href="/login" onClick={() => setMobileMenuOpen(false)}
+        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 transition-colors">
         Login
       </Link>
     </div>
-    
-    {/* CTA button — always visible */}
-    <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
-      Get Started
-    </Link>
-  </div>
+  )}
 </nav>
 
       {/* ── HERO ── */}

@@ -131,6 +131,6 @@ if (isAlwaysAllowed(path)) {
 export const config = {
   matcher: [
     // Match all routes except static files and images
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp|.*\\.html).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.json|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp|.*\\.html).*)',
   ]
 };
