@@ -3,8 +3,8 @@
     {
       "source": "/google4b566dcd00eccdcc.html",
       "headers": [
-        { "key": "Content-Type", "value": "text/html; charset=utf-8" },
-        { "key": "Cache-Control", "value": "no-cache" }
+        { "key": "Content-Type", "value": "text/plain" },
+        { "key": "Cache-Control", "value": "no-store" }
       ]
     }
   ]
