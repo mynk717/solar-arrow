@@ -17,6 +17,9 @@ const publicRoutes = [
   '/api/quotations/view',    // ← public API — no auth needed
   '/api/quotations/approve',
   '/google4b566dcd00eccdcc.html',
+  '/features',    
+  '/pricing',     
+  '/demo',  
 ];
 
 const alwaysAllowedRoutes = [
