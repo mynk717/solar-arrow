@@ -178,7 +178,13 @@ export default function LandingClient() {
           </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-  <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow" 
+  <Link href="/features" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+    Features
+  </Link>
+  <Link href="/pricing" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+    Pricing
+  </Link>
+  <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
     target="_blank" rel="noopener noreferrer"
     className="hidden sm:block text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">
     Contact

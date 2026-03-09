@@ -8,7 +8,7 @@ import BottomNav from '@/components/BottomNav';
 import PWAInstaller from '@/components/PWAInstaller';
 
 // Exact paths — no sidebar/shell
-const PUBLIC_EXACT = ['/', '/login', '/onboard'];
+const PUBLIC_EXACT = ['/', '/login', '/onboard', '/features', '/pricing', '/demo'];
 
 // Prefix paths — no sidebar for these and all their sub-routes
 const PUBLIC_PREFIXES = ['/q/', '/privacy', '/terms', '/unauthorized'];
