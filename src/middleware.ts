@@ -32,7 +32,7 @@ const alwaysAllowedRoutes = [
 // Admin-only routes
 const adminOnlyRoutes = [
   '/admin',
-  '/admin/users',
+'/admin/users/:path*',  // Allow /admin/users/[email] for admins too
   '/admin/roles',
   '/admin/branches',
 ];

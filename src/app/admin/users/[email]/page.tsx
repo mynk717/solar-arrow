@@ -269,10 +269,7 @@ export default function UserProfilePage() {
 
   // Guard: admin/owner only
   const isAdminOrOwner =
-    session?.user?.accountType === 'admin' ||
-    session?.user?.accountType === 'owner' ||
-    session?.user?.role === 'admin' ||
-    session?.user?.role === 'owner';
+  session?.user?.role === 'admin' || session?.user?.role === 'owner';
 
   const fetchData = useCallback(async () => {
     try {
