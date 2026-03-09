@@ -168,35 +168,47 @@ export default function LandingClient() {
       </ul>
     </section>
       {/* ── NAVBAR ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
-            <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
-          </div>
-          <span className="text-lg font-extrabold text-gray-900">
-            Solar <span className="text-orange-500">Arrow</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-  <Link href="/features" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
-    Features
-  </Link>
-  <Link href="/pricing" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
-    Pricing
-  </Link>
-  <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
-    target="_blank" rel="noopener noreferrer"
-    className="hidden sm:block text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">
-    Contact
-  </a>
-  <Link href="/login" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
-    Login
-  </Link>
-  <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
-    Get Started
-  </Link>
-</div>
-      </nav>
+<nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
+  <div className="flex items-center gap-2">
+    <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
+      <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
+    </div>
+    <span className="text-lg font-extrabold text-gray-900">
+      Solar <span className="text-orange-500">Arrow</span>
+    </span>
+  </div>
+  <div className="flex items-center gap-1 sm:gap-3">
+    {/* Mobile-only hamburger */}
+    <button className="sm:hidden p-1">
+      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+    
+    {/* Desktop nav + mobile CTA */}
+    <div className="hidden sm:flex items-center gap-2">
+      <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+        Features
+      </Link>
+      <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+        Pricing
+      </Link>
+      <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow" 
+        target="_blank" rel="noopener noreferrer"
+        className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">
+        Contact
+      </a>
+      <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">
+        Login
+      </Link>
+    </div>
+    
+    {/* CTA button — always visible */}
+    <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
+      Get Started
+    </Link>
+  </div>
+</nav>
 
       {/* ── HERO ── */}
       <section className="pt-24 pb-14 sm:pt-36 sm:pb-20 px-4 sm:px-8 max-w-5xl mx-auto text-center">
