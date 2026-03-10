@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateSurvey, updateEnquiryInSheet, fetchEnquiryById, fetchSurveyByEnquiryId, updateLead } from '@/lib/googleSheets';
+import { updateSurvey, updateEnquiry, fetchEnquiryById, fetchSurveyByEnquiryId, updateLead } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 
 async function sendTelegramNotification(enquiry: any, approved: boolean, reason?: string) {
@@ -83,22 +83,17 @@ await updateSurvey(
 );
 
 
-    // Update enquiry
-    if (approved) {
-      await updateEnquiryInSheet(enquiryId, {
-        surveyApproved: true,
-        status: 'survey-approved',
-      });
-    } else {
-      await updateEnquiryInSheet(enquiryId, {
-        surveyApproved: false,
-        status: 'survey-rejected',
-        surveyRejectedReason: rejectionReason || '',
-      });
-    }
+    // ✅ Replace with
+const enquiry = await fetchEnquiryById(enquiryId);
+if (!enquiry) throw new Error('Enquiry not found');
 
-        // Get enquiry for notification + lead backpropagation
-        const enquiry = await fetchEnquiryById(enquiryId);
+await updateEnquiry({
+  ...enquiry,
+  surveyApproved: approved,
+  status: approved ? 'survey-approved' : 'survey-rejected',
+  ...((!approved) && { surveyRejectedReason: rejectionReason || '' }),
+  updatedAt: new Date(),
+});
 
         if (enquiry) {
           // ✅ Backpropagate status to parent lead if linked

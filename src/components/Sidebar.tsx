@@ -267,8 +267,7 @@ const navigation = ALL_NAV.filter(item => {
 )}
           {/* Admin-only Project Tracker Link */}
           {/* Admin-only Links */}
-{(session?.user?.accountType === 'admin' && 
-  (session?.user?.role === 'admin' || session?.user?.role === 'owner')) && (
+          {isAdminOrOwner && (
   <div className="border-t border-blue-500 mt-2">
     <Link
       href="/admin/users"
@@ -331,27 +330,7 @@ const navigation = ALL_NAV.filter(item => {
       <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
         Admin
       </span>
-    </Link>
-    <Link
-  href="/reports"
-  className={`
-    flex items-center gap-3 px-6 py-3.5 
-    transition-all duration-200
-    touch-manipulation
-    active:scale-98
-    ${
-      pathname === '/reports'
-        ? 'bg-blue-700 border-l-4 border-white font-semibold'
-        : 'hover:bg-blue-700/50 active:bg-blue-700/70'
-    }
-  `}
->
-  <BarChart2 size={20} className="flex-shrink-0" />
-  <span className="text-sm">Reports</span>
-  <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
-    Admin
-  </span>
-</Link>
+    </Link>git
   </div>
 )}
         </nav>

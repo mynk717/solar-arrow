@@ -19,22 +19,28 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace(callbackUrl);
-    }
-  }, [status, router, callbackUrl]);  
+  // ✅ Replace with
+useEffect(() => {
+  if (status === 'authenticated') {
+    setLoading(false);
+    router.replace(callbackUrl);
+  }
+}, [status, router, callbackUrl]);
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await signIn('google', { callbackUrl, redirect: true });
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
-      setLoading(false);
-    }
-  };
+  // ✅ Replace with
+const handleGoogleSignIn = async () => {
+  setLoading(true);
+  setError('');
+  try {
+    await signIn('google', { callbackUrl, redirect: true });
+  } catch (err: any) {
+    setError(err.message || 'Failed to sign in with Google');
+    setLoading(false);
+  } finally {
+    // Safety: if OAuth popup is cancelled or blocked, re-enable button
+    setLoading(false);
+  }
+};
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,15 +57,10 @@ function LoginForm() {
       if (result?.error) {
         setError('Invalid email or password');
         setLoading(false);
-      } else if (result?.ok) {
-        // Don't manually push — let useEffect handle it after session updates
-        // router.push fires before session cookie is set on mobile
-        // useEffect watching status === 'authenticated' will redirect correctly
-        // Add fallback timeout in case useEffect doesn't fire
-        setTimeout(() => {
-          router.push(callbackUrl);
-        }, 1000);
-      }      
+      // ✅ Replace with
+} else if (result?.ok) {
+  router.replace(callbackUrl);
+}
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       setLoading(false);
