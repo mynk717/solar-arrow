@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
+import { TourLauncher } from '@/components/TourLauncher';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Enquiry = {
@@ -420,6 +422,7 @@ export default function DashboardPage() {
               </span>
             )}
           </p>
+          <TourLauncher />
         </div>
 
         {/* ── KPI Cards ── */}
