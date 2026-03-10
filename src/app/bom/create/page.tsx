@@ -210,102 +210,189 @@ function MaterialRowEditor({
     onUpdate(item.id, { spec });
   };
 
+  const selectClass = "w-full appearance-none px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none";
+  const disabledSelectClass = "w-full appearance-none px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-400 outline-none";
+
   return (
-    <tr className="group hover:bg-blue-50/30 transition-colors border-t border-slate-100">
-      {/* # */}
-      <td className="px-3 py-3 text-center">
-        <span className="text-sm font-bold text-slate-400">{index + 1}</span>
-      </td>
+    <>
+      {/* ── Mobile Card (< lg) ── */}
+      <tr className="lg:hidden border-t border-slate-100">
+        <td colSpan={8} className="p-3">
+          <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-200">
 
-      {/* Category */}
-      <td className="px-3 py-3">
-        <div className="relative">
-          <select
-            value={item.category}
-            onChange={e => handleCategory(e.target.value)}
-            className="w-full appearance-none px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none"
+            {/* Header row: item number + delete */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                # {index + 1}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemove(item.id)}
+                className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+
+            {/* Category + Particular */}
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={item.category}
+                onChange={e => handleCategory(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Category</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+
+              <select
+                value={item.particular}
+                onChange={e => handleParticular(e.target.value)}
+                disabled={!item.category}
+                className={item.category ? selectClass : disabledSelectClass}
+              >
+                <option value="">Item</option>
+                {particulars.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Spec + UOM badge + Qty */}
+            <div className="grid grid-cols-3 gap-2">
+              <select
+                value={item.spec}
+                onChange={e => handleSpec(e.target.value)}
+                disabled={!item.particular}
+                className={item.particular ? selectClass : disabledSelectClass}
+              >
+                <option value="">Spec</option>
+                {specs.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+
+              <div className="flex items-center justify-center">
+                <span className="text-xs font-bold text-slate-500 uppercase bg-white border border-slate-200 px-2 py-1.5 rounded-lg w-full text-center">
+                  {item.uom || '—'}
+                </span>
+              </div>
+
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={item.qty}
+                onChange={e => onUpdate(item.id, { qty: parseFloat(e.target.value) || 0 })}
+                className="w-full p-2 text-center border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+            </div>
+
+            {/* Remarks */}
+            <input
+              type="text"
+              value={item.remarks}
+              onChange={e => onUpdate(item.id, { remarks: e.target.value })}
+              placeholder="Remarks (optional)"
+              className="w-full p-2 border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
+            />
+          </div>
+        </td>
+      </tr>
+
+      {/* ── Desktop Row (lg+) ── */}
+      <tr className="hidden lg:table-row group hover:bg-blue-50/30 transition-colors border-t border-slate-100">
+        {/* # */}
+        <td className="px-3 py-3 text-center">
+          <span className="text-sm font-bold text-slate-400">{index + 1}</span>
+        </td>
+
+        {/* Category */}
+        <td className="px-3 py-3">
+          <div className="relative">
+            <select
+              value={item.category}
+              onChange={e => handleCategory(e.target.value)}
+              className={selectClass}
+            >
+              <option value="">-- Category --</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
+          </div>
+        </td>
+
+        {/* Particular */}
+        <td className="px-3 py-3">
+          <div className="relative">
+            <select
+              value={item.particular}
+              onChange={e => handleParticular(e.target.value)}
+              disabled={!item.category}
+              className={`${item.category ? selectClass : disabledSelectClass}`}
+            >
+              <option value="">-- Item --</option>
+              {particulars.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
+          </div>
+        </td>
+
+        {/* Spec */}
+        <td className="px-3 py-3">
+          <div className="relative">
+            <select
+              value={item.spec}
+              onChange={e => handleSpec(e.target.value)}
+              disabled={!item.particular}
+              className={`${item.particular ? selectClass : disabledSelectClass}`}
+            >
+              <option value="">-- Spec --</option>
+              {specs.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
+          </div>
+        </td>
+
+        {/* UOM */}
+        <td className="px-3 py-3 text-center">
+          <span className="text-xs font-bold text-slate-500 uppercase bg-slate-100 px-3 py-1.5 rounded-lg">
+            {item.uom || '—'}
+          </span>
+        </td>
+
+        {/* Qty */}
+        <td className="px-3 py-3 text-center">
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            value={item.qty}
+            onChange={e => onUpdate(item.id, { qty: parseFloat(e.target.value) || 0 })}
+            className="w-20 p-2 text-center border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-slate-900"
+          />
+        </td>
+
+        {/* Remarks */}
+        <td className="px-3 py-3">
+          <input
+            type="text"
+            value={item.remarks}
+            onChange={e => onUpdate(item.id, { remarks: e.target.value })}
+            placeholder="Optional"
+            className="w-full p-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:ring-2 focus:ring-blue-400 outline-none"
+          />
+        </td>
+
+        {/* Delete */}
+        <td className="px-3 py-3 text-right">
+          <button
+            type="button"
+            onClick={() => onRemove(item.id)}
+            className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+            title="Remove"
           >
-            <option value="">-- Category --</option>
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
-        </div>
-      </td>
-
-      {/* Particular */}
-      <td className="px-3 py-3">
-        <div className="relative">
-          <select
-            value={item.particular}
-            onChange={e => handleParticular(e.target.value)}
-            disabled={!item.category}
-            className="w-full appearance-none px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            <option value="">-- Item --</option>
-            {particulars.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
-        </div>
-      </td>
-
-      {/* Spec */}
-      <td className="px-3 py-3">
-        <div className="relative">
-          <select
-            value={item.spec}
-            onChange={e => handleSpec(e.target.value)}
-            disabled={!item.particular}
-            className="w-full appearance-none px-3 py-2 pr-8 border border-slate-200 rounded-lg text-sm text-slate-900 bg-white focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none disabled:bg-slate-100 disabled:text-slate-400"
-          >
-            <option value="">-- Spec --</option>
-            {specs.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <ChevronDown size={14} className="absolute right-2 top-3 text-slate-400 pointer-events-none" />
-        </div>
-      </td>
-
-      {/* UOM */}
-      <td className="px-3 py-3 text-center">
-        <span className="text-xs font-bold text-slate-500 uppercase bg-slate-100 px-3 py-1.5 rounded-lg">
-          {item.uom || '—'}
-        </span>
-      </td>
-
-      {/* Qty */}
-      <td className="px-3 py-3 text-center">
-        <input
-          type="number"
-          step="0.1"
-          min="0"
-          value={item.qty}
-          onChange={e => onUpdate(item.id, { qty: parseFloat(e.target.value) || 0 })}
-          className="w-20 p-2 text-center border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm text-slate-900"
-        />
-      </td>
-
-      {/* Remarks */}
-      <td className="px-3 py-3">
-        <input
-          type="text"
-          value={item.remarks}
-          onChange={e => onUpdate(item.id, { remarks: e.target.value })}
-          placeholder="Optional"
-          className="w-full p-2 rounded-lg border border-slate-200 text-sm text-slate-900 focus:ring-2 focus:ring-blue-400 outline-none"
-        />
-      </td>
-
-      {/* Delete */}
-      <td className="px-3 py-3 text-right">
-        <button
-          type="button"
-          onClick={() => onRemove(item.id)}
-          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-          title="Remove"
-        >
-          <Trash2 size={16} />
-        </button>
-      </td>
-    </tr>
+            <Trash2 size={16} />
+          </button>
+        </td>
+      </tr>
+    </>
   );
 }
 
@@ -528,7 +615,7 @@ export default function CreateBOMPage() {
                   {materials.length} items
                 </span>
               </h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={importTemplate}
@@ -548,8 +635,8 @@ export default function CreateBOMPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[900px]">
-                <thead className="bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold border-b-2 border-slate-300">
+            <table className="w-full text-left lg:min-w-[900px]">
+            <thead className="hidden lg:table-header-group bg-slate-100 text-slate-700 text-xs uppercase tracking-wider font-bold border-b-2 border-slate-300">
                   <tr>
                     <th className="px-3 py-3 w-10 text-center">#</th>
                     <th className="px-3 py-3 w-44">Category</th>
@@ -585,8 +672,8 @@ export default function CreateBOMPage() {
           </div>
 
           {/* Submit */}
-          <div className="flex gap-4">
-            <button
+          <div className="flex flex-col sm:flex-row gap-4">
+          <button
               type="submit"
               disabled={loading || !selectedEnquiry || materials.length === 0}
               className="flex-1 bg-blue-600 text-white py-4 rounded-xl hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold shadow-lg transition-all"
@@ -598,7 +685,7 @@ export default function CreateBOMPage() {
             <button
               type="button"
               onClick={() => router.push('/bom')}
-              className="px-8 bg-slate-200 text-slate-700 py-4 rounded-xl hover:bg-slate-300 font-semibold"
+              className="sm:px-8 bg-slate-200 w-full sm:w-auto text-slate-700 py-4 rounded-xl hover:bg-slate-300 font-semibold"
             >
               Cancel
             </button>

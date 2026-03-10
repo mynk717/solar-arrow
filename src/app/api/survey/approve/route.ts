@@ -51,7 +51,12 @@ Survey has been approved and quotation can now be generated.
     console.error('Telegram notification failed:', error);
   }
 }
-
+function toDate(val: any): Date | undefined {
+  if (!val) return undefined;
+  if (val instanceof Date) return val;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? undefined : d;
+}
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -83,30 +88,39 @@ await updateSurvey(
 );
 
 
-    // ✅ Replace with
+   
 const enquiry = await fetchEnquiryById(enquiryId);
 if (!enquiry) throw new Error('Enquiry not found');
 
 await updateEnquiry({
   ...enquiry,
+  // Rehydrate all date fields from cache strings → Date objects
+  createdAt: toDate(enquiry.createdAt) ?? new Date(),
+  updatedAt: new Date(),
+  surveyDate: toDate(enquiry.surveyDate),
+  surveyScheduledDate: toDate(enquiry.surveyScheduledDate),
+  surveyCompletedDate: toDate(enquiry.surveyCompletedDate),
+  loanApplicationDate: toDate(enquiry.loanApplicationDate),
+  loanSanctionDate: toDate(enquiry.loanSanctionDate),
+  paymentDate: toDate(enquiry.paymentDate),
+  lastEditedAt: toDate(enquiry.lastEditedAt),
+  lastFollowupDate: toDate(enquiry.lastFollowupDate),
+  nextActionDate: toDate(enquiry.nextActionDate),
+  // Actual updates
   surveyApproved: approved,
   status: approved ? 'survey-approved' : 'survey-rejected',
-  ...((!approved) && { surveyRejectedReason: rejectionReason || '' }),
-  updatedAt: new Date(),
+  ...(!approved && { surveyRejectedReason: rejectionReason || '' }),
 });
 
-        if (enquiry) {
-          // ✅ Backpropagate status to parent lead if linked
-          if (enquiry.leadId) {
-            const orgId = (session.user as any).organizationId || 'default-org';
-            await updateLead(orgId, enquiry.leadId, approved ? 'Survey Approved' : 'Survey Rejected');
-            // Invalidate leads cache so list reflects new status
-            await redis.del(`org:${orgId}:leads`);
-            console.log(`✅ Lead ${enquiry.leadId} status synced → ${approved ? 'Survey Approved' : 'Survey Rejected'}`);
-          }
-    
-          await sendTelegramNotification(enquiry, approved, rejectionReason);
-        }
+        // ✅ Replace with — remove the if wrapper
+if (enquiry.leadId) {
+  const orgId = (session.user as any).organizationId || 'default-org';
+  await updateLead(orgId, enquiry.leadId, approved ? 'Survey Approved' : 'Survey Rejected');
+  await redis.del(`org:${orgId}:leads`);
+  console.log(`✅ Lead ${enquiry.leadId} status synced → ${approved ? 'Survey Approved' : 'Survey Rejected'}`);
+}
+
+await sendTelegramNotification(enquiry, approved, rejectionReason);
     
 
     return NextResponse.json({
