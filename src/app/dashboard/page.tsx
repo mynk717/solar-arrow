@@ -524,7 +524,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                 else { badge = '🔺 High'; badgeColor = 'bg-blue-100 text-blue-700'; }
 
                 return (
-                  <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                  <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition min-w-0 overflow-hidden">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-gray-900 text-sm truncate">{e.customerName}</span>
@@ -534,7 +534,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
-                        {isBlocked && <span className="text-xs text-red-600">{e.blockedReason}</span>}
+                        {isBlocked && <span className="text-xs text-red-600 truncate max-w-[120px] block">{e.blockedReason}</span>}
                         {isOverdue && e.nextActionDate && (
                           <span className="text-xs text-orange-600">
                             Due {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
@@ -549,7 +549,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end max-w-[100px]">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                     {/* Poke button */}
                       {e.allottedUser && e.allottedUser !== email && (
                         <button
@@ -650,17 +650,17 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
       </span>
     </h2>
     <div className="space-y-2">
-      {followups.map(fu => (
-        <div key={fu.followupId}
-          className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-transparent hover:border-gray-200 cursor-pointer transition"
-          onClick={() => router.push(`/enquiries/${fu.enquiryId}`)}
+    {followups.map(fu => (
+  <div key={fu.followupId}
+    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-transparent hover:border-gray-200 cursor-pointer transition min-w-0 overflow-hidden"
+    onClick={() => router.push(`/enquiries/${fu.enquiryId}`)}
         >
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900 text-sm">{fu.enquiryId}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{fu.followupType}</span>
-              {fu.outcome && <span className="text-xs text-gray-400">{fu.outcome}</span>}
-            </div>
+          <div className="flex items-center gap-2 flex-wrap">
+  <span className="font-semibold text-gray-900 text-sm">{fu.enquiryId}</span>
+  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold truncate max-w-[100px]">{fu.followupType}</span>
+  {fu.outcome && <span className="text-xs text-gray-400 truncate max-w-[80px]">{fu.outcome}</span>}
+</div>
             <p className="text-xs text-gray-500 mt-0.5 truncate">{fu.followupNotes}</p>
             {fu.nextFollowupDate && (
               <p className="text-xs text-orange-600 font-semibold mt-0.5">
