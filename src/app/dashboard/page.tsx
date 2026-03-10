@@ -338,8 +338,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
       <DemoBanner />
 
       {/* ── Notification Bell (fixed top-right) ── */}
-      <div className="fixed top-4 right-4 z-40">
-        <button
+      <div className="fixed top-[3.75rem] right-4 z-40 lg:top-4">
+      <button
           onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markPokesRead(); }}
           className="relative bg-white border border-gray-200 shadow-md p-2.5 rounded-xl hover:bg-gray-50 transition"
         >
@@ -406,8 +406,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         )}
       </div>
 
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto pt-16 sm:pt-6">
-
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto pt-16 lg:pt-6">
         {/* ── Header ── */}
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -460,11 +459,11 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
           <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <TrendingUp size={16} className="text-blue-500" />
             Installation Pipeline
-            <span className="ml-auto text-xs font-normal text-gray-400">Each stage is mutually exclusive</span>
+            <span className="ml-auto text-xs font-normal text-gray-400 hidden sm:inline">Each stage is mutually exclusive</span>
           </h2>
 
           {/* Row 1 — Pre-installation (7 stages) */}
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-2">
             <PipelineStage name="Leads"       count={stats.leads}           icon={PhoneCall}     color="blue"   href="/leads" />
             <PipelineStage name="New"         count={stats.new}             icon={FileText}      color="indigo" href="/enquiries" />
             <PipelineStage name="Survey ⏳"   count={stats.surveyPending}   icon={ClipboardCheck} color="purple" href="/survey" />
@@ -475,7 +474,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
           </div>
 
           {/* Row 2 — Supporting stages */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             <PipelineStage name="Quotation"    count={enquiries.filter(e => e.quotationDate).length}                                               icon={FileCheck}   color="pink"    href="/quotation" />
             <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}           icon={Scale}       color="yellow"  href="/registration" />
             <PipelineStage name="BOM"          count={stats.bom ?? 0}              icon={Package}     color="cyan"    href="/bom" />
@@ -550,8 +549,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {/* Poke button */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end max-w-[100px]">
+                    {/* Poke button */}
                       {e.allottedUser && e.allottedUser !== email && (
                         <button
                           onClick={() => {
@@ -883,8 +882,8 @@ function PokeModal({ target, senderName, onSend, onClose }: {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 animate-pulse p-4 max-w-7xl mx-auto pt-16">
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
+<div className="min-h-screen bg-gray-50 animate-pulse p-4 max-w-7xl mx-auto pt-16 lg:pt-6">
+<div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
       <div className="h-4 bg-gray-100 rounded w-1/3 mb-6" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[1,2,3,4].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100" />)}
