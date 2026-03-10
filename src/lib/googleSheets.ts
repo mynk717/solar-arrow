@@ -2173,19 +2173,9 @@ export async function createSurvey(
   survey: Survey
 ): Promise<void> {
   try {
-    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
-    if (!orgInfo?.sheetId) {
-      throw new Error("No sheet configured");
-    }
-    
-    const accessToken = await getValidAccessToken(orgId, userEmail);
-    if (!accessToken) {
-      throw new Error("No valid access token");
-    }
+    const sheets = await getSheets();
+const orgInfo = { sheetId: await getSheetId() };
 
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
-    const sheets = google.sheets({ version: 'v4', auth });
 
     const row = surveyToRow(survey);
     
@@ -2211,19 +2201,8 @@ export async function updateSurvey(
   updates: Partial<Survey>
 ): Promise<void> {
   try {
-    const orgInfo = await redis.get(`org:${orgId}:info`) as any;
-    if (!orgInfo?.sheetId) {
-      throw new Error("No sheet configured");
-    }
-    
-    const accessToken = await getValidAccessToken(orgId, userEmail);
-    if (!accessToken) {
-      throw new Error("No valid access token");
-    }
-
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
-    const sheets = google.sheets({ version: 'v4', auth });
+    const sheets = await getSheets();
+const orgInfo = { sheetId: await getSheetId() };
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: orgInfo.sheetId,
