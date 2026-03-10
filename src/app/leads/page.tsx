@@ -214,7 +214,7 @@ return (
     )}
 
     {/* Header */}
-            <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div  data-tour="leads-header" className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   Lead Management {isDemoMode && <span className="text-blue-600">(Demo)</span>}
@@ -228,7 +228,7 @@ return (
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               {canAssign && (
   <>
-    <button
+    <button data-tour="leads-auto-assign"
       onClick={handleAutoAssign}
       disabled={autoAssigning}
       className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 touch-manipulation"
@@ -236,7 +236,7 @@ return (
       <RefreshCw size={20} className={autoAssigning ? 'animate-spin' : ''} />
       Auto-Assign
     </button>
-    <button
+    <button data-tour="leads-assign-btn"
       onClick={() => setShowAssignModal(true)}
       disabled={selectedLeads.length === 0}
       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 touch-manipulation"
@@ -256,7 +256,7 @@ return (
                   </button>
                 )}
 
-                <button
+                <button data-tour="leads-add-btn"
                   onClick={() => setShowAddModal(true)}
                   disabled={isDemoMode}
                   className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
@@ -268,7 +268,7 @@ return (
             </div>
 
             {/* Funnel Metrics */}
-            <LeadFunnelView metrics={metrics} leads={rawLeads} />
+            <div data-tour="leads-funnel"><LeadFunnelView metrics={metrics} leads={rawLeads} /></div>
 
             {/* View Switcher */}
             <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
@@ -305,7 +305,7 @@ return (
             </div>
 
             {/* Filters */}
-<div className="bg-white rounded-lg shadow-md p-4 mb-6">
+<div data-tour="leads-filters" className="bg-white rounded-lg shadow-md p-4 mb-6">
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div className="relative">
       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />

@@ -338,7 +338,7 @@ export default function DashboardPage() {
       <DemoBanner />
 
       {/* ── Notification Bell (fixed top-right) ── */}
-      <div className="fixed top-[3.75rem] right-4 z-40 lg:top-4">
+      <div data-tour="bell" className="fixed top-[3.75rem] right-4 z-40 lg:top-4">
         <button
           onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markPokesRead(); }}
           className="relative bg-white border border-gray-200 shadow-md p-2.5 rounded-xl hover:bg-gray-50 transition"
@@ -425,16 +425,16 @@ export default function DashboardPage() {
         {/* ── KPI Cards ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {canSee('/leads') && (
-            <MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
+            <div data-tour="kpi-leads"><MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" /></div>
           )}
           {canSee('/enquiries') && (
-            <MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" />
+           <div data-tour="kpi-enquiries"><MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" /></div>
           )}
           {isAdminOrOwner && (
-            <MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" />
+            <div data-tour="kpi-live"><MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" /></div>
           )}
           {isAdminOrOwner && (
-            <MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" />
+            <div data-tour="kpi-value"><MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" /></div>
           )}
         </div>
 
@@ -442,7 +442,7 @@ export default function DashboardPage() {
         {/* ── Blocked Warning Banner ── */}
         {isAdminOrOwner && stats.blocked > 0 && (
           <div
-            className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 cursor-pointer hover:bg-red-100 transition"
+          data-tour="blocked-banner" className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 cursor-pointer hover:bg-red-100 transition"
             onClick={() => router.push('/enquiries?filter=blocked')}
           >
             <ShieldAlert size={18} className="text-red-600 flex-shrink-0" />
@@ -455,7 +455,7 @@ export default function DashboardPage() {
 
         {/* ── Installation Pipeline ── */}
         {isAdminOrOwner && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+          <div data-tour="pipeline" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
               <TrendingUp size={16} className="text-blue-500" />
               Installation Pipeline
@@ -489,7 +489,7 @@ export default function DashboardPage() {
         {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
         
         { isAdminOrOwner && (loading || priorityEnquiries.length > 0) && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+          <div data-tour="priority-actions" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
               className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
               onClick={() => toggle('priorityActions')}
@@ -581,7 +581,7 @@ export default function DashboardPage() {
 
         {/* ── MY TASKS (all roles) ── */}
         { (loading || myTasks.length > 0) && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+          <div data-tour="my-tasks" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
               className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
               onClick={() => toggle('myTasks')}
@@ -640,7 +640,7 @@ export default function DashboardPage() {
         )}
         {/* ── My Follow-ups ── */}
         {followups.length > 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 overflow-hidden">
+          <div data-tour="followups" className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 overflow-hidden">
             <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
               <PhoneCall size={16} className="text-green-500" />
               Pending Follow-ups
@@ -728,7 +728,7 @@ export default function DashboardPage() {
           );
           if (pendingApprovals.length === 0) return null;
           return (
-            <div className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-6">
+            <div data-tour="surveys-approval" className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-6">
               <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <ClipboardCheck size={16} className="text-yellow-500" />
                 Surveys Awaiting Approval
@@ -763,7 +763,7 @@ export default function DashboardPage() {
         })()}
 
         {/* ── Quick Actions ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div data-tour="quick-actions" className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           {canSee('/leads') && (
             <QuickActionCard title="Add New Lead" description="Capture new prospect" icon={PhoneCall} href="/leads" color="blue" />
           )}

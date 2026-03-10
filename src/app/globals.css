@@ -166,6 +166,33 @@ html {
 
 /* Custom Component Styles */
 @layer components {
+
+  /* Override driver.js theme */
+.driver-popover {
+  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
+}
+.driver-popover-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+.driver-popover-next-btn {
+  background: #2563eb !important;
+  border-radius: 10px !important;
+  border: none !important;
+}
+.driver-popover-prev-btn {
+  border: 2px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  color: #374151 !important;
+  background: white !important;
+}
+.driver-popover-progress-text {
+  color: #f97316 !important;
+  font-weight: 600 !important;
+}
+
   /* Card Styles */
   .card {
     background: white;
