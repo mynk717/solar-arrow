@@ -110,24 +110,24 @@ export default function DashboardPage() {
   const name = session?.user?.name || '';
 
   const isAdminOrOwner =
-  session?.user?.accountType === 'admin' ||
-  session?.user?.accountType === 'owner' ||
-  role === 'admin' || role === 'owner';
+    session?.user?.accountType === 'admin' ||
+    session?.user?.accountType === 'owner' ||
+    role === 'admin' || role === 'owner';
 
-// Shape from admin panel: { canView: ['/leads', '/survey'], canEdit: [...] }
-const userPerms = isAdminOrOwner
-  ? null
-  : (session?.user?.permissions as { canView?: string[] } | null);
+  // Shape from admin panel: { canView: ['/leads', '/survey'], canEdit: [...] }
+  const userPerms = isAdminOrOwner
+    ? null
+    : (session?.user?.permissions as { canView?: string[] } | null);
 
-const canSee = (path: string) =>
-  isAdminOrOwner || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(path));
+  const canSee = (path: string) =>
+    isAdminOrOwner || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(path));
 
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [boms, setBoms] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-const [followups, setFollowups] = useState<FollowUp[]>([]);
+  const [followups, setFollowups] = useState<FollowUp[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [stats, setStats] = useState(demoStats);
   const [loading, setLoading] = useState(true);
@@ -142,7 +142,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   });
   const toggle = (key: keyof typeof collapsed) =>
     setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
-  
+
 
 
   const today = new Date().toISOString().split('T')[0];
@@ -151,73 +151,73 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   const fetchData = useCallback(async () => {
     if (status !== 'authenticated') { setLoading(false); return; }
     try {
-            // ── Fixed: always fetch all 7, separate admin-only users fetch ──
-            const [enqRes, leadsRes, bomRes, tasksRes, pokesRes, actsRes, fusRes] =
-            await Promise.allSettled([
-              fetch('/api/enquiries'),
-              fetch('/api/leads'),
-              fetch('/api/bom'),
-              fetch('/api/tasks'),       // server-side filtered per user
-              fetch('/api/pokes'),       // all users see their own pokes
-              fetch('/api/activities'),  // server-side filtered per user
-              fetch('/api/followups'),   // all users
-            ]);
-    
-          const ok = (r: PromiseSettledResult<Response>) =>
-            r.status === 'fulfilled' && r.value.ok ? r.value : null;
-    
-          let enqs: Enquiry[] = [];
-          let ldsArr: any[] = [];
-          let bomsArr: any[] = [];
-          let usersArr: any[] = [];
-          let pokesArr: Poke[] = [];
-          let actsArr: Activity[] = [];
-          let fusArr: FollowUp[] = [];
-    
-          if (ok(enqRes))   enqs    = await ok(enqRes)!.json();
-          if (ok(leadsRes)) ldsArr  = await ok(leadsRes)!.json();
-          if (ok(bomRes)) {
-            const bomJson = await ok(bomRes)!.json();
-            bomsArr = Array.isArray(bomJson) ? bomJson : (bomJson.boms ?? []);
-            setBoms(bomsArr);
-          }
-          if (ok(tasksRes)) {
-            const tasksJson = await ok(tasksRes)!.json();
-            setMyTasks(tasksJson.allTasks ?? []);
-          }
-          if (ok(pokesRes)) pokesArr = await ok(pokesRes)!.json();
-          if (ok(actsRes))  actsArr  = (await ok(actsRes)!.json()).slice(0, isAdminOrOwner ? 20 : 10);
-          if (ok(fusRes)) {
-            const allFUs: FollowUp[] = await ok(fusRes)!.json();
-            fusArr = allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, isAdminOrOwner ? 10 : 8);
-          }
-    
-          // Admin-only: fetch users separately
-          if (isAdminOrOwner) {
-            const usersRes = await fetch('/api/users');
-            if (usersRes.ok) usersArr = await usersRes.json();
-          }
-    
-          setEnquiries(enqs);
-          setLeads(ldsArr);
-          setUsers(usersArr);
-          setPokes(pokesArr);
-          setActivities(actsArr);
-          setFollowups(fusArr);
-        
-      
+      // ── Fixed: always fetch all 7, separate admin-only users fetch ──
+      const [enqRes, leadsRes, bomRes, tasksRes, pokesRes, actsRes, fusRes] =
+        await Promise.allSettled([
+          fetch('/api/enquiries'),
+          fetch('/api/leads'),
+          fetch('/api/bom'),
+          fetch('/api/tasks'),       // server-side filtered per user
+          fetch('/api/pokes'),       // all users see their own pokes
+          fetch('/api/activities'),  // server-side filtered per user
+          fetch('/api/followups'),   // all users
+        ]);
+
+      const ok = (r: PromiseSettledResult<Response>) =>
+        r.status === 'fulfilled' && r.value.ok ? r.value : null;
+
+      let enqs: Enquiry[] = [];
+      let ldsArr: any[] = [];
+      let bomsArr: any[] = [];
+      let usersArr: any[] = [];
+      let pokesArr: Poke[] = [];
+      let actsArr: Activity[] = [];
+      let fusArr: FollowUp[] = [];
+
+      if (ok(enqRes)) enqs = await ok(enqRes)!.json();
+      if (ok(leadsRes)) ldsArr = await ok(leadsRes)!.json();
+      if (ok(bomRes)) {
+        const bomJson = await ok(bomRes)!.json();
+        bomsArr = Array.isArray(bomJson) ? bomJson : (bomJson.boms ?? []);
+        setBoms(bomsArr);
+      }
+      if (ok(tasksRes)) {
+        const tasksJson = await ok(tasksRes)!.json();
+        setMyTasks(tasksJson.allTasks ?? []);
+      }
+      if (ok(pokesRes)) pokesArr = await ok(pokesRes)!.json();
+      if (ok(actsRes)) actsArr = (await ok(actsRes)!.json()).slice(0, isAdminOrOwner ? 20 : 10);
+      if (ok(fusRes)) {
+        const allFUs: FollowUp[] = await ok(fusRes)!.json();
+        fusArr = allFUs.filter((f: FollowUp) => f.status === 'pending').slice(0, isAdminOrOwner ? 10 : 8);
+      }
+
+      // Admin-only: fetch users separately
+      if (isAdminOrOwner) {
+        const usersRes = await fetch('/api/users');
+        if (usersRes.ok) usersArr = await usersRes.json();
+      }
+
+      setEnquiries(enqs);
+      setLeads(ldsArr);
+      setUsers(usersArr);
+      setPokes(pokesArr);
+      setActivities(actsArr);
+      setFollowups(fusArr);
 
 
 
-     // ── CORRECT pipeline counts ──
+
+
+      // ── CORRECT pipeline counts ──
       // For non-admins, filter to only enquiries assigned to them on visible pages
       const permittedEnqs: Enquiry[] = isAdminOrOwner
-  ? enqs
-  : enqs.filter((e: Enquiry) => {
-      const requiredPerm = (statusToPermKey as Record<string, string>)[e.status];
-      // If user can see the page for this status, count it in stats
-      return !requiredPerm || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(requiredPerm));
-    });
+        ? enqs
+        : enqs.filter((e: Enquiry) => {
+          const requiredPerm = (statusToPermKey as Record<string, string>)[e.status];
+          // If user can see the page for this status, count it in stats
+          return !requiredPerm || (Array.isArray(userPerms?.canView) && userPerms!.canView.includes(requiredPerm));
+        });
 
 
       const realStats = {
@@ -234,14 +234,14 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
           e.nextActionDate && e.nextActionDate < today && e.status !== 'active'
         ).length,
         bom: isAdminOrOwner
-    ? bomsArr.length
-    : bomsArr.filter((b: any) => permittedEnqs.some(e => e.id === b.enquiryId)).length,
-    dispatch: isAdminOrOwner
-    ? bomsArr.filter((b: any) => ['dispatched', 'delivered'].includes(b.dispatchStatus)).length
-    : bomsArr.filter((b: any) =>
-        ['dispatched', 'delivered'].includes(b.dispatchStatus) &&
-        permittedEnqs.some(e => e.id === b.enquiryId)
-      ).length,
+          ? bomsArr.length
+          : bomsArr.filter((b: any) => permittedEnqs.some(e => e.id === b.enquiryId)).length,
+        dispatch: isAdminOrOwner
+          ? bomsArr.filter((b: any) => ['dispatched', 'delivered'].includes(b.dispatchStatus)).length
+          : bomsArr.filter((b: any) =>
+            ['dispatched', 'delivered'].includes(b.dispatchStatus) &&
+            permittedEnqs.some(e => e.id === b.enquiryId)
+          ).length,
       };
 
       setStats(realStats);
@@ -283,11 +283,11 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
   // ── Priority tasks for admin/owner ──
   const priorityEnquiries = enquiries
     .filter(e =>
-      (e.priority === 'urgent' || e.priority === 'high' ||
-        e.isBlocked === true || e.isBlocked === 'TRUE' ||
-        (e.nextActionDate && e.nextActionDate < today && e.status !== 'active') ||
-        (e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE'))
-      )
+    (e.priority === 'urgent' || e.priority === 'high' ||
+      e.isBlocked === true || e.isBlocked === 'TRUE' ||
+      (e.nextActionDate && e.nextActionDate < today && e.status !== 'active') ||
+      (e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE'))
+    )
     )
     .slice(0, 10);
 
@@ -325,12 +325,12 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
     'subsidy-approved': '/subsidy', 'subsidy-disbursed': '/subsidy',
   };
 
-    if (status === 'loading') return <DashboardSkeleton />;
-    if (status === 'unauthenticated') { router.push('/login'); return null; }
-    // Wait for permissions to load before rendering for non-admin users
-    if (!isAdminOrOwner && userPerms === undefined) return <DashboardSkeleton />;
+  if (status === 'loading') return <DashboardSkeleton />;
+  if (status === 'unauthenticated') { router.push('/login'); return null; }
+  // Wait for permissions to load before rendering for non-admin users
+  if (!isAdminOrOwner && userPerms === undefined) return <DashboardSkeleton />;
 
-    
+
 
 
   return (
@@ -339,7 +339,7 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 
       {/* ── Notification Bell (fixed top-right) ── */}
       <div className="fixed top-[3.75rem] right-4 z-40 lg:top-4">
-      <button
+        <button
           onClick={() => { setShowNotifications(!showNotifications); if (!showNotifications) markPokesRead(); }}
           className="relative bg-white border border-gray-200 shadow-md p-2.5 rounded-xl hover:bg-gray-50 transition"
         >
@@ -406,8 +406,8 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         )}
       </div>
 
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto pt-16 lg:pt-6">
-        {/* ── Header ── */}
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto pt-16 lg:pt-6 overflow-x-hidden">
+      {/* ── Header ── */}
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {name.split(' ')[0]} 👋
@@ -423,20 +423,20 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
         </div>
 
         {/* ── KPI Cards ── */}
-<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-{canSee('/leads') && (
-    <MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
-  )}
-  {canSee('/enquiries') && (
-    <MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" />
-  )}
-  {isAdminOrOwner && (
-    <MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" />
-  )}
-  {isAdminOrOwner && (
-    <MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" />
-  )}
-</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {canSee('/leads') && (
+            <MetricCard title="New Leads" value={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
+          )}
+          {canSee('/enquiries') && (
+            <MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" />
+          )}
+          {isAdminOrOwner && (
+            <MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" />
+          )}
+          {isAdminOrOwner && (
+            <MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" />
+          )}
+        </div>
 
 
         {/* ── Blocked Warning Banner ── */}
@@ -455,270 +455,269 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 
         {/* ── Installation Pipeline ── */}
         {isAdminOrOwner && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-          <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp size={16} className="text-blue-500" />
-            Installation Pipeline
-            <span className="ml-auto text-xs font-normal text-gray-400 hidden sm:inline">Each stage is mutually exclusive</span>
-          </h2>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+            <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <TrendingUp size={16} className="text-blue-500" />
+              Installation Pipeline
+              <span className="ml-auto text-xs font-normal text-gray-400 hidden sm:inline">Each stage is mutually exclusive</span>
+            </h2>
 
-          {/* Row 1 — Pre-installation (7 stages) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-2">
-            <PipelineStage name="Leads"       count={stats.leads}           icon={PhoneCall}     color="blue"   href="/leads" />
-            <PipelineStage name="New"         count={stats.new}             icon={FileText}      color="indigo" href="/enquiries" />
-            <PipelineStage name="Survey ⏳"   count={stats.surveyPending}   icon={ClipboardCheck} color="purple" href="/survey" />
-            <PipelineStage name="Survey ✅"   count={stats.surveyCompleted} icon={FileCheck}     color="pink"   href="/survey" />
-            <PipelineStage name="Payment"     count={stats.paymentReceived} icon={DollarSign}    color="orange" href="/payments" />
-            <PipelineStage name="Installed"   count={stats.installations}   icon={Wrench}        color="teal"   href="/installation" />
-            <PipelineStage name="Active ⚡"   count={stats.active}          icon={Zap}           color="green"  href="/liaison" />
-          </div>
+            {/* Row 1 — Pre-installation (7 stages) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-2">
+              <PipelineStage name="Leads" count={stats.leads} icon={PhoneCall} color="blue" href="/leads" />
+              <PipelineStage name="New" count={stats.new} icon={FileText} color="indigo" href="/enquiries" />
+              <PipelineStage name="Survey ⏳" count={stats.surveyPending} icon={ClipboardCheck} color="purple" href="/survey" />
+              <PipelineStage name="Survey ✅" count={stats.surveyCompleted} icon={FileCheck} color="pink" href="/survey" />
+              <PipelineStage name="Payment" count={stats.paymentReceived} icon={DollarSign} color="orange" href="/payments" />
+              <PipelineStage name="Installed" count={stats.installations} icon={Wrench} color="teal" href="/installation" />
+              <PipelineStage name="Active ⚡" count={stats.active} icon={Zap} color="green" href="/liaison" />
+            </div>
 
-          {/* Row 2 — Supporting stages */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-            <PipelineStage name="Quotation"    count={enquiries.filter(e => e.quotationDate).length}                                               icon={FileCheck}   color="pink"    href="/quotation" />
-            <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length}           icon={Scale}       color="yellow"  href="/registration" />
-            <PipelineStage name="BOM"          count={stats.bom ?? 0}              icon={Package}     color="cyan"    href="/bom" />
-            <PipelineStage name="Dispatch"     count={stats.dispatch ?? 0}                                                icon={Truck}       color="violet"  href="/bom" />
-            <PipelineStage name="WCR"          count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length}          icon={CheckSquare} color="rose"    href="/wcr" />
-            <PipelineStage name="Subsidy"      count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
+            {/* Row 2 — Supporting stages */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+              <PipelineStage name="Quotation" count={enquiries.filter(e => e.quotationDate).length} icon={FileCheck} color="pink" href="/quotation" />
+              <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length} icon={Scale} color="yellow" href="/registration" />
+              <PipelineStage name="BOM" count={stats.bom ?? 0} icon={Package} color="cyan" href="/bom" />
+              <PipelineStage name="Dispatch" count={stats.dispatch ?? 0} icon={Truck} color="violet" href="/bom" />
+              <PipelineStage name="WCR" count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length} icon={CheckSquare} color="rose" href="/wcr" />
+              <PipelineStage name="Subsidy" count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
+            </div>
           </div>
-        </div>
         )}
 
 
         {/* ── ADMIN/OWNER: Priority Tasks + Poke ── */}
-        {isAdminOrOwner && (loading || priorityEnquiries.length > 0) && (
+        
+        { isAdminOrOwner && (loading || priorityEnquiries.length > 0) && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
-  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
-  onClick={() => toggle('priorityActions')}
->
-  <AlertTriangle size={16} className="text-amber-500" />
-  Priority Actions
-  <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-    {priorityEnquiries.length}
-  </span>
-  <ChevronRight
-    size={15}
-    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.priorityActions ? '' : 'rotate-90'}`}
-  />
-</h2>
-{!collapsed.priorityActions && (
-  <div className="space-y-2">
-    {loading ? (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 size={20} className="animate-spin text-amber-400" />
-      </div>
-    ) : priorityEnquiries.map(e => {
-                const isOverdue = e.nextActionDate && e.nextActionDate < today;
-                const isBlocked = e.isBlocked === true || e.isBlocked === 'TRUE';
-                const needsSurveyApproval = e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE');
-                const assignedUser = users.find(u => u.email === e.allottedUser);
-
-                let badge = '';
-                let badgeColor = '';
-                if (isBlocked) { badge = '🔴 Blocked'; badgeColor = 'bg-red-100 text-red-700'; }
-                else if (needsSurveyApproval) { badge = '🟡 Survey Review'; badgeColor = 'bg-yellow-100 text-yellow-700'; }
-                else if (isOverdue) { badge = '🔶 Overdue'; badgeColor = 'bg-orange-100 text-orange-700'; }
-                else if (e.priority === 'urgent') { badge = '⚡ Urgent'; badgeColor = 'bg-purple-100 text-purple-700'; }
-                else { badge = '🔺 High'; badgeColor = 'bg-blue-100 text-blue-700'; }
-
-                return (
-                  <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition min-w-0 overflow-hidden">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-gray-900 text-sm truncate">{e.customerName}</span>
-                        <span className="text-xs text-gray-400">{e.id}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
-                        {e.priority === 'urgent' && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">urgent</span>}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
-                        {isBlocked && <span className="text-xs text-red-600 truncate max-w-[120px] block">{e.blockedReason}</span>}
-                        {isOverdue && e.nextActionDate && (
-                          <span className="text-xs text-orange-600">
-                            Due {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </span>
-                        )}
-                        {/* Assigned user */}
-                        {e.allottedUser && (
-                          <span className="flex items-center gap-1 text-xs text-gray-500">
-                            <UserCheck size={11} />
-                            {assignedUser?.name || e.allottedUser.split('@')[0]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {/* Poke button */}
-                      {e.allottedUser && e.allottedUser !== email && (
-                        <button
-                          onClick={() => {
-                            setPokeTarget({ enquiryId: e.id, to: e.allottedUser, customerName: e.customerName });
-                            setShowPokeModal(true);
-                          }}
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-xs font-semibold transition border border-orange-200"
-                          title={`Poke ${assignedUser?.name || e.allottedUser.split('@')[0]}`}
-                        >
-                          <Send size={11} /> Poke
-                        </button>
-                      )}
-                      <button
-                        onClick={() => router.push(`/enquiries/${e.id}`)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition border border-blue-200"
-                      >
-                        View <ChevronRight size={11} />
-                      </button>
-                    </div>
+              className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => toggle('priorityActions')}
+            >
+              <AlertTriangle size={16} className="text-amber-500" />
+              Priority Actions
+              <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                {priorityEnquiries.length}
+              </span>
+              <ChevronRight
+                size={15}
+                className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.priorityActions ? '' : 'rotate-90'}`}
+              />
+            </h2>
+            {!collapsed.priorityActions && (
+              <div className="space-y-2">
+                {loading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 size={20} className="animate-spin text-amber-400" />
                   </div>
-                );
-              })}
-            </div>
+                ) : priorityEnquiries.map(e => {
+                  const isOverdue = e.nextActionDate && e.nextActionDate < today;
+                  const isBlocked = e.isBlocked === true || e.isBlocked === 'TRUE';
+                  const needsSurveyApproval = e.surveyCompletedDate && (e.surveyApproved === false || e.surveyApproved === 'FALSE');
+                  const assignedUser = users.find(u => u.email === e.allottedUser);
+
+                  let badge = '';
+                  let badgeColor = '';
+                  if (isBlocked) { badge = '🔴 Blocked'; badgeColor = 'bg-red-100 text-red-700'; }
+                  else if (needsSurveyApproval) { badge = '🟡 Survey Review'; badgeColor = 'bg-yellow-100 text-yellow-700'; }
+                  else if (isOverdue) { badge = '🔶 Overdue'; badgeColor = 'bg-orange-100 text-orange-700'; }
+                  else if (e.priority === 'urgent') { badge = '⚡ Urgent'; badgeColor = 'bg-purple-100 text-purple-700'; }
+                  else { badge = '🔺 High'; badgeColor = 'bg-blue-100 text-blue-700'; }
+
+                  return (
+                    <div key={e.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition min-w-0 overflow-hidden">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-gray-900 text-sm truncate">{e.customerName}</span>
+                          <span className="text-xs text-gray-400">{e.id}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
+                          {e.priority === 'urgent' && <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">urgent</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
+                          {isBlocked && <span className="text-xs text-red-600 truncate max-w-[120px] block">{e.blockedReason}</span>}
+                          {isOverdue && e.nextActionDate && (
+                            <span className="text-xs text-orange-600">
+                              Due {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                          {/* Assigned user */}
+                          {e.allottedUser && (
+                            <span className="flex items-center gap-1 text-xs text-gray-500">
+                              <UserCheck size={11} />
+                              {assignedUser?.name || e.allottedUser.split('@')[0]}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {/* Poke button */}
+                        {e.allottedUser && e.allottedUser !== email && (
+                          <button
+                            onClick={() => {
+                              setPokeTarget({ enquiryId: e.id, to: e.allottedUser, customerName: e.customerName });
+                              setShowPokeModal(true);
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-xs font-semibold transition border border-orange-200"
+                            title={`Poke ${assignedUser?.name || e.allottedUser.split('@')[0]}`}
+                          >
+                            <Send size={11} /> Poke
+                          </button>
+                        )}
+                        <button
+                          onClick={() => router.push(`/enquiries/${e.id}`)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition border border-blue-200"
+                        >
+                          View <ChevronRight size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
 
         {/* ── MY TASKS (all roles) ── */}
-        {(loading || myTasks.length > 0) && (
-  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+        { (loading || myTasks.length > 0) && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
             <h2
-  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
-  onClick={() => toggle('myTasks')}
->
-  <Clock size={16} className="text-blue-500" />
-  My Tasks
-  <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
-    {myTasks.length}
-  </span>
-  <ChevronRight
-    size={15}
-    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.myTasks ? '' : 'rotate-90'}`}
-  />
-</h2>
-{!collapsed.myTasks && (
-  <div className="space-y-2">
-    {loading ? (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 size={20} className="animate-spin text-blue-400" />
-      </div>
-    ) : myTasks.map(e => {
-                const isOverdue = e.nextActionDate && e.nextActionDate < today;
-                return (
-                  <div key={e.taskId ?? e.entityId}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer hover:shadow-sm ${
-                      isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-transparent hover:border-gray-200'
-                    }`}
-                    onClick={() => router.push(`/enquiries/${e.entityId}`)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-gray-900 text-sm truncate">{e.customerName}</span>
-                        <span className="text-xs text-gray-400">{e.entityId}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${
-                          e.status === 'survey-pending' ? 'bg-purple-100 text-purple-700' :
-                          e.status === 'survey-completed' ? 'bg-pink-100 text-pink-700' :
-                          e.status === 'payment-received' ? 'bg-orange-100 text-orange-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>{e.status.replace(/-/g, ' ')}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
-                        {e.nextActionDate && (
-                          <span className={`text-xs font-semibold ${isOverdue ? 'text-red-600' : 'text-gray-400'}`}>
-                            {isOverdue ? '⚠ Overdue · ' : '📅 '}
-                            {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+              className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => toggle('myTasks')}
+            >
+              <Clock size={16} className="text-blue-500" />
+              My Tasks
+              <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">
+                {myTasks.length}
+              </span>
+              <ChevronRight
+                size={15}
+                className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.myTasks ? '' : 'rotate-90'}`}
+              />
+            </h2>
+            {!collapsed.myTasks && (
+              <div className="space-y-2">
+                {loading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 size={20} className="animate-spin text-blue-400" />
                   </div>
-                );
-              })}
-            </div>
-)}
-          </div>
-        )}
-{/* ── My Follow-ups ── */}
-{followups.length > 0 && (
-  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-    <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-      <PhoneCall size={16} className="text-green-500" />
-      Pending Follow-ups
-      <span className="ml-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
-        {followups.length}
-      </span>
-    </h2>
-    <div className="space-y-2">
-    {followups.map(fu => (
-  <div key={fu.followupId}
-    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-transparent hover:border-gray-200 cursor-pointer transition min-w-0 overflow-hidden"
-    onClick={() => router.push(`/enquiries/${fu.enquiryId}`)}
-        >
-          <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-  <span className="font-semibold text-gray-900 text-sm">{fu.enquiryId}</span>
-  <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold truncate max-w-[100px]">{fu.followupType}</span>
-  {fu.outcome && <span className="text-xs text-gray-400 truncate max-w-[80px]">{fu.outcome}</span>}
-</div>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">{fu.followupNotes}</p>
-            {fu.nextFollowupDate && (
-              <p className="text-xs text-orange-600 font-semibold mt-0.5">
-                📅 Next: {new Date(fu.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-              </p>
+                ) : myTasks.map(e => {
+                  const isOverdue = e.nextActionDate && e.nextActionDate < today;
+                  return (
+                    <div key={e.taskId ?? e.entityId}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer hover:shadow-sm ${isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-transparent hover:border-gray-200'
+                        }`}
+                      onClick={() => router.push(`/enquiries/${e.entityId}`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 text-sm truncate">{e.customerName}</span>
+                          <span className="text-xs text-gray-400">{e.entityId}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${e.status === 'survey-pending' ? 'bg-purple-100 text-purple-700' :
+                              e.status === 'survey-completed' ? 'bg-pink-100 text-pink-700' :
+                                e.status === 'payment-received' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-gray-100 text-gray-700'
+                            }`}>{e.status.replace(/-/g, ' ')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-gray-500">{e.area} · {e.capacity}kW</span>
+                          {e.nextActionDate && (
+                            <span className={`text-xs font-semibold ${isOverdue ? 'text-red-600' : 'text-gray-400'}`}>
+                              {isOverdue ? '⚠ Overdue · ' : '📅 '}
+                              {new Date(e.nextActionDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+        )}
+        {/* ── My Follow-ups ── */}
+        {followups.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6 overflow-hidden">
+            <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <PhoneCall size={16} className="text-green-500" />
+              Pending Follow-ups
+              <span className="ml-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                {followups.length}
+              </span>
+            </h2>
+            <div className="space-y-2">
+              {followups.map(fu => (
+                <div key={fu.followupId}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-transparent hover:border-gray-200 cursor-pointer transition min-w-0 overflow-hidden"
+                  onClick={() => router.push(`/enquiries/${fu.enquiryId}`)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-gray-900 text-sm">{fu.enquiryId}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold shrink-0">{fu.followupType}</span>
+                      {fu.outcome && <span className="text-xs text-gray-400 truncate max-w-[80px]">{fu.outcome}</span>}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 break-words line-clamp-2">{fu.followupNotes}</p>
+                    {fu.nextFollowupDate && (
+                      <p className="text-xs text-orange-600 font-semibold mt-0.5">
+                        📅 Next: {new Date(fu.nextFollowupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight size={14} className="text-gray-300 flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-{/* ── Recent Activity ── */}
-{(loading || activities.length > 0) && (
-  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-    <h2
-  className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
-  onClick={() => toggle('recentActivity')}
->
-  <Bell size={16} className="text-purple-500" />
-  Recent Activity
-  <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
-    {activities.length}
-  </span>
-  <ChevronRight
-    size={15}
-    className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.recentActivity ? '' : 'rotate-90'}`}
-  />
-</h2>
-{!collapsed.recentActivity && (
-  <div className="space-y-1.5">
-    {loading ? (
-      <div className="flex items-center justify-center py-6">
-        <Loader2 size={20} className="animate-spin text-purple-400" />
-      </div>
-    ) : activities.map(act => (
-        <div key={act.logId} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition">
-          <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-purple-600 text-xs font-bold">{act.action[0].toUpperCase()}</span>
+        {/* ── Recent Activity ── */}
+        {(loading || activities.length > 0) && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
+            <h2
+              className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2 cursor-pointer select-none"
+              onClick={() => toggle('recentActivity')}
+            >
+              <Bell size={16} className="text-purple-500" />
+              Recent Activity
+              <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-semibold">
+                {activities.length}
+              </span>
+              <ChevronRight
+                size={15}
+                className={`ml-auto text-gray-400 transition-transform duration-200 ${collapsed.recentActivity ? '' : 'rotate-90'}`}
+              />
+            </h2>
+            {!collapsed.recentActivity && (
+              <div className="space-y-1.5">
+                {loading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 size={20} className="animate-spin text-purple-400" />
+                  </div>
+                ) : activities.map(act => (
+                  <div key={act.logId} className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-gray-50 transition">
+                    <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-purple-600 text-xs font-bold">{act.action[0].toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0 w-0">
+                      <p className="text-xs text-gray-700">
+                        <span className="font-semibold capitalize">{act.action.replace(/_/g, ' ')}</span>
+                        {' on '}<span className="text-blue-600 cursor-pointer" onClick={() => router.push(`/enquiries/${act.enquiryId}`)}>{act.enquiryId}</span>
+                        {act.fieldName && ` · ${act.fieldName}`}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(act.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-gray-700">
-              <span className="font-semibold capitalize">{act.action.replace(/_/g, ' ')}</span>
-              {' on '}<span className="text-blue-600 cursor-pointer" onClick={() => router.push(`/enquiries/${act.enquiryId}`)}>{act.enquiryId}</span>
-              {act.fieldName && ` · ${act.fieldName}`}
-            </p>
-            <p className="text-xs text-gray-400">
-              {new Date(act.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-)}
-  </div>
-)}
+        )}
 
         {/* ── Surveys Awaiting Approval (admin/owner) ── */}
         {isAdminOrOwner && (() => {
@@ -765,15 +764,15 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
 
         {/* ── Quick Actions ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        {canSee('/leads') && (
-    <QuickActionCard title="Add New Lead" description="Capture new prospect" icon={PhoneCall} href="/leads" color="blue" />
-  )}
-  {canSee('/enquiries') && (
-    <QuickActionCard title="Create Enquiry" description="Convert lead to enquiry" icon={FileText} href="/enquiries" color="indigo" />
-  )}
+          {canSee('/leads') && (
+            <QuickActionCard title="Add New Lead" description="Capture new prospect" icon={PhoneCall} href="/leads" color="blue" />
+          )}
+          {canSee('/enquiries') && (
+            <QuickActionCard title="Create Enquiry" description="Convert lead to enquiry" icon={FileText} href="/enquiries" color="indigo" />
+          )}
 
-  <QuickActionCard title="View Kanban" description="Track all stages visually" icon={Kanban} href="/kanban" color="green" />
-</div>
+          <QuickActionCard title="View Kanban" description="Track all stages visually" icon={Kanban} href="/kanban" color="green" />
+        </div>
 
 
         {/* ── Admin Quick Nav ── */}
@@ -781,13 +780,13 @@ const [followups, setFollowups] = useState<FollowUp[]>([]);
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { label: 'Enquiries', href: '/enquiries', icon: FileText },
-              { label: 'Surveys',   href: '/survey',    icon: ClipboardCheck },
+              { label: 'Surveys', href: '/survey', icon: ClipboardCheck },
               { label: 'Installation', href: '/installation', icon: Wrench },
-              { label: 'Payments',  href: '/payment',   icon: IndianRupee },
-              { label: 'Users',     href: '/admin/users', icon: Users },
-              { label: 'Kanban',    href: '/kanban',    icon: Kanban },
-              { label: 'WCR',       href: '/wcr',       icon: CheckSquare },
-              { label: 'Subsidy',   href: '/subsidy',   icon: IndianRupee },
+              { label: 'Payments', href: '/payment', icon: IndianRupee },
+              { label: 'Users', href: '/admin/users', icon: Users },
+              { label: 'Kanban', href: '/kanban', icon: Kanban },
+              { label: 'WCR', href: '/wcr', icon: CheckSquare },
+              { label: 'Subsidy', href: '/subsidy', icon: IndianRupee },
             ].map(item => (
               <Link key={item.href} href={item.href}>
                 <div className="flex items-center gap-2 p-3 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-sm transition text-sm font-semibold text-gray-700">
@@ -846,9 +845,8 @@ function PokeModal({ target, senderName, onSend, onClose }: {
           <div className="flex flex-wrap gap-1.5 mb-3">
             {quickMessages.map(qm => (
               <button key={qm} onClick={() => setMsg(qm)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition ${
-                  msg === qm ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-300'
-                }`}>
+                className={`text-xs px-2.5 py-1 rounded-full border transition ${msg === qm ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-orange-300'
+                  }`}>
                 {qm}
               </button>
             ))}
@@ -882,11 +880,11 @@ function PokeModal({ target, senderName, onSend, onClose }: {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
-<div className="min-h-screen bg-gray-50 animate-pulse p-4 max-w-7xl mx-auto pt-16 lg:pt-6">
-<div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
+    <div className="min-h-screen bg-gray-50 animate-pulse p-4 max-w-7xl mx-auto pt-16 lg:pt-6">
+      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
       <div className="h-4 bg-gray-100 rounded w-1/3 mb-6" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[1,2,3,4].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100" />)}
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100" />)}
       </div>
       <div className="h-48 bg-white rounded-2xl border border-gray-100 mb-4" />
       <div className="h-40 bg-white rounded-2xl border border-gray-100" />
@@ -919,7 +917,7 @@ function MetricCard({ title, value, icon: Icon, color, href }: {
 }
 
 // ─── Pipeline Stage ───────────────────────────────────────────────────────────
-type PipelineColor = 'gray'|'blue'|'purple'|'indigo'|'pink'|'yellow'|'orange'|'teal'|'cyan'|'violet'|'fuchsia'|'rose'|'green';
+type PipelineColor = 'gray' | 'blue' | 'purple' | 'indigo' | 'pink' | 'yellow' | 'orange' | 'teal' | 'cyan' | 'violet' | 'fuchsia' | 'rose' | 'green';
 function PipelineStage({ name, count, icon: Icon, color, href }: {
   name: string; count: number; icon: any; color: PipelineColor; href: string;
 }) {
