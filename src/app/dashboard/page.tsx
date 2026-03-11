@@ -252,8 +252,8 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, isAdminOrOwner, today]);
-
+  }, [status, isAdminOrOwner, today, userPerms, email]);
+  
   useEffect(() => {
     if (status === 'authenticated') {
       fetchData();
@@ -611,8 +611,8 @@ export default function DashboardPage() {
                     <div key={e.taskId ?? e.entityId}
                       className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer hover:shadow-sm ${isOverdue ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-transparent hover:border-gray-200'
                         }`}
-                      onClick={() => router.push(`/enquiries/${e.entityId}`)}
-                    >
+                        onClick={() => router.push(e.href || `/enquiries/${e.entityId}`)}
+                        >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-900 text-sm truncate">{e.customerName}</span>

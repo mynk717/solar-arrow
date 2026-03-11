@@ -573,7 +573,11 @@ function FunnelView({ leads }: { leads: Lead[] }) {
   return (
     <div className="space-y-4">
       {stages.map((stage) => {
-        const stageLeads = leads.filter(l => l.status === stage.status);
+const stageLeads = leads.filter((l) => {
+  if (stage.status === 'contacted') return ['contacted', 'callback'].includes(l.status);
+  if (stage.status === 'converted') return l.converted || l.status === 'converted';
+  return l.status === stage.status;
+});
 
         return (
           <div key={stage.status} className={`border-2 rounded-lg p-4 ${stage.color}`}>
