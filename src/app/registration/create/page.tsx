@@ -122,7 +122,8 @@ export default function CreateRegistrationPage() {
                   </div>
                   
                   <h3 className="text-xl font-bold text-gray-900 mb-1">
-                    {enq.customerName}
+                  <p className="font-semibold text-gray-900">{enq.customerName}</p>
+                  <p className="text-xs text-gray-500">{enq.id} · {enq.area} · {enq.capacity} kW</p>
                   </h3>
                   
                   <p className="text-gray-600 mb-3">

@@ -40,44 +40,44 @@ export async function POST(request: NextRequest) {
     let capacity = '';
 
     // Find and update the row
-    const updatedRows = rows.map((row: any[], index: number) => {
-      if (row[0] === enquiryId) { // Column A = id
-        rowIndex = index;
-        customerName = row[1];
-        capacity = row[6] || row[72]; // G: capacity or BS: systemCapacity
-        
-        const updatedRow = [...row]; // Clone row
-        
-        // Update installation schedule fields (columns 82-86)
-        updatedRow[82] = installationScheduledDate;    // CC: installationScheduledDate
-        updatedRow[85] = installationTeam || '';       // CF: installationTeam
-        updatedRow[86] = installationSupervisor || ''; // CG: installationSupervisor
-        
-        // Update status if not already installation-related
-        if (!updatedRow[7].includes('installation')) {
-          updatedRow[7] = 'installation-scheduled';    // H: status
-        }
-        
-        updatedRow[9] = new Date().toISOString();      // J: updatedAt
-        
-        return updatedRow;
-      }
-      return row;
-    });
-
-    if (rowIndex === -1) {
-      return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
+const updatedRows = rows.map((row: any[], index: number) => {
+  if (row[0] === enquiryId) { // Column A = id
+    rowIndex = index;
+    customerName = row[1];
+    capacity = row[6] || row[71]; // G: capacity or BT: systemCapacity ✅ was row[72]
+    
+    const updatedRow = [...row]; // Clone row
+    
+    // Update installation schedule fields
+    updatedRow[81] = installationScheduledDate;    // CD: installationScheduledDate
+    updatedRow[84] = installationTeam || '';       // CG: installationTeam
+    updatedRow[85] = installationSupervisor || ''; // CH: installationSupervisor
+    
+    // Update status if not already installation-related
+    if (!updatedRow[7].includes('installation')) {
+      updatedRow[7] = 'installation-scheduled';    // H: status
     }
+    
+    updatedRow[9] = new Date().toISOString();      // J: updatedAt
+    
+    return updatedRow;
+  }
+  return row;
+});
 
-    // Write back to sheet
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:CZ1000',
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: updatedRows,
-      },
-    });
+if (rowIndex === -1) {
+  return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
+}
+
+// Write back to sheet
+await sheets.spreadsheets.values.update({
+  spreadsheetId: sheetId,
+  range: `ENQUIRIES!A${rowIndex + 2}:DR${rowIndex + 2}`,
+  valueInputOption: 'USER_ENTERED',
+  requestBody: { values: [updatedRows[rowIndex]] }, // ✅ FIX: was [updatedRow]
+});
+
+    
 
     // Clear cache
     await redis.del(`org:${orgId}:installations`);

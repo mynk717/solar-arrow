@@ -14,6 +14,8 @@ export async function GET() {
 
     const enquiries = await fetchEnquiries();
 
+    enquiries.sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+
     return NextResponse.json({
       success: true,
       enquiries: enquiries || [],

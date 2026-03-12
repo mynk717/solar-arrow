@@ -435,10 +435,10 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
       >
         <option value="">-- Create without lead --</option>
         {leads.map(lead => (
-          <option key={lead.id} value={lead.id}>
-            {lead.customerName || lead.name} — {lead.phone} · {lead.capacity || 'N/A'} kW · {lead.area || lead.location || ''}
-          </option>
-        ))}
+  <option key={lead.id} value={lead.id}>
+    {lead.id} · {lead.customerName || lead.name} · {lead.area || lead.location || 'N/A'} · {lead.capacity || 'N/A'} kW · {lead.phone}
+  </option>
+))}
       </select>
     )}
 
@@ -454,10 +454,10 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
       >
         <option value="">-- Create without enquiry --</option>
         {enquiries.map(enq => (
-          <option key={enq.id || enq.enquiryId} value={enq.id || enq.enquiryId}>
-            {enq.customerName || enq.name} — {enq.phone || enq.customerPhone} · {enq.capacity || 'N/A'} kW · {enq.enquiryId || enq.id}
-          </option>
-        ))}
+  <option key={enq.id || enq.enquiryId} value={enq.id || enq.enquiryId}>
+    {enq.id || enq.enquiryId} · {enq.customerName || enq.name} · {enq.area || 'N/A'} · {enq.capacity || 'N/A'} kW · {enq.phone || enq.customerPhone}
+  </option>
+))}
       </select>
     )}
 

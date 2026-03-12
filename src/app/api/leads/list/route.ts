@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         lead.assignedTo === assignedTo
       );
     }
-
+    formattedLeads.sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
     return NextResponse.json({
       success: true,
       leads: formattedLeads,

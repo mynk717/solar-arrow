@@ -673,21 +673,156 @@ export async function updateEnquiryInSheet(
 
 function getColumnLetterForField(fieldName: string): string {
   const fieldMap: Record<string, string> = {
-    'dispatchDate': 'AH',
-    'trackingNumber': 'AI',
-    'transportCompany': 'AJ',
-    'deliveredDate': 'AK',
-    'materialReturnDate': 'AL',
-    'status': 'H',
-'updatedAt': 'J',
-'surveyedBy': 'T',
-'surveyScheduledDate': 'W',
+    // Core
+    'status':                       'H',
+    'updatedAt':                     'J',
+    'panelTag':                      'K',
 
-    // Add more mappings based on your sheet structure
+    // Lead
+    'leadSource':                    'L',
+    'leadNotes':                     'M',
+    'leadQualified':                 'N',
+    'leadQualifiedDate':             'O',
+    'leadConvertedDate':             'P',
+    'leadAssignedTo':                'Q',
+    'leadStatus':                    'R',
+
+    // Survey
+    'surveyDate':                    'S',
+    'surveyedBy':                    'T',
+    'surveyNotes':                   'U',
+    'surveyApproved':                'V',
+    'surveyScheduledDate':           'W',
+    'surveyCompletedDate':           'X',
+    'surveyRejectedReason':          'Y',
+    'surveyPhotos':                  'Z',
+
+    // Loan
+    'loanRequired':                  'AA',
+    'loanBank':                      'AB',
+    'loanBranch':                    'AC',
+    'loanAmount':                    'AD',
+    'loanApplicationDate':           'AE',
+    'loanSanctionDate':              'AF',
+    'loanRejectionDate':             'AG',
+    'loanRejectionReason':           'AH',
+    'loanFirstTrancheAmount':        'AI',
+    'loanFirstTrancheDate':          'AJ',
+    'loanSecondTrancheAmount':       'AK',
+    'loanSecondTrancheDate':         'AL',
+    'loanStatus':                    'AM',
+    'loanAccountNumber':             'AN',
+
+    // DISCOM / Registration
+    'consumerRegistrationNumber':    'AO',
+    'applicationNumber':             'AP',
+    'discomCircle':                  'AQ',
+    'discomDivision':                'AR',
+    'discomSubDivision':             'AS',
+    'feasibilityApprovalDate':       'AT',
+    'feasibilityApprovalNumber':     'AU',
+
+    // Vendor
+    'vendorAgreementDate':           'AV',
+    'vendorAgreementNumber':         'AW',
+    'vendorName':                    'AX',
+    'vendorCompanyName':             'AY',
+    'vendorAgreementAmount':         'AZ',
+    'vendorAgreementSignedDate':     'BA',
+    'vendorAgreementDocumentPath':   'BB',
+
+    // Payment
+    'estimatedCost':                 'BC',
+    'initialPayment':                'BD',
+    'paymentDate':                   'BE',
+    'paymentMethod':                 'BF',
+    'paymentType':                   'BG',
+    'paymentStatus':                 'BH',
+    'paymentAccountVerified':        'BI',
+    'paymentVerifiedBy':             'BJ',
+    'paymentVerificationDate':       'BK',
+    'paymentUTR':                    'BL',
+
+    // Quotation
+    'quotationId':                   'BM',
+    'quotationDate':                 'BN',
+    'quotationAmount':               'BO',
+    'quotationApprovedDate':         'BP',
+    'quotationApprovedBy':           'BQ',
+    'quotationRejectedReason':       'BR',
+    'quotationDocumentPath':         'BS',
+
+    // System specs
+    'systemCapacity':                'BT',
+    'panelMake':                     'BU',
+    'panelWattage':                  'BV',
+    'panelQuantity':                 'BW',
+    'inverterMake':                  'BX',
+    'inverterCapacity':              'BY',
+    'batteryRequired':               'BZ',
+    'batteryCapacity':               'CA',
+    'batteryQuantity':               'CB',
+    'structureType':                 'CC',
+
+    // Installation
+    'installationScheduledDate':     'CD',
+    'installationStartDate':         'CE',
+    'installationCompletedDate':     'CF',
+    'installationTeam':              'CG',
+    'installationSupervisor':        'CH',
+    'installationNotes':             'CI',
+    'pvModuleSerialNumbers':         'CJ',
+    'inverterSerialNumber':          'CK',
+    'meterNumber':                   'CL',
+    'meterInstalledDate':            'CM',
+    'meterReadingInitial':           'CN',
+    'earthingDone':                  'CO',
+    'earthingResistance':            'CP',
+    'installationPhotos':            'CQ',
+
+    // Inspection
+    'inspectionScheduledDate':       'CR',
+    'inspectionDate':                'CS',
+    'inspectionOfficer':             'CT',
+    'inspectionStatus':              'CU',
+    'inspectionApproved':            'CV',
+    'inspectionRejectedReason':      'CW',
+    'inspectionReportPath':          'CX',
+
+    // Subsidy
+    'subsidyAmount':                 'CY',
+    'subsidyStatus':                 'CZ',
+    'subsidyAppliedDate':            'DA',
+    'subsidyApprovedDate':           'DB',
+    'subsidyDisbursedDate':          'DC',
+    'subsidyRejectedDate':           'DD',
+    'subsidyRejectionReason':        'DE',
+    'subsidyBankAccount':            'DF',
+    'subsidyUTR':                    'DG',
+    'subsidyDocumentPath':           'DH',
+
+    // Meta
+    'allottedUser':                  'DI',
+    'priority':                      'DJ',
+    'isBlocked':                     'DK',
+    'blockedReason':                 'DL',
+    'lastEditedBy':                  'DM',
+    'lastEditedAt':                  'DN',
+    'lastFollowupDate':              'DO',
+    'nextActionDate':                'DP',
+    'tags':                          'DQ',
+    'notes':                         'DR',
   };
-  
-  return fieldMap[fieldName] || 'A';
+
+  // ✅ Throw on unknown field — never silently write to wrong column
+  if (!fieldMap[fieldName]) {
+    console.error(`❌ getColumnLetterForField: unmapped field "${fieldName}"`);
+    throw new Error(`Unmapped field: ${fieldName}`);
+  }
+
+  return fieldMap[fieldName];
 }
+
 
 // ============================================
 // TELEGRAM NOTIFICATIONS

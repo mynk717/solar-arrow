@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${quotations.length} quotations`);
 
+    quotations.sort((a: any, b: any) => new Date(b.updatedAt || b.quotationDate || 0).getTime() - new Date(a.updatedAt || a.quotationDate || 0).getTime());
+
     return NextResponse.json({
       success: true,
       quotations,

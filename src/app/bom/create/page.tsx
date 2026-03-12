@@ -560,11 +560,11 @@ export default function CreateBOMPage() {
                   className="w-full px-4 py-3 border border-slate-300 rounded-xl text-slate-900 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="">-- Choose Enquiry --</option>
-                  {enquiries.map(enq => (
-                    <option key={enq.id} value={enq.id}>
-                      {enq.id} — {enq.customerName} ({enq.capacity} kW)
-                    </option>
-                  ))}
+{enquiries.map(enq => (
+  <option key={enq.id} value={enq.id}>
+    {enq.id} · {enq.customerName} · {enq.area || 'N/A'} · {enq.capacity} kW
+  </option>
+))}
                 </select>
                 {enquiries.length === 0 && (
                   <p className="text-xs text-slate-500 mt-2">

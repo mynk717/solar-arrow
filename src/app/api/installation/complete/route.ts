@@ -50,50 +50,48 @@ export async function POST(request: NextRequest) {
     let customerName = '';
 
     // Find the row with matching enquiryId
-    const updatedRows = rows.map((row: any[], index: number) => {
-      if (row[0] === enquiryId) { // Column A = id
-        rowIndex = index;
-        customerName = row[1];
-        
-        const updatedRow = [...row]; // Clone row
-        
-        // Update installation fields (columns 82-95)
-        if (!updatedRow[83]) updatedRow[83] = new Date().toISOString().split('T')[0]; // CD: installationStartDate
-        updatedRow[84] = installationCompletedDate || new Date().toISOString().split('T')[0]; // CE: installationCompletedDate
-        updatedRow[85] = installationTeam || '';           // CF: installationTeam
-        updatedRow[86] = installationSupervisor || '';     // CG: installationSupervisor
-        updatedRow[87] = installationNotes || '';          // CH: installationNotes
-        updatedRow[88] = pvModuleSerialNumbers || '';      // CI: pvModuleSerialNumbers
-        updatedRow[89] = inverterSerialNumber || '';       // CJ: inverterSerialNumber
-        updatedRow[90] = meterNumber || '';                // CK: meterNumber
-        updatedRow[91] = meterInstalledDate || new Date().toISOString().split('T')[0]; // CL: meterInstalledDate
-        updatedRow[92] = meterReadingInitial || '0';       // CM: meterReadingInitial
-        updatedRow[93] = earthingDone ? 'TRUE' : 'FALSE';  // CN: earthingDone
-        updatedRow[94] = earthingResistance || '';         // CO: earthingResistance
-        updatedRow[95] = installationPhotos || '';         // CP: installationPhotos
-        
-        // Update status to installation-completed
-        updatedRow[7] = 'installation-completed';          // H: status
-        updatedRow[9] = new Date().toISOString();          // J: updatedAt
-        
-        return updatedRow;
-      }
-      return row;
-    });
+const updatedRows = rows.map((row: any[], index: number) => {
+  if (row[0] === enquiryId) { // Column A = id
+    rowIndex = index;
+    customerName = row[1];
+    
+    const updatedRow = [...row]; // Clone row
+    
+    if (!updatedRow[82]) updatedRow[82] = new Date().toISOString().split('T')[0]; // CE: installationStartDate
+    updatedRow[83] = installationCompletedDate || new Date().toISOString().split('T')[0]; // CF
+    updatedRow[84] = installationTeam || '';
+    updatedRow[85] = installationSupervisor || '';
+    updatedRow[86] = installationNotes || '';
+    updatedRow[87] = pvModuleSerialNumbers || '';
+    updatedRow[88] = inverterSerialNumber || '';
+    updatedRow[89] = meterNumber || '';
+    updatedRow[90] = meterInstalledDate || new Date().toISOString().split('T')[0];
+    updatedRow[91] = meterReadingInitial || '0';
+    updatedRow[92] = earthingDone ? 'TRUE' : 'FALSE';
+    updatedRow[93] = earthingResistance || '';
+    updatedRow[94] = installationPhotos || '';
+    
+    // Update status to installation-completed
+    updatedRow[7] = 'installation-completed';          // H: status
+    updatedRow[9] = new Date().toISOString();          // J: updatedAt ✅ keep full ISO for time precision
+    
+    return updatedRow;
+  }
+  return row;
+});
 
-    if (rowIndex === -1) {
-      return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
-    }
+if (rowIndex === -1) {
+  return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
+}
 
-    // Write back to sheet
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: 'ENQUIRIES!A2:CZ1000',
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: updatedRows,
-      },
-    });
+// Write back to sheet
+await sheets.spreadsheets.values.update({
+  spreadsheetId: sheetId,
+  range: `ENQUIRIES!A${rowIndex + 2}:DR${rowIndex + 2}`, // ← only this row
+  valueInputOption: 'USER_ENTERED',
+  requestBody: { values: [updatedRows[rowIndex]] }, // ✅ FIX 1: was [updatedRow], scope was wrong
+});
+
 
     // Clear cache
     await redis.del(`org:${orgId}:installations`);

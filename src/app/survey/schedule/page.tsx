@@ -160,9 +160,8 @@ router.push('/survey');
               <option value="">-- Select Enquiry --</option>
               {enquiries.map((enq) => (
                 <option key={enq.id} value={enq.id}>
-                {enq.isFromLead ? '📋 ' : '📝 '}{enq.id} - {enq.customerName} ({enq.capacity} kW)
-                {enq.isFromLead ? ' [Lead]' : ' [Enquiry]'}
-              </option>              
+                {enq.isFromLead ? '📋' : '📝'} {enq.id} · {enq.customerName} · {enq.area || 'N/A'} · {enq.capacity} kW
+              </option>          
               ))}
             </select>
             {enquiries.length === 0 && (
