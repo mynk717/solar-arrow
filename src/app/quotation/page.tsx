@@ -19,7 +19,8 @@ import {
   FileEdit,
   Share2,
   Phone,
-  MapPin
+  MapPin,
+  Search
 } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 
@@ -31,6 +32,7 @@ export default function QuotationsPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
 
   const handleMarkReady = async (quotationId: string) => {
@@ -104,6 +106,21 @@ export default function QuotationsPage() {
     );
   }
 
+  const filteredQuotations = quotations
+  .filter(q => {
+    const matchesStatus = filterStatus
+      ? (filterStatus === 'Shared' ? q.status === 'Shared' || q.status === 'Viewed' : q.status === filterStatus)
+      : true;
+    const matchesSearch = searchTerm
+      ? q.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.quotationId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.referenceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.customerPhone?.includes(searchTerm)
+      : true;
+    return matchesStatus && matchesSearch;
+  })
+  .sort((a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime());
+
   return (
 <div className="min-h-screen bg-gray-50 overflow-x-hidden pb-24">
 <DemoBanner />
@@ -126,6 +143,18 @@ export default function QuotationsPage() {
               <span className="hidden sm:inline">Create</span>
             </button>
           </div>
+
+{/* Search Bar */}
+<div className="relative mb-3">
+  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+  <input
+    type="text"
+    placeholder="Search by name, ID, reference or phone..."
+    value={searchTerm}
+    onChange={e => setSearchTerm(e.target.value)}
+    className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 bg-white text-sm"
+  />
+</div>
 
          {/* Stats Grid */}
 <div className="grid grid-cols-4 gap-2">
@@ -183,10 +212,7 @@ export default function QuotationsPage() {
             </button>
           </div>
         ) : (
-          (filterStatus ? quotations.filter(q => {
-            if (filterStatus === 'Shared') return q.status === 'Shared' || q.status === 'Viewed';
-            return q.status === filterStatus;
-          }) : quotations).map((quot: any) => (
+          filteredQuotations.map((quot: any) => (
             <QuotationCard
               key={quot.quotationId}
               quotation={quot}

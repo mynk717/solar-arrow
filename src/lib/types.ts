@@ -675,6 +675,8 @@ export interface AppUser {
 export interface Survey {
   // Basic
   enquiryId: string;
+  customerName?: string;
+  updatedAt?: string; 
   surveyDate: string;
   surveyorEmail: string;
   surveyorName: string;

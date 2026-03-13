@@ -31,6 +31,8 @@ interface Survey {
   sanctionedLoad: number;
   surveyApproved: boolean | string;
   surveyNotes: string;
+  customerName?: string;
+  updatedAt?: string;
 }
 
 export default function SurveyPage() {
@@ -72,6 +74,7 @@ useEffect(() => {
     // Search filter
     const matchesSearch = 
       survey.enquiryId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      survey.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       survey.surveyorName?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Status filter
@@ -91,6 +94,11 @@ useEffect(() => {
     return matchesSearch && matchesStatus && matchesUser;
   });
 
+  const sortedSurveys = [...filteredSurveys].sort((a, b) => {
+    const dateA = new Date(a.updatedAt || a.surveyDate || 0).getTime();
+    const dateB = new Date(b.updatedAt || b.surveyDate || 0).getTime();
+    return dateB - dateA;
+  });
   // ✅ Stats based on user role
   const visibleSurveys = surveys.filter(s => 
     isAdminOrOwner || s.surveyorEmail === session?.user?.email
@@ -247,7 +255,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
       {/* Survey Cards */}
       {filter !== 'scheduled' && (
         <div className="p-4 pt-4 space-y-3" style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}>
-        {filteredSurveys.length === 0 ? (
+{sortedSurveys.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-200">
             <ClipboardCheck className="mx-auto h-20 w-20 text-gray-300 mb-4" />
             <p className="text-gray-900 font-bold text-lg mb-2">No surveys found</p>
@@ -263,7 +271,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
             </p>
           </div>
         ) : (
-          filteredSurveys.map((survey) => (
+          sortedSurveys.map((survey) => (
             <SurveyCard
               key={survey.enquiryId}
               survey={survey}
