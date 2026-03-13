@@ -4,7 +4,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Save, Loader2, Calculator, ArrowLeft, Plus, Minus } from 'lucide-react';
+import { Save, Loader2, Calculator, ArrowLeft, Plus, Minus, User, Zap, Sun, PlugZap, Wrench, DollarSign, CreditCard, FileText } from 'lucide-react';
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
 import { useQuotations } from '@/lib/useQuotations'; 
@@ -200,6 +200,19 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
     formData.subsidyAmount,
   ]);
 
+  useEffect(() => {
+    if (boqItems.length === 0) {
+      setBoqItems(generateDefaultBoq(
+        formData.panelMake,
+        formData.panelWattage,
+        formData.panelQuantity,
+        formData.inverterMake,
+        formData.inverterCapacity,
+        formData.systemCapacity,
+        finalAmount || 192000
+      ));
+    }
+  }, [formData.panelMake, formData.inverterMake, formData.systemCapacity]);
   const fetchLeads = async () => {
     try {
       // Use single status parameter approach
@@ -302,6 +315,11 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
       panelWattage: panel.wattage || 560,
       panelWarranty: panel.warranty,
     }));
+    setBoqItems(prev => prev.map(item =>
+      item.id === '1'
+        ? { ...item, description: 'Solar PV Modules', make: `${panel.make} ${panel.wattage}W` }
+        : item
+    ));
   };
 
   const handleInverterChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -313,6 +331,11 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
       inverterCapacity: inverter.capacity || 3,
       inverterWarranty: inverter.warranty,
     }));
+    setBoqItems(prev => prev.map(item =>
+      item.id === '2'
+        ? { ...item, description: 'Grid-Tied Inverter', make: `${inverter.make} ${inverter.capacity}kVA` }
+        : item
+    ));
   };
 
   const calculatePanelQuantity = () => {
@@ -822,9 +845,12 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
           </FormSection>
 
 {/* BOQ Section */}
-<div className="bg-white rounded-lg border border-gray-200 p-6">
-  <h3 className="text-lg font-bold text-gray-900 mb-1">Bill of Quantities (BOQ)</h3>
-  <p className="text-sm text-gray-500 mb-4">Line items shown to the customer in the quotation</p>
+<div className="bg-white rounded-lg shadow-md p-6">
+  <h2 className="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2 border-b-2 border-gray-300 pb-3">
+    <FileText size={18} className="text-blue-600" />
+    Bill of Quantities (BOQ)
+  </h2>
+  <p className="text-sm text-gray-500 mb-4 mt-3">Line items shown to the customer — edit rates and quantities as needed</p>
   <BoqEditor items={boqItems} onChange={setBoqItems} />
 </div>
 
@@ -876,11 +902,22 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
   );
 }
 
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+  'Customer Information': <User size={18} className="text-blue-600" />,
+  'System Configuration': <Zap size={18} className="text-yellow-500" />,
+  'Solar Panels': <Sun size={18} className="text-orange-500" />,
+  'Inverter': <PlugZap size={18} className="text-green-600" />,
+  'Additional Components': <Wrench size={18} className="text-gray-600" />,
+  'Pricing': <DollarSign size={18} className="text-emerald-600" />,
+  'Payment Terms': <CreditCard size={18} className="text-purple-600" />,
+  'Additional Information': <FileText size={18} className="text-gray-500" />,
+};
+
 function FormSection({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2 border-b-2 border-gray-300 pb-3">
-        <span className="text-2xl">{icon}</span>
+        {SECTION_ICONS[title] ?? <FileText size={18} className="text-gray-400" />}
         {title}
       </h2>
       {children}

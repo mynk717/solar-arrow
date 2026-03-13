@@ -59,7 +59,7 @@ export default function BoqEditor({ items, onChange }: Props) {
                 <td className="px-2 py-1 text-gray-400 text-xs">{idx + 1}</td>
                 <td className="px-2 py-1">
                   <input
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[140px]"
+className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[140px] placeholder:text-gray-400"
                     value={item.description}
                     onChange={e => update(item.id, 'description', e.target.value)}
                     placeholder="Item description"
@@ -67,8 +67,8 @@ export default function BoqEditor({ items, onChange }: Props) {
                 </td>
                 <td className="px-2 py-1">
                   <input
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[120px]"
-                    value={item.make}
+className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[120px] placeholder:text-gray-400"
+value={item.make}
                     onChange={e => update(item.id, 'make', e.target.value)}
                     placeholder="Brand / spec"
                   />
@@ -107,7 +107,7 @@ export default function BoqEditor({ items, onChange }: Props) {
                 </td>
                 <td className="px-2 py-1">
                   <input
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none"
+                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none placeholder:text-gray-400"
                     value={item.warranty || ''}
                     onChange={e => update(item.id, 'warranty', e.target.value)}
                     placeholder="e.g. 5 yrs"
