@@ -15,6 +15,24 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
+interface Installment {
+  id: string;
+  enquiryId: string;
+  customerName: string;
+  installmentNumber: number;
+  amount: number;
+  expectedAmount: number;
+  status: 'pending' | 'verified' | 'failed';
+  date: string;
+  method: string;
+  reference: string;
+  verifiedBy: string;
+  verifiedAt: string;
+  notes: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 interface PaymentRecord {
   enquiryId: string;
   customerName: string;
@@ -42,6 +60,7 @@ interface PaymentRecord {
   paymentDate?: string;
   paymentUTR?: string;
   paymentVerifiedBy?: string;
+  installments?: Installment[];
 }
 
 // ─── Safe helpers ───────────────────────────────────────────────────────────
@@ -99,10 +118,14 @@ function PaymentCard({
   payment,
   onVerify,
   onView,
+  onAddInstall,
+  onVerifyInstall,
 }: {
   payment: PaymentRecord;
   onVerify: (p: PaymentRecord, t: 'payment1' | 'payment2') => void;
   onView: (p: PaymentRecord) => void;
+  onAddInstall: (p: PaymentRecord) => void;
+  onVerifyInstall: (inst: Installment) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const p1date = fmtDate(payment.payment1Date);
@@ -170,6 +193,34 @@ function PaymentCard({
             </div>
             <PaymentStatusBadge status={payment.payment2Status} />
           </div>
+          {/* Installments from PAYMENTS tab */}
+{payment.installments && payment.installments.length > 0 && (
+  <div className="mt-2 space-y-1">
+    <p className="text-xs font-bold text-gray-600 px-1">Installment History</p>
+    {payment.installments.map((inst) => (
+      <div key={inst.id} className="flex items-center justify-between bg-purple-50 rounded-xl px-3 py-2">
+        <div>
+          <p className="text-xs font-semibold text-gray-700">
+            Installment {inst.installmentNumber} · ₹{fmt(inst.amount)}
+          </p>
+          {inst.date && <p className="text-xs text-gray-500">{fmtDate(inst.date)}</p>}
+          {inst.reference && <p className="text-xs font-mono text-gray-600">{inst.reference}</p>}
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <PaymentStatusBadge status={inst.status} />
+          {inst.status === 'pending' && (
+            <button
+              onClick={() => onVerifyInstall(inst)}
+              className="text-xs bg-green-600 text-white px-2 py-1 rounded-lg font-bold"
+            >
+              Verify
+            </button>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
         </div>
       )}
 
@@ -207,6 +258,12 @@ function PaymentCard({
           >
             <FileText size={16} />
           </button>
+          <button
+  onClick={() => onAddInstall(payment)}
+  className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50"
+>
+  + Install
+</button>
           <button
   onClick={() => window.location.href = `/enquiries/${payment.enquiryId}`}
   className="border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50"
@@ -534,8 +591,25 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyType, setVerifyType] = useState<'payment1' | 'payment2'>('payment1');
+  const [installments, setInstallments] = useState<Installment[]>([]);
+const [showAddModal, setShowAddModal] = useState(false);
+const [showVerifyInstallModal, setShowVerifyInstallModal] = useState(false);
+const [selectedInstall, setSelectedInstall] = useState<Installment | null>(null);
 
-  useEffect(() => { fetchPayments(); }, []);
+
+useEffect(() => { fetchPayments(); fetchInstallments(); }, []);
+
+const fetchInstallments = async () => {
+  try {
+    const res = await fetch('/api/payments/installments');
+    if (res.ok) {
+      const data = await res.json();
+      setInstallments(Array.isArray(data.installments) ? data.installments : []);
+    }
+  } catch (err) {
+    console.error('Failed to fetch installments:', err);
+  }
+};
 
   const fetchPayments = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -594,7 +668,15 @@ export default function PaymentsPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 pt-5 pb-4 sm:px-6">
         <h1 className="text-2xl font-bold text-gray-900">Payment Tracking</h1>
-        <p className="text-sm text-gray-600 mt-1">70% upfront · 30% after installation</p>
+        <div className="flex items-center justify-between mt-1">
+  <p className="text-sm text-gray-600">Track all payment installments</p>
+  <button
+    onClick={() => { setSelectedPayment(null); setShowAddModal(true); }}
+    className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition"
+  >
+    + Add Payment
+  </button>
+</div>
       </div>
 
       <div className="px-4 sm:px-6 pt-4 space-y-4">
@@ -662,15 +744,13 @@ export default function PaymentsPage() {
             <div className="lg:hidden space-y-3">
               {filtered.map(p => (
                 <PaymentCard
-                  key={p.enquiryId}
-                  payment={p}
-                  onVerify={(payment, type) => {
-                    setSelectedPayment(payment);
-                    setVerifyType(type);
-                    setShowVerifyModal(true);
-                  }}
-                  onView={setSelectedPayment}
-                />
+                key={p.enquiryId}
+                payment={{ ...p, installments: installments.filter(i => i.enquiryId === p.enquiryId) }}
+                onVerify={(payment, type) => { setSelectedPayment(payment); setVerifyType(type); setShowVerifyModal(true); }}
+                onView={setSelectedPayment}
+                onAddInstall={(payment) => { setSelectedPayment(payment); setShowAddModal(true); }}
+                onVerifyInstall={(inst) => { setSelectedInstall(inst); setShowVerifyInstallModal(true); }}
+              />              
               ))}
             </div>
 
@@ -770,6 +850,279 @@ export default function PaymentsPage() {
           onClose={() => setSelectedPayment(null)}
         />
       )}
+      {showAddModal && (
+  <AddInstallmentModal
+    payment={selectedPayment}
+    onClose={() => { setShowAddModal(false); setSelectedPayment(null); }}
+    onSuccess={() => { setShowAddModal(false); setSelectedPayment(null); fetchPayments(true); fetchInstallments(); }}
+  />
+)}
+{showVerifyInstallModal && selectedInstall && (
+  <VerifyInstallmentModal
+    install={selectedInstall}
+    onClose={() => { setShowVerifyInstallModal(false); setSelectedInstall(null); }}
+    onSuccess={() => { setShowVerifyInstallModal(false); setSelectedInstall(null); fetchPayments(true); fetchInstallments(); }}
+  />
+)}
+    </div>
+  );
+}
+function AddInstallmentModal({ payment, onClose, onSuccess }: {
+  payment: PaymentRecord | null;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    method: 'bank-transfer',
+    reference: '',
+    notes: '',
+  });
+
+  const totalPaid = payment
+    ? (payment.totalPaid ?? 0)
+    : 0;
+  const balance = payment ? (payment.balanceAmount ?? 0) : 0;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payment) return;
+    setLoading(true);
+    try {
+      const existingCount = payment.installments?.length ?? 0;
+      const res = await fetch('/api/payments/installments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enquiryId: payment.enquiryId,
+          customerName: payment.customerName,
+          installmentNumber: existingCount + 1,
+          amount: parseFloat(form.amount),
+          expectedAmount: balance,
+          date: form.date,
+          method: form.method,
+          reference: form.reference,
+          notes: form.notes,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add installment');
+      alert('Installment added! Verify it to mark as received.');
+      onSuccess();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Add Installment</h2>
+            <p className="text-sm text-gray-500">
+              {payment?.enquiryId} · Balance: ₹{fmt(balance)}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
+            <X size={20} className="text-gray-600" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Amount (₹) <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="number" required
+              value={form.amount}
+              onChange={e => setForm({ ...form, amount: e.target.value })}
+              placeholder={`Max balance: ₹${fmt(balance)}`}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Date <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date" required
+              value={form.date}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => setForm({ ...form, date: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Method <span className="text-red-500">*</span>
+            </label>
+            <select
+              required value={form.method}
+              onChange={e => setForm({ ...form, method: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            >
+              <option value="bank-transfer">Bank Transfer / NEFT / RTGS</option>
+              <option value="upi">UPI</option>
+              <option value="cheque">Cheque</option>
+              <option value="cash">Cash</option>
+              <option value="dd">Demand Draft</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              UTR / Reference
+            </label>
+            <input
+              type="text" value={form.reference}
+              onChange={e => setForm({ ...form, reference: e.target.value })}
+              placeholder="Optional — add after payment clears"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Notes</label>
+            <textarea rows={2} value={form.notes}
+              onChange={e => setForm({ ...form, notes: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 border-2 border-gray-300 text-gray-900 font-bold py-3 rounded-xl">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
+              {loading ? 'Adding...' : 'Add Installment'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+function VerifyInstallmentModal({ install, onClose, onSuccess }: {
+  install: Installment;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    amount: install.amount,
+    date: install.date || new Date().toISOString().split('T')[0],
+    method: install.method || 'bank-transfer',
+    reference: install.reference || '',
+    notes: install.notes || '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.reference.trim()) { alert('Reference is required'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/payments/installments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: install.id, ...form }),
+      });
+      if (!res.ok) throw new Error('Failed to verify');
+      alert('Installment verified!');
+      onSuccess();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Verify Installment {install.installmentNumber}
+            </h2>
+            <p className="text-sm text-gray-500">{install.enquiryId} · ₹{fmt(install.amount)}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
+            <X size={20} className="text-gray-600" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Amount (₹) <span className="text-red-500">*</span>
+            </label>
+            <input type="number" required value={form.amount}
+              onChange={e => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Date <span className="text-red-500">*</span>
+            </label>
+            <input type="date" required value={form.date}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => setForm({ ...form, date: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Method <span className="text-red-500">*</span>
+            </label>
+            <select required value={form.method}
+              onChange={e => setForm({ ...form, method: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            >
+              <option value="bank-transfer">Bank Transfer / NEFT / RTGS</option>
+              <option value="upi">UPI</option>
+              <option value="cheque">Cheque</option>
+              <option value="cash">Cash</option>
+              <option value="dd">Demand Draft</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              UTR / Reference <span className="text-red-500">*</span>
+            </label>
+            <input type="text" required value={form.reference}
+              onChange={e => setForm({ ...form, reference: e.target.value })}
+              placeholder="e.g. UTR123456789"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Notes</label>
+            <textarea rows={2} value={form.notes}
+              onChange={e => setForm({ ...form, notes: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 border-2 border-gray-300 text-gray-900 font-bold py-3 rounded-xl">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
+              {loading ? 'Verifying...' : '✓ Verify'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
