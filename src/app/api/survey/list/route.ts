@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { fetchSurveys } from '@/lib/googleSheets';
+import { fetchSurveys, fetchEnquiries } from '@/lib/googleSheets';
 
 export async function GET() {
   try {
@@ -18,7 +18,22 @@ export async function GET() {
       session.user.organizationId,
       session.user.email
     );
-    surveys.sort((a: any, b: any) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+    
+    const enquiries = await fetchEnquiries();
+    const enquiryMap = new Map(
+      enquiries.map((enq: any) => [enq.id, enq.customerName || ''])
+    );
+    
+    surveys.forEach((survey: any) => {
+      survey.customerName = enquiryMap.get(survey.enquiryId) || '';
+    });
+    
+    surveys.sort(
+      (a: any, b: any) =>
+        new Date(b.updatedAt || b.surveyDate || 0).getTime() -
+        new Date(a.updatedAt || a.surveyDate || 0).getTime()
+    );
+    
     return NextResponse.json({
       success: true,
       surveys,
