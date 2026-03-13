@@ -165,7 +165,7 @@ rejected: visibleSurveys.filter(s => isRejected(s)).length,
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
             <input
               type="text"
-              placeholder="Search by Enquiry ID or Surveyor"
+              placeholder="Search by customer, enquiry ID or surveyor"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-gray-900 text-sm bg-gray-50"
@@ -355,10 +355,20 @@ function SurveyCard({ survey, onView }: any) {
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden active:shadow-xl transition-all">
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="text-sm font-mono font-bold text-blue-600 truncate">
-            {survey.enquiryId}
-          </span>
+<div className="flex items-center justify-between gap-2 mb-1">
+  <span className="text-sm font-mono font-bold text-blue-600 truncate">
+    {survey.enquiryId}
+  </span>
+  {getStatusBadge()}
+</div>
+{survey.customerName && (
+  <p className="font-bold text-gray-900 text-sm truncate mb-1">{survey.customerName}</p>
+)}
+<div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+  <span className="flex items-center gap-1 font-semibold">
+    <User size={12} />
+    {survey.surveyorName}
+  </span>
           {getStatusBadge()}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
