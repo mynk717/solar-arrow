@@ -12,6 +12,7 @@ import {
   Filter,
   Edit,
   Plus,
+  Search,
 } from 'lucide-react';
 
 export default function RegistrationPage() {
@@ -20,8 +21,10 @@ export default function RegistrationPage() {
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
+  
 
   useEffect(() => {
     fetchRegistrations();
@@ -48,10 +51,31 @@ export default function RegistrationPage() {
     setShowUpdateModal(true);
   };
 
-  const filteredRegistrations = registrations.filter((reg) => {
-    if (filter === 'all') return true;
-    return reg.registrationStatus === filter;
-  });
+  const filteredRegistrations = registrations
+  .filter((reg) => {
+    const matchesFilter =
+      filter === 'all' ? true : reg.registrationStatus === filter;
+
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      !term ||
+      reg.enquiryId?.toLowerCase().includes(term) ||
+      reg.customerName?.toLowerCase().includes(term) ||
+      reg.phone?.toLowerCase().includes(term) ||
+      reg.applicationNumber?.toLowerCase().includes(term) ||
+      reg.registrationId?.toLowerCase().includes(term);
+
+    return matchesFilter && matchesSearch;
+  })
+  .sort((a, b) => {
+    const dateA = new Date(
+      a.updatedAt || a.lastEditedAt || a.submittedDate || a.createdAt || 0
+    ).getTime();
+    const dateB = new Date(
+      b.updatedAt || b.lastEditedAt || b.submittedDate || b.createdAt || 0
+    ).getTime();
+    return dateB - dateA;
+  });  
 
   const stats = {
     pending: registrations.filter((r) => r.registrationStatus === 'pending').length,
@@ -87,8 +111,8 @@ export default function RegistrationPage() {
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2"
         >
           <Plus size={20} />
-          Submit Enquiry for Registration
-        </button>
+          Create Registration
+          </button>
       </div>
 
       {/* Stats */}
@@ -163,6 +187,24 @@ export default function RegistrationPage() {
           </div>
         </div>
       </div>
+
+{/* Search */}
+<div className="bg-white rounded-lg shadow-md p-4 mb-6">
+  <div className="relative">
+    <Search
+      size={18}
+      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+    />
+    <input
+      type="text"
+      placeholder="Search by customer, enquiry ID, phone, application no or registration ID"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+      style={{ fontSize: '16px' }}
+    />
+  </div>
+</div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
