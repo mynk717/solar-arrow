@@ -193,8 +193,7 @@ function PaymentCard({
             </button>
           )}
           {payment.payment1Status === 'verified' &&
-            payment.payment2Status === 'pending' &&
-            payment.installationStatus === 'completed' && (
+  payment.payment2Status === 'pending' && (
               <button
                 onClick={() => onVerify(payment, 'payment2')}
                 className="bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
@@ -208,6 +207,12 @@ function PaymentCard({
           >
             <FileText size={16} />
           </button>
+          <button
+  onClick={() => window.location.href = `/enquiries/${payment.enquiryId}`}
+  className="border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50"
+>
+  Enquiry
+</button>
         </div>
       </div>
     </div>
@@ -548,7 +553,8 @@ export default function PaymentsPage() {
     }
   };
 
-  const filtered = payments.filter(p => {
+  const filtered = payments
+  .filter(p => {
     const q = searchTerm.toLowerCase();
     const matchSearch =
       (p.enquiryId ?? '').toLowerCase().includes(q) ||
@@ -556,6 +562,11 @@ export default function PaymentsPage() {
       (p.phone ?? '').includes(q);
     const matchStatus = statusFilter === 'all' || p.paymentStatus === statusFilter;
     return matchSearch && matchStatus;
+  })
+  .sort((a, b) => {
+    const dateA = new Date(a.payment2Date || a.payment1Date || 0).getTime();
+    const dateB = new Date(b.payment2Date || b.payment1Date || 0).getTime();
+    return dateB - dateA;
   });
 
   const metrics = {
@@ -713,7 +724,7 @@ export default function PaymentsPage() {
                               Verify 70%
                             </button>
                           )}
-                          {p.payment1Status === 'verified' && p.payment2Status === 'pending' && p.installationStatus === 'completed' && (
+                          {p.payment1Status === 'verified' && p.payment2Status === 'pending' && (
                             <button
                               onClick={() => { setSelectedPayment(p); setVerifyType('payment2'); setShowVerifyModal(true); }}
                               className="text-xs font-bold bg-green-600 text-white px-2.5 py-1.5 rounded-lg"
@@ -727,6 +738,12 @@ export default function PaymentsPage() {
                           >
                             <FileText size={16} />
                           </button>
+                          <button
+  onClick={() => window.location.href = `/enquiries/${p.enquiryId}`}
+  className="border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50"
+>
+  Enquiry
+</button>
                         </div>
                       </td>
                     </tr>
