@@ -8,6 +8,10 @@ import { Save, Loader2, Calculator, ArrowLeft, Plus, Minus } from 'lucide-react'
 import DemoBanner from '@/components/DemoBanner';
 import { useDemoMode } from '@/contexts/DemoContext';
 import { useQuotations } from '@/lib/useQuotations'; 
+import BoqEditor from '@/components/BoqEditor';
+import { generateDefaultBoq } from '@/lib/boq';
+import { BoqItem } from '@/lib/quotations';
+
 
 interface ComponentOption {
   make: string;
@@ -66,6 +70,8 @@ const [selectedLead, setSelectedLead] = useState<any>(null);
 const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
 const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'enquiry' : 'lead');
   const { createQuotation, sendQuotation } = useQuotations();
+  const [boqItems, setBoqItems] = useState<BoqItem[]>([]);
+
 
 
   // Form State
@@ -245,6 +251,9 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
       location: enquiry.area || enquiry.location || '',
       systemCapacity: enquiry.capacity ? parseFloat(enquiry.capacity) : 3,
     }));
+    if (enquiry.panelMake && enquiry.inverterMake) {
+      setBoqItems(generateDefaultBoq(enquiry.panelMake, enquiry.panelWattage || 330, enquiry.panelQuantity || 9, enquiry.inverterMake, enquiry.inverterCapacity || 3, parseFloat(enquiry.capacity) || 3, 0));
+    }
   };
 
   const autoFillCompanyDetails = () => {
@@ -268,6 +277,9 @@ const [sourceType, setSourceType] = useState<'lead' | 'enquiry'>(enquiryId ? 'en
       location: lead.area || lead.location || '',
       systemCapacity: lead.capacity ? parseFloat(lead.capacity) : 3,
     }));
+    if (lead.panelMake && lead.inverterMake) {
+      setBoqItems(generateDefaultBoq(lead.panelMake, lead.panelWattage || 330, lead.panelQuantity || 9, lead.inverterMake, lead.inverterCapacity || 3, parseFloat(lead.capacity) || 3, 0));
+    }
   };
 
   const calculatePricing = () => {
@@ -335,6 +347,7 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
         quotationType: 'Initial' as const,
         leadId: formData.leadId || undefined,
         enquiryId: formData.enquiryId || undefined,
+        boqItems,
       };      
   
       // Use the hook instead of direct fetch
@@ -807,6 +820,13 @@ const handleSubmit = async (e: FormEvent, sendImmediately: boolean = false) => {
               />
             </div>
           </FormSection>
+
+{/* BOQ Section */}
+<div className="bg-white rounded-lg border border-gray-200 p-6">
+  <h3 className="text-lg font-bold text-gray-900 mb-1">Bill of Quantities (BOQ)</h3>
+  <p className="text-sm text-gray-500 mb-4">Line items shown to the customer in the quotation</p>
+  <BoqEditor items={boqItems} onChange={setBoqItems} />
+</div>
 
           {/* Notes */}
           <FormSection title="Additional Information" icon="📝">

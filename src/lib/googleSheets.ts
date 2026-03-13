@@ -7,7 +7,7 @@ import { getValidAccessToken } from './tokenRefresh';
 import { telegramBot } from './telegram'; 
 import { redis } from './redis';
 import type { Survey } from './types';
-import { Quotation, QuotationStatus } from './quotations';
+import { Quotation, QuotationStatus, BoqItem } from './quotations';
 import { 
   cacheSheetData,
   getCachedSheetData,
@@ -1659,7 +1659,7 @@ export async function fetchAllQuotations(orgId: string): Promise<Quotation[]> {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CB10000',
+      range: 'QUOTATIONS!A2:CC10000',
     });
 
     const rows = response.data.values || [];
@@ -1692,7 +1692,7 @@ export async function fetchQuotation(
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CB10000',
+      range: 'QUOTATIONS!A2:CC10000',
     });
 
     const rows = response.data.values || [];
@@ -1821,11 +1821,12 @@ export async function createQuotation(quotation: Quotation): Promise<void> {
       quotation.companyAddress,           // BZ
       quotation.companyPhone,             // CA
       quotation.companyEmail,             // CB
+      JSON.stringify(quotation.boqItems || []), // CC - column 80
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A:CB',
+      range: 'QUOTATIONS!A:CC',
       valueInputOption: 'RAW',
       requestBody: {
         values: [row],
@@ -1854,7 +1855,7 @@ export async function updateQuotation(
     // Get all rows to find the quotation
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'QUOTATIONS!A2:CB10000',
+      range: 'QUOTATIONS!A2:CC10000',
     });
 
     const rows = response.data.values || [];
@@ -2005,6 +2006,7 @@ function rowToQuotation(row: any[]): Quotation | null {
     companyAddress,           // Column 77 (BZ)
     companyPhone,             // Column 78 (CA)
     companyEmail,             // Column 79 (CB)
+    boqItemsRaw,              // Column 80 (CC)
   ] = row;
 
   return {
@@ -2124,6 +2126,11 @@ function rowToQuotation(row: any[]): Quotation | null {
     companyAddress: companyAddress || '',
     companyPhone: companyPhone || '',
     companyEmail: companyEmail || '',
+    // BOQ
+    boqItems: (() => {
+      try { return boqItemsRaw ? JSON.parse(boqItemsRaw) : []; }
+      catch { return []; }
+    })(),
   };
 }
 

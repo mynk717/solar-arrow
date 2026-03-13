@@ -3,6 +3,19 @@ import crypto from 'crypto';
 
 export type QuotationStatus = 'Draft' | 'Ready' | 'Sent' | 'Shared' | 'Viewed' | 'Approved' | 'Rejected';
 
+// ADD before line 6 "export interface Quotation {"
+export interface BoqItem {
+  id: string;
+  description: string;
+  make: string;
+  quantity: number;
+  unit: string;
+  unitRate: number;
+  amount: number;
+  warranty?: string;
+}
+
+
 export interface Quotation {
   // Multi-tenant
   organizationId: string;
@@ -47,6 +60,7 @@ export interface Quotation {
   structureWarranty: string;
 
   bosItems: string; // Balance of System
+  boqItems?: BoqItem[];
   bosWarranty: string;
 
   cableMake: string;

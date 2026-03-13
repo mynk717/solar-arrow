@@ -197,6 +197,13 @@ const shareViaEmail = () => {
               </h1>
               <p className="text-gray-600">Reference: {quotation.referenceNumber}</p>
             </div>
+            <button
+  onClick={() => router.push(`/quotation/create?edit=${params.quotationId}`)}
+  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm"
+>
+  <Edit size={15} />
+  Edit
+</button>
           </div>
 
           {/* Actions */}
@@ -389,6 +396,55 @@ const shareViaEmail = () => {
                 <InfoField label="Inverter Capacity" value={`${quotation.inverterCapacity} kVA`} />
               </div>
             </div>
+
+{/* Equipment List — add after System Details card */}
+<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-lg font-bold text-gray-900">Major Equipment & Vendors</h2>
+    <button
+      onClick={() => router.push(`/quotation/create?edit=${params.quotationId}`)}
+      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+    >
+      <Edit size={13} /> Edit
+    </button>
+  </div>
+  <table className="w-full text-sm">
+    <thead>
+      <tr className="border-b border-gray-200 text-left text-gray-500">
+        <th className="pb-2 font-medium">Item</th>
+        <th className="pb-2 font-medium">Make / Model</th>
+        <th className="pb-2 font-medium text-center">Qty</th>
+        <th className="pb-2 font-medium">Spec</th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-100">
+      <tr className="py-2">
+        <td className="py-2 font-medium text-gray-900">Solar Panels</td>
+        <td className="py-2 text-gray-700">{quotation.panelMake}</td>
+        <td className="py-2 text-center text-gray-700">{quotation.panelQuantity}</td>
+        <td className="py-2 text-gray-700">{quotation.panelWattage}W · {quotation.panelType}</td>
+      </tr>
+      <tr>
+        <td className="py-2 font-medium text-gray-900">Inverter</td>
+        <td className="py-2 text-gray-700">{quotation.inverterMake}</td>
+        <td className="py-2 text-center text-gray-700">{quotation.inverterQuantity || 1}</td>
+        <td className="py-2 text-gray-700">{quotation.inverterCapacity} kVA</td>
+      </tr>
+      <tr>
+        <td className="py-2 font-medium text-gray-900">Mounting Structure</td>
+        <td className="py-2 text-gray-500 italic" colSpan={3}>As per site requirement</td>
+      </tr>
+      <tr>
+        <td className="py-2 font-medium text-gray-900">DC / AC Cabling</td>
+        <td className="py-2 text-gray-500 italic" colSpan={3}>As per site requirement</td>
+      </tr>
+      <tr>
+        <td className="py-2 font-medium text-gray-900">Earthing & Protection</td>
+        <td className="py-2 text-gray-500 italic" colSpan={3}>As per site requirement</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
             {/* Notes */}
             {quotation.notes && (
