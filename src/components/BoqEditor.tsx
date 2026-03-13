@@ -59,15 +59,15 @@ export default function BoqEditor({ items, onChange }: Props) {
                 <td className="px-2 py-1 text-gray-400 text-xs">{idx + 1}</td>
                 <td className="px-2 py-1">
                   <input
-className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[140px] placeholder:text-gray-400"
-                    value={item.description}
+className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none min-w-[140px] placeholder:text-gray-400"
+value={item.description}
                     onChange={e => update(item.id, 'description', e.target.value)}
                     placeholder="Item description"
                   />
                 </td>
                 <td className="px-2 py-1">
                   <input
-className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none min-w-[120px] placeholder:text-gray-400"
+className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none min-w-[120px] placeholder:text-gray-400"
 value={item.make}
                     onChange={e => update(item.id, 'make', e.target.value)}
                     placeholder="Brand / spec"
@@ -76,15 +76,15 @@ value={item.make}
                 <td className="px-2 py-1">
                   <input
                     type="number"
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-center focus:ring-1 focus:ring-blue-400 outline-none"
+                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-center text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none"
                     value={item.quantity}
                     onChange={e => update(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                   />
                 </td>
                 <td className="px-2 py-1">
                   <select
-                    className="w-full border border-gray-200 rounded px-1 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none"
-                    value={item.unit}
+className="w-full border border-gray-200 rounded px-1 py-1 text-sm text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none"
+value={item.unit}
                     onChange={e => update(item.id, 'unit', e.target.value)}
                   >
                     <option>Nos</option>
@@ -97,7 +97,7 @@ value={item.make}
                 <td className="px-2 py-1">
                   <input
                     type="number"
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-right focus:ring-1 focus:ring-blue-400 outline-none"
+                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-right text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none"
                     value={item.unitRate}
                     onChange={e => update(item.id, 'unitRate', parseFloat(e.target.value) || 0)}
                   />
@@ -107,8 +107,8 @@ value={item.make}
                 </td>
                 <td className="px-2 py-1">
                   <input
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-400 outline-none placeholder:text-gray-400"
-                    value={item.warranty || ''}
+className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-gray-900 focus:ring-1 focus:ring-blue-400 outline-none placeholder:text-gray-400"
+value={item.warranty || ''}
                     onChange={e => update(item.id, 'warranty', e.target.value)}
                     placeholder="e.g. 5 yrs"
                   />

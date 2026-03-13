@@ -330,7 +330,7 @@ const navigation = ALL_NAV.filter(item => {
       <span className="ml-auto bg-yellow-500 text-blue-900 text-xs px-2 py-0.5 rounded-full font-semibold">
         Admin
       </span>
-    </Link>git
+    </Link>
   </div>
 )}
         </nav>
