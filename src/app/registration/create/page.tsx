@@ -12,6 +12,8 @@ export default function CreateRegistrationPage() {
   const [loading, setLoading] = useState(true);
   const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   useEffect(() => {
     fetchEligibleEnquiries();
@@ -49,6 +51,29 @@ export default function CreateRegistrationPage() {
     setSelectedEnquiry(enquiry);
     setShowForm(true);
   };
+
+  const filteredEnquiries = enquiries
+  .filter((enq) => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+
+    return (
+      enq.id?.toLowerCase().includes(term) ||
+      enq.customerName?.toLowerCase().includes(term) ||
+      enq.phone?.toLowerCase().includes(term) ||
+      enq.area?.toLowerCase().includes(term) ||
+      String(enq.capacity || '').toLowerCase().includes(term)
+    );
+  })
+  .sort((a, b) => {
+    const dateA = new Date(
+      a.updatedAt || a.lastEditedAt || a.surveyCompletedDate || a.createdAt || 0
+    ).getTime();
+    const dateB = new Date(
+      b.updatedAt || b.lastEditedAt || b.surveyCompletedDate || b.createdAt || 0
+    ).getTime();
+    return dateB - dateA; // recent first
+  });
 
   if (loading) {
     return (
@@ -92,9 +117,19 @@ export default function CreateRegistrationPage() {
           Select an enquiry to submit for registration approval
         </p>
       </div>
+      <div className="mb-6">
+  <input
+    type="text"
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    placeholder="Search by customer, enquiry ID, phone, area or capacity"
+    className="w-full max-w-xl px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
+    style={{ fontSize: '16px' }}
+  />
+</div>
 
       <div className="space-y-4">
-        {enquiries.length === 0 ? (
+      {filteredEnquiries.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <CheckCircle size={48} className="mx-auto text-gray-400 mb-4" />
             <p className="text-gray-600 text-lg mb-2">
@@ -105,7 +140,7 @@ export default function CreateRegistrationPage() {
             </p>
           </div>
         ) : (
-          enquiries.map((enq) => (
+          filteredEnquiries.map((enq) => (
             <div
               key={enq.id}
               className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition"
