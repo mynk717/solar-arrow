@@ -48,6 +48,7 @@ interface Quotation {
   structureMake: string;
   structureWarranty: string;
   bosItems: string;
+  boqItems?: any[];
   bosWarranty: string;
   cableMake: string;
   cableWarranty: string;
@@ -168,18 +169,30 @@ export default function PublicQuotationPage({
 
   if (!quotation) return null;
 
-  const bomRows = [
-    { item: 'Solar PV Modules', spec: `${quotation.panelWattage}Wp ${quotation.panelType}`, make: quotation.panelMake, warranty: quotation.panelWarranty, qty: `${quotation.panelQuantity} Nos` },
-    { item: 'String Inverter', spec: `${quotation.inverterCapacity}kVA ${quotation.inverterModel}`, make: quotation.inverterMake, warranty: quotation.inverterWarranty, qty: `${quotation.inverterQuantity} Nos` },
-    { item: 'Module Mounting Structure', spec: quotation.structureType || 'Hot Dip Galvanized', make: quotation.structureMake || 'As per design', warranty: quotation.structureWarranty || '5 Years', qty: '1 Lot' },
-    { item: 'DC Solar Cables', spec: 'Solar Grade, UV Resistant, Halogen Free', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot' },
-    { item: 'AC Power LT Cables', spec: 'Al Core, XLPE, Armoured', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot' },
-    { item: 'Earthing System', spec: quotation.earthingType || 'Chemical Earthing', make: 'Standard/True Power', warranty: quotation.earthingWarranty || '5 Years', qty: `${quotation.earthingQuantity || 3} Nos` },
-    { item: 'Lightning Arrestor', spec: quotation.lightningArrestorType || 'ESE / Pipe Type', make: 'Reputed Make', warranty: quotation.lightningArrestorWarranty || '5 Years', qty: `${quotation.lightningArrestorQuantity || 1} Nos` },
-    { item: 'BOS & Protection Devices', spec: quotation.bosItems || 'MCB, MCCB, SPD, DC Fuse', make: 'Standard', warranty: quotation.bosWarranty || '5 Years', qty: '1 Lot' },
-    { item: 'Remote Monitoring System', spec: 'Data Logger / RMS with WiFi', make: 'OEM Provided', warranty: 'As per OEM', qty: '1 Nos' },
-    { item: 'Miscellaneous Items', spec: 'Conduits, Cable Trays, Clamps', make: 'Reputed Make', warranty: 'As provided by OEM', qty: '1 Lot' },
-  ];
+  const bomRows = quotation.boqItems && quotation.boqItems.length > 0
+  ? quotation.boqItems!.map((item: any) => ({
+    item: item.description,
+      spec: item.make,
+      make: item.make,
+      warranty: item.warranty || '—',
+      qty: `${item.quantity} ${item.unit}`,
+      unitRate: item.unitRate,
+      amount: item.amount,
+    }))
+  : [
+      { item: 'Solar PV Modules', spec: `${quotation.panelWattage}Wp ${quotation.panelType}`, make: quotation.panelMake, warranty: quotation.panelWarranty, qty: `${quotation.panelQuantity} Nos`, unitRate: 0, amount: 0 },
+      { item: 'String Inverter', spec: `${quotation.inverterCapacity}kVA ${quotation.inverterModel}`, make: quotation.inverterMake, warranty: quotation.inverterWarranty, qty: `${quotation.inverterQuantity} Nos`, unitRate: 0, amount: 0 },
+      { item: 'Module Mounting Structure', spec: quotation.structureType || 'Hot Dip Galvanized', make: quotation.structureMake || 'As per design', warranty: quotation.structureWarranty || '5 Years', qty: '1 Lot', unitRate: 0, amount: 0 },
+      { item: 'DC Solar Cables', spec: 'Solar Grade, UV Resistant, Halogen Free', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot', unitRate: 0, amount: 0 },
+      { item: 'AC Power LT Cables', spec: 'Al Core, XLPE, Armoured', make: quotation.cableMake || 'Polycab/Waacab', warranty: quotation.cableWarranty || '5 Years', qty: '1 Lot', unitRate: 0, amount: 0 },
+      { item: 'Earthing System', spec: quotation.earthingType || 'Chemical Earthing', make: 'Standard/True Power', warranty: quotation.earthingWarranty || '5 Years', qty: `${quotation.earthingQuantity || 3} Nos`, unitRate: 0, amount: 0 },
+      { item: 'Lightning Arrestor', spec: quotation.lightningArrestorType || 'ESE / Pipe Type', make: 'Reputed Make', warranty: quotation.lightningArrestorWarranty || '5 Years', qty: `${quotation.lightningArrestorQuantity || 1} Nos`, unitRate: 0, amount: 0 },
+      { item: 'BOS & Protection Devices', spec: quotation.bosItems || 'MCB, MCCB, SPD, DC Fuse', make: 'Standard', warranty: quotation.bosWarranty || '5 Years', qty: '1 Lot', unitRate: 0, amount: 0 },
+      { item: 'Remote Monitoring System', spec: 'Data Logger / RMS with WiFi', make: 'OEM Provided', warranty: 'As per OEM', qty: '1 Nos', unitRate: 0, amount: 0 },
+      { item: 'Miscellaneous Items', spec: 'Conduits, Cable Trays, Clamps', make: 'Reputed Make', warranty: 'As provided by OEM', qty: '1 Lot', unitRate: 0, amount: 0 },
+    ];
+
+const hasBoqPricing = quotation.boqItems && quotation.boqItems.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-100 py-4 px-3 print:bg-white print:py-0">
@@ -284,32 +297,44 @@ export default function PublicQuotationPage({
         {/* ═══ BILL OF MATERIALS ═══ */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900 text-base">📋 List of Major Equipment & Proposed Vendors</h2>
+          <h2 className="font-bold text-gray-900 text-base">List of Major Equipment & Proposed Vendors</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-blue-600 text-white text-xs">
-                  <th className="text-center py-2.5 px-3 w-8">S.No</th>
-                  <th className="text-left py-2.5 px-3">Item</th>
-                  <th className="text-left py-2.5 px-3">Specifications</th>
-                  <th className="text-left py-2.5 px-3">Proposed Make</th>
-                  <th className="text-left py-2.5 px-3">Warranty</th>
-                  <th className="text-center py-2.5 px-3">UOM / Qty</th>
-                </tr>
+              <tr className="bg-blue-600 text-white text-xs">
+  <th className="text-center py-2.5 px-3 w-8">S.No</th>
+  <th className="text-left py-2.5 px-3">Item</th>
+  <th className="text-left py-2.5 px-3">Make / Spec</th>
+  <th className="text-left py-2.5 px-3">Warranty</th>
+  <th className="text-center py-2.5 px-3">Qty</th>
+  {hasBoqPricing && <th className="text-right py-2.5 px-3">Rate (₹)</th>}
+  {hasBoqPricing && <th className="text-right py-2.5 px-3">Amount (₹)</th>}
+</tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {bomRows.map((row, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
-                    <td className="py-2.5 px-3 text-center font-semibold text-gray-400 text-xs">{i + 1}</td>
-                    <td className="py-2.5 px-3 font-semibold text-gray-900">{row.item}</td>
-                    <td className="py-2.5 px-3 text-gray-600 text-xs leading-relaxed">{row.spec}</td>
-                    <td className="py-2.5 px-3 font-semibold text-blue-700 text-xs">{row.make}</td>
-                    <td className="py-2.5 px-3 text-green-700 text-xs font-medium">{row.warranty}</td>
-                    <td className="py-2.5 px-3 text-center font-bold text-gray-700 text-xs">{row.qty}</td>
-                  </tr>
+              {bomRows.map((row: any, i: number) => (
+  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
+    <td className="py-2.5 px-3 text-center font-semibold text-gray-400 text-xs">{i + 1}</td>
+    <td className="py-2.5 px-3 font-semibold text-gray-900">{row.item}</td>
+    <td className="py-2.5 px-3 text-gray-600 text-xs leading-relaxed">{row.spec}</td>
+    <td className="py-2.5 px-3 text-green-700 text-xs font-medium">{row.warranty}</td>
+    <td className="py-2.5 px-3 text-center font-bold text-gray-700 text-xs">{row.qty}</td>
+    {hasBoqPricing && <td className="py-2.5 px-3 text-right text-gray-600 text-xs">₹{(row.unitRate || 0).toLocaleString('en-IN')}</td>}
+    {hasBoqPricing && <td className="py-2.5 px-3 text-right font-semibold text-gray-900 text-xs">₹{(row.amount || 0).toLocaleString('en-IN')}</td>}
+  </tr>
                 ))}
               </tbody>
+              {hasBoqPricing && (
+  <tfoot>
+    <tr className="bg-blue-50 border-t-2 border-blue-200">
+      <td colSpan={5} className="py-2.5 px-3 text-right font-bold text-gray-700 text-sm">BOQ Total:</td>
+      <td className="py-2.5 px-3 text-right font-bold text-blue-700 text-sm">
+        ₹{bomRows.reduce((sum: number, r: any) => sum + (r.amount || 0), 0).toLocaleString('en-IN')}
+      </td>
+    </tr>
+  </tfoot>
+)}
             </table>
           </div>
         </div>
