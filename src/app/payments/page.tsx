@@ -262,7 +262,7 @@ function PaymentCard({
   onClick={() => onAddInstall(payment)}
   className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50"
 >
-  + Install
+Record Payment
 </button>
           <button
   onClick={() => window.location.href = `/enquiries/${payment.enquiryId}`}
@@ -824,6 +824,13 @@ const fetchInstallments = async () => {
 >
   Enquiry
 </button>
+<button
+  onClick={() => { setSelectedPayment(p); setShowAddModal(true); }}
+  className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50 whitespace-nowrap"
+>
+  Record Payment
+</button>
+
                         </div>
                       </td>
                     </tr>
