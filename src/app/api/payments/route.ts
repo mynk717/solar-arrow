@@ -30,17 +30,21 @@ export async function GET(request: NextRequest) {
     try {
       const quotesRes = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: 'QUOTATIONS!A2:Z100',
+        range: 'QUOTATIONS!A2:CE500',
       });
       const quoteRows = quotesRes.data.values || [];
       
       quoteRows.forEach((row: any) => {
-        const quotationId = row[0]?.toString(); // quotationId col 0?
-        const amount = parseFloat(row[12]?.toString() ?? '0'); // Adjust index
-        if (quotationId && amount > 0) {
-          quotationsMap[quotationId] = amount;
+        const quotationId = row[0]?.toString();  // col 0 = quotationId ✅
+        const enquiryId   = row[4]?.toString();  // col 4 = enquiryId ✅
+        const finalAmount = parseFloat(row[45]?.toString() ?? '0'); // col 45 = finalAmount ✅
+        const totalCost   = parseFloat(row[43]?.toString() ?? '0'); // col 43 = totalCost fallback
+        const amount = finalAmount || totalCost;
+        if (amount > 0) {
+          if (quotationId) quotationsMap[quotationId] = amount;
+          if (enquiryId)   quotationsMap[enquiryId]   = amount; // also key by enquiryId
         }
-      });
+      });      
     } catch (quoteError: any) {
       console.log('QUOTATIONS tab unavailable, using ENQUIRIES only:', quoteError.message);
     }
@@ -69,9 +73,12 @@ export async function GET(request: NextRequest) {
   
       // Quotation section: indices 32-38
       const quotationId       = row[32]?.toString() || '';
-      const quotationAmount   = parseFloat(row[34]?.toString() ?? '0') ||
-                                quotationsMap[quotationId] ||
-                                estimatedCost;
+      const quotationAmount =
+  quotationsMap[quotationId] ||          // from QUOTATIONS tab by quotationId ✅
+  quotationsMap[row[0]?.toString()] ||   // from QUOTATIONS tab by enquiryId ✅
+  parseFloat(row[34]?.toString() ?? '0') || // ENQUIRIES col 34 copy
+  estimatedCost;                         // last resort
+
   
       // Installation: index 51
       const installationStatus = row[51]?.toString() || '';

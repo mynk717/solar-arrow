@@ -139,7 +139,12 @@ function PaymentCard({
           <div>
             <p className="font-bold text-gray-900 text-base">{payment.customerName}</p>
             <p className="text-sm text-gray-600">{payment.phone}</p>
-            <p className="text-xs text-gray-500 font-mono mt-0.5">{payment.enquiryId}</p>
+            <a
+  href={`/enquiries/${payment.enquiryId}`}
+  className="text-xs text-blue-600 font-mono mt-0.5 underline underline-offset-2 hover:text-blue-800"
+>
+  {payment.enquiryId}
+</a>
           </div>
           <div className="flex flex-col items-end gap-1">
   <ProgressBadge status={payment.paymentStatus} />
@@ -279,12 +284,6 @@ function PaymentCard({
   className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50"
 >
 Record Payment
-</button>
-          <button
-  onClick={() => window.location.href = `/enquiries/${payment.enquiryId}`}
-  className="border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50"
->
-  Enquiry
 </button>
         </div>
       </div>
@@ -686,12 +685,7 @@ const fetchInstallments = async () => {
         <h1 className="text-2xl font-bold text-gray-900">Payment Tracking</h1>
         <div className="flex items-center justify-between mt-1">
   <p className="text-sm text-gray-600">Track all payment installments</p>
-  <button
-    onClick={() => { setSelectedPayment(null); setShowAddModal(true); }}
-    className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition"
-  >
-    + Add Payment
-  </button>
+  <p className="text-xs text-gray-400 mt-0.5">Use "Record Payment" on each card below</p>
 </div>
       </div>
 
@@ -772,21 +766,36 @@ const fetchInstallments = async () => {
 
             {/* Desktop table (hidden on mobile) */}
             <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b-2 border-gray-200">
+            <table className="w-full table-fixed">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
                   <tr>
-                    {['Enquiry', 'Customer', 'Quotation', 'Payment 1 (70%)', 'Payment 2 (30%)', 'Balance', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="text-left py-3.5 px-5 text-xs font-bold text-gray-600 uppercase tracking-wide">
-                        {h}
-                      </th>
-                    ))}
+                  {[
+  { label: 'Enquiry',          width: 'w-[120px]' },
+  { label: 'Customer',         width: 'w-[160px]' },
+  { label: 'Quotation',        width: 'w-[110px]' },
+  { label: 'Payment 1 (70%)',  width: 'w-[130px]' },
+  { label: 'Payment 2 (30%)',  width: 'w-[130px]' },
+  { label: 'Balance',          width: 'w-[100px]' },
+  { label: 'Status',           width: 'w-[100px]' },
+  { label: 'Actions',          width: 'w-[180px]' },
+].map(h => (
+  <th key={h.label} className={`text-left py-3.5 px-5 text-xs font-bold text-gray-600 uppercase tracking-wide ${h.width}`}>
+    {h.label}
+  </th>
+))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(p => (
                     <tr key={p.enquiryId} className="hover:bg-gray-50">
-                      <td className="py-4 px-5 font-mono text-sm font-semibold text-gray-900">{p.enquiryId}</td>
-                      <td className="py-4 px-5">
+<td className="py-4 px-5">
+  <a
+    href={`/enquiries/${p.enquiryId}`}
+    className="font-mono text-sm font-semibold text-blue-600 underline underline-offset-2 hover:text-blue-800"
+  >
+    {p.enquiryId}
+  </a>
+</td>                      <td className="py-4 px-5">
                         <p className="font-bold text-gray-900 text-sm">{p.customerName}</p>
                         <p className="text-xs text-gray-600">{p.phone}</p>
                         <p className="text-xs text-gray-500">{p.capacity} kW</p>
@@ -834,12 +843,6 @@ const fetchInstallments = async () => {
                           >
                             <FileText size={16} />
                           </button>
-                          <button
-  onClick={() => window.location.href = `/enquiries/${p.enquiryId}`}
-  className="border border-gray-300 text-gray-700 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50"
->
-  Enquiry
-</button>
 <button
   onClick={() => { setSelectedPayment(p); setShowAddModal(true); }}
   className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50 whitespace-nowrap"
