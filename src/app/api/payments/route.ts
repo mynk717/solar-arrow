@@ -35,16 +35,19 @@ export async function GET(request: NextRequest) {
       const quoteRows = quotesRes.data.values || [];
       
       quoteRows.forEach((row: any) => {
-        const quotationId = row[0]?.toString();  // col 0 = quotationId ✅
-        const enquiryId   = row[4]?.toString();  // col 4 = enquiryId ✅
-        const finalAmount = parseFloat(row[45]?.toString() ?? '0'); // col 45 = finalAmount ✅
-        const totalCost   = parseFloat(row[43]?.toString() ?? '0'); // col 43 = totalCost fallback
-        const amount = finalAmount || totalCost;
+        const quotationId  = row[0]?.toString() || '';
+        // col[4] holds enquiryId ONLY when it starts with ENQ-, otherwise it's quotationType
+        const col4         = row[4]?.toString() || '';
+        const enquiryId    = col4.startsWith('ENQ-') ? col4 : '';
+        // correct indices confirmed from actual sheet data
+        const totalCost    = parseFloat(row[42]?.toString() ?? '0'); // col 42 = totalCost ✅
+        const finalAmount  = parseFloat(row[44]?.toString() ?? '0'); // col 44 = finalAmount (for reference only)
+        const amount       = totalCost || finalAmount; // totalCost is vendor's receivable        
         if (amount > 0) {
           if (quotationId) quotationsMap[quotationId] = amount;
-          if (enquiryId)   quotationsMap[enquiryId]   = amount; // also key by enquiryId
+          if (enquiryId)   quotationsMap[enquiryId]   = amount;
         }
-      });      
+      });         
     } catch (quoteError: any) {
       console.log('QUOTATIONS tab unavailable, using ENQUIRIES only:', quoteError.message);
     }
