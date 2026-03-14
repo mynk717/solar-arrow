@@ -141,7 +141,14 @@ function PaymentCard({
             <p className="text-sm text-gray-600">{payment.phone}</p>
             <p className="text-xs text-gray-500 font-mono mt-0.5">{payment.enquiryId}</p>
           </div>
-          <ProgressBadge status={payment.paymentStatus} />
+          <div className="flex flex-col items-end gap-1">
+  <ProgressBadge status={payment.paymentStatus} />
+  {(payment.installments?.filter(i => i.status === 'pending').length ?? 0) > 0 && (
+    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+      {payment.installments!.filter(i => i.status === 'pending').length} pending
+    </span>
+  )}
+</div>
         </div>
 
         {/* Amount summary */}
@@ -258,6 +265,15 @@ function PaymentCard({
           >
             <FileText size={16} />
           </button>
+          {(payment.installments?.filter(i => i.status === 'pending') ?? []).map(inst => (
+  <button
+    key={inst.id}
+    onClick={() => onVerifyInstall(inst)}
+    className="bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+  >
+    Verify #{inst.installmentNumber}
+  </button>
+))}
           <button
   onClick={() => onAddInstall(payment)}
   className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50"
@@ -888,14 +904,20 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
     notes: '',
   });
 
-  const totalPaid = payment
-    ? (payment.totalPaid ?? 0)
-    : 0;
-  const balance = payment ? (payment.balanceAmount ?? 0) : 0;
+  if (!payment) return null;
+
+  const quotationAmount = payment.quotationAmount ?? 0;
+  const totalPaid = payment.totalPaid ?? 0;
+  const balance = payment.balanceAmount ?? 0;
+  const enteredAmount = parseFloat(form.amount) || 0;
+  const percentOfTotal = quotationAmount > 0 ? ((enteredAmount / quotationAmount) * 100).toFixed(1) : '0';
+  const remainingAfter = balance - enteredAmount;
+  const isOverpaying = enteredAmount > balance && balance > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!payment) return;
+    if (!payment) { alert('No enquiry selected.'); return; }
+    if (enteredAmount <= 0) { alert('Amount must be greater than 0'); return; }
     setLoading(true);
     try {
       const existingCount = payment.installments?.length ?? 0;
@@ -906,7 +928,7 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
           enquiryId: payment.enquiryId,
           customerName: payment.customerName,
           installmentNumber: existingCount + 1,
-          amount: parseFloat(form.amount),
+          amount: enteredAmount,
           expectedAmount: balance,
           date: form.date,
           method: form.method,
@@ -915,7 +937,6 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
         }),
       });
       if (!res.ok) throw new Error('Failed to add installment');
-      alert('Installment added! Verify it to mark as received.');
       onSuccess();
     } catch (err: any) {
       alert(err.message);
@@ -930,48 +951,119 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
+
         <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Add Installment</h2>
-            <p className="text-sm text-gray-500">
-              {payment?.enquiryId} · Balance: ₹{fmt(balance)}
-            </p>
+            <h2 className="text-lg font-bold text-gray-900">Record Payment</h2>
+            <p className="text-sm text-gray-500">{payment.enquiryId} · {payment.customerName}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
             <X size={20} className="text-gray-600" />
           </button>
         </div>
+
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+
+          {/* Payment breakdown summary */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Quotation Total</span>
+              <span className="font-bold text-gray-900">₹{fmt(quotationAmount)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Already Paid</span>
+              <span className="font-bold text-green-700">₹{fmt(totalPaid)}</span>
+            </div>
+            <div className="h-px bg-gray-200" />
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-700 font-semibold">Balance Due</span>
+              <span className="font-bold text-red-600">₹{fmt(balance)}</span>
+            </div>
+            {/* Progress bar */}
+            {quotationAmount > 0 && (
+              <div className="mt-1">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min((totalPaid / quotationAmount) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {((totalPaid / quotationAmount) * 100).toFixed(1)}% received so far
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Amount input with live % calculator */}
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-              Amount (₹) <span className="text-red-500">*</span>
+              Amount Receiving (₹) <span className="text-red-500">*</span>
             </label>
             <input
-              type="number" required
+              type="number" required min="1"
               value={form.amount}
               onChange={e => setForm({ ...form, amount: e.target.value })}
-              placeholder={`Max balance: ₹${fmt(balance)}`}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
+              placeholder={`Balance: ₹${fmt(balance)}`}
+              className={`w-full px-4 py-3 border-2 rounded-xl text-gray-900 focus:outline-none text-sm font-bold ${
+                isOverpaying ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-blue-500'
+              }`}
             />
+            {/* Quick percent buttons */}
+            {balance > 0 && (
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {[25, 50, 70, 100].map(pct => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setForm({ ...form, amount: Math.round(balance * pct / 100).toString() })}
+                    className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg font-semibold hover:bg-blue-100"
+                  >
+                    {pct}% of balance
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, amount: balance.toString() })}
+                  className="text-xs bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-lg font-semibold hover:bg-green-100"
+                >
+                  Full balance
+                </button>
+              </div>
+            )}
+            {/* Live calculation */}
+            {enteredAmount > 0 && (
+              <div className={`mt-2 rounded-lg px-3 py-2 text-xs font-semibold ${
+                isOverpaying ? 'bg-red-50 text-red-700 border border-red-200' :
+                remainingAfter === 0 ? 'bg-green-50 text-green-700 border border-green-200' :
+                'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+                {isOverpaying
+                  ? `⚠️ Overpayment by ₹${fmt(enteredAmount - balance)} — exceeds balance`
+                  : remainingAfter === 0
+                  ? `✅ This will complete the full payment (${percentOfTotal}% of total)`
+                  : `This is ${percentOfTotal}% of total · ₹${fmt(remainingAfter)} will remain after this`
+                }
+              </div>
+            )}
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">
               Date <span className="text-red-500">*</span>
             </label>
-            <input
-              type="date" required
-              value={form.date}
+            <input type="date" required value={form.date}
               max={new Date().toISOString().split('T')[0]}
               onChange={e => setForm({ ...form, date: e.target.value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
             />
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">
               Method <span className="text-red-500">*</span>
             </label>
-            <select
-              required value={form.method}
+            <select required value={form.method}
               onChange={e => setForm({ ...form, method: e.target.value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
             >
@@ -982,17 +1074,21 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
               <option value="dd">Demand Draft</option>
             </select>
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">
               UTR / Reference
             </label>
-            <input
-              type="text" value={form.reference}
+            <input type="text" value={form.reference}
               onChange={e => setForm({ ...form, reference: e.target.value })}
-              placeholder="Optional — add after payment clears"
+              placeholder="Add UTR after payment clears — you can verify later"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Optional now — record first, verify once UTR is confirmed
+            </p>
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Notes</label>
             <textarea rows={2} value={form.notes}
@@ -1000,6 +1096,7 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:outline-none text-sm resize-none"
             />
           </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
               className="flex-1 border-2 border-gray-300 text-gray-900 font-bold py-3 rounded-xl">
@@ -1007,7 +1104,7 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
-              {loading ? 'Adding...' : 'Add Installment'}
+              {loading ? 'Recording...' : 'Record Payment'}
             </button>
           </div>
         </form>
