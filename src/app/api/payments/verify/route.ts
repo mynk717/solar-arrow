@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       referenceNumber,
       amount,
       notes,
+      quotationAmount: bodyQuotationAmount,
     } = await request.json();
 
     if (!enquiryId || !paymentType || !paymentDate || !paymentMethod || !referenceNumber || !amount) {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
     // ── 4. Telegram notification ─────────────────────────────────────
     try {
       const customerName    = row[1]  || 'N/A';
-      const quotationAmount = parseFloat(row[66]?.toString() || '0'); // BO (66): quotationAmount
+      const quotationAmount = bodyQuotationAmount || parseFloat(row[66]?.toString() || '0');
       const paymentLabel    = paymentType === 'payment1' ? 'Payment 1 (70%)' : 'Payment 2 (30%)';
 
       const message = `

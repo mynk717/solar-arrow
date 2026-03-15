@@ -328,7 +328,7 @@ function VerifyPaymentModal({
       const res = await fetch('/api/payments/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enquiryId: payment.enquiryId, paymentType: type, ...form }),
+        body: JSON.stringify({ enquiryId: payment.enquiryId, paymentType: type, quotationAmount: payment.quotationAmount, ...form }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -683,8 +683,8 @@ const fetchInstallments = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
+<div className="min-h-screen bg-gray-50 pb-24 lg:pb-8">
+{/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 pt-5 pb-4 sm:px-6">
         <h1 className="text-2xl font-bold text-gray-900">Payment Tracking</h1>
         <div className="flex items-center justify-between mt-1">
@@ -804,7 +804,7 @@ const fetchInstallments = async () => {
   { label: 'Payment 2 (30%)',  width: 'w-[130px]' },
   { label: 'Balance',          width: 'w-[100px]' },
   { label: 'Status',           width: 'w-[100px]' },
-  { label: 'Actions',          width: 'w-[180px]' },
+  { label: 'Actions',          width: 'w-[220px]' },
 ].map(h => (
   <th key={h.label} className={`text-left py-3.5 px-5 text-xs font-bold text-gray-600 uppercase tracking-wide ${h.width}`}>
     {h.label}
@@ -872,7 +872,7 @@ const fetchInstallments = async () => {
                           </button>
 <button
   onClick={() => { setSelectedPayment(p); setShowAddModal(true); }}
-  className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50 whitespace-nowrap"
+  className="border border-blue-300 text-blue-600 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-50"
 >
   Record Payment
 </button>
