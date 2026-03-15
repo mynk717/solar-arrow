@@ -279,79 +279,130 @@ function rowToEnquiry(row: any[]): Enquiry | null {
 
 
 /** Convert Enquiry object to row array */
-function enquiryToRow(enquiry: Enquiry): any[] {
+function enquiryToRow(enquiry: any): any[] {
   return [
+    // ── Basic (0-10) ──────────────────────────────────────────────
     enquiry.id || '',
     enquiry.customerName || '',
     enquiry.phone || '',
     enquiry.email || '',
-    enquiry.address || '',
+    enquiry.address || '',                    
     enquiry.area || '',
     enquiry.capacity || '',
     enquiry.status || '',
-    enquiry.createdAt?.toISOString().split('T')[0] || '',
-    enquiry.updatedAt?.toISOString().split('T')[0] || '',
+    enquiry.createdAt instanceof Date
+      ? enquiry.createdAt.toISOString().split('T')[0]
+      : enquiry.createdAt || '',
+    enquiry.updatedAt instanceof Date
+      ? enquiry.updatedAt.toISOString().split('T')[0]
+      : enquiry.updatedAt || '',
     enquiry.panelTag || 'RTS',
-    // Survey (8)
-    enquiry.surveyDate?.toISOString().split('T')[0] || '',
+
+    // ── Lead section (10-16) — 7 fields ──────────────────────────
+    enquiry.leadSource || '',
+    enquiry.leadNotes || '',
+    enquiry.leadQualified ? 'TRUE' : 'FALSE',
+    enquiry.leadQualifiedDate || '',
+    enquiry.leadConvertedDate || new Date().toISOString().split('T')[0],
+    enquiry.leadAssignedTo || enquiry.allottedUser || '',
+    enquiry.leadStatus || 'converted',
+
+    // ── Survey (17-24) — 8 fields ─────────────────────────────────
+    enquiry.surveyDate instanceof Date
+      ? enquiry.surveyDate.toISOString().split('T')[0]
+      : enquiry.surveyDate || '',
     enquiry.surveyedBy || '',
     enquiry.surveyNotes || '',
     enquiry.surveyApproved ? 'TRUE' : 'FALSE',
-    enquiry.surveyScheduledDate?.toISOString().split('T')[0] || '',
-    enquiry.surveyCompletedDate?.toISOString().split('T')[0] || '',
+    enquiry.surveyScheduledDate instanceof Date
+      ? enquiry.surveyScheduledDate.toISOString().split('T')[0]
+      : enquiry.surveyScheduledDate || '',
+    enquiry.surveyCompletedDate instanceof Date
+      ? enquiry.surveyCompletedDate.toISOString().split('T')[0]
+      : enquiry.surveyCompletedDate || '',
     enquiry.surveyRejectedReason || '',
     enquiry.surveyPhotos || '',
-    // Loan (14)
+
+    // ── Loan (25-38) — 14 fields ──────────────────────────────────
     enquiry.loanRequired ? 'TRUE' : 'FALSE',
     enquiry.loanBank || '',
     enquiry.loanBranch || '',
     enquiry.loanAmount || '',
-    enquiry.loanApplicationDate?.toISOString().split('T')[0] || '',
-    enquiry.loanSanctionDate?.toISOString().split('T')[0] || '',
-    enquiry.loanRejectionDate?.toISOString().split('T')[0] || '',
+    enquiry.loanApplicationDate instanceof Date
+      ? enquiry.loanApplicationDate.toISOString().split('T')[0]
+      : enquiry.loanApplicationDate || '',
+    enquiry.loanSanctionDate instanceof Date
+      ? enquiry.loanSanctionDate.toISOString().split('T')[0]
+      : enquiry.loanSanctionDate || '',
+    enquiry.loanRejectionDate instanceof Date
+      ? enquiry.loanRejectionDate.toISOString().split('T')[0]
+      : enquiry.loanRejectionDate || '',
     enquiry.loanRejectionReason || '',
     enquiry.loanFirstTrancheAmount || '',
-    enquiry.loanFirstTrancheDate?.toISOString().split('T')[0] || '',
+    enquiry.loanFirstTrancheDate instanceof Date
+      ? enquiry.loanFirstTrancheDate.toISOString().split('T')[0]
+      : enquiry.loanFirstTrancheDate || '',
     enquiry.loanSecondTrancheAmount || '',
-    enquiry.loanSecondTrancheDate?.toISOString().split('T')[0] || '',
+    enquiry.loanSecondTrancheDate instanceof Date
+      ? enquiry.loanSecondTrancheDate.toISOString().split('T')[0]
+      : enquiry.loanSecondTrancheDate || '',
     enquiry.loanStatus || '',
     enquiry.loanAccountNumber || '',
-    // Government Portal (9)
+
+    // ── Government Portal (39-45) — 7 fields ─────────────────────
     enquiry.consumerRegistrationNumber || '',
     enquiry.applicationNumber || '',
     enquiry.discomCircle || '',
     enquiry.discomDivision || '',
     enquiry.discomSubDivision || '',
-    enquiry.feasibilityApprovalDate?.toISOString().split('T')[0] || '',
+    enquiry.feasibilityApprovalDate instanceof Date
+      ? enquiry.feasibilityApprovalDate.toISOString().split('T')[0]
+      : enquiry.feasibilityApprovalDate || '',
     enquiry.feasibilityApprovalNumber || '',
-    enquiry.vendorAgreementDate?.toISOString().split('T')[0] || '',
+
+    // ── Vendor (46-52) — 7 fields ─────────────────────────────────
+    enquiry.vendorAgreementDate instanceof Date
+      ? enquiry.vendorAgreementDate.toISOString().split('T')[0]
+      : enquiry.vendorAgreementDate || '',
     enquiry.vendorAgreementNumber || '',
-    // Vendor (5)
     enquiry.vendorName || '',
     enquiry.vendorCompanyName || '',
     enquiry.vendorAgreementAmount || '',
-    enquiry.vendorAgreementSignedDate?.toISOString().split('T')[0] || '',
+    enquiry.vendorAgreementSignedDate instanceof Date
+      ? enquiry.vendorAgreementSignedDate.toISOString().split('T')[0]
+      : enquiry.vendorAgreementSignedDate || '',
     enquiry.vendorAgreementDocumentPath || '',
-    // Payment (10)
+
+    // ── Payment (53-62) — 10 fields ───────────────────────────────
     enquiry.estimatedCost || '',
     enquiry.initialPayment || '',
-    enquiry.paymentDate?.toISOString().split('T')[0] || '',
+    enquiry.paymentDate instanceof Date
+      ? enquiry.paymentDate.toISOString().split('T')[0]
+      : enquiry.paymentDate || '',
     enquiry.paymentMethod || '',
     enquiry.paymentType || 'Direct',
     enquiry.paymentStatus || '',
     enquiry.paymentAccountVerified ? 'TRUE' : 'FALSE',
     enquiry.paymentVerifiedBy || '',
-    enquiry.paymentVerificationDate?.toISOString().split('T')[0] || '',
+    enquiry.paymentVerificationDate instanceof Date
+      ? enquiry.paymentVerificationDate.toISOString().split('T')[0]
+      : enquiry.paymentVerificationDate || '',
     enquiry.paymentUTR || '',
-    // Quotation (7)
+
+    // ── Quotation (63-69) — 7 fields ──────────────────────────────
     enquiry.quotationId || '',
-    enquiry.quotationDate?.toISOString().split('T')[0] || '',
+    enquiry.quotationDate instanceof Date
+      ? enquiry.quotationDate.toISOString().split('T')[0]
+      : enquiry.quotationDate || '',
     enquiry.quotationAmount || '',
-    enquiry.quotationApprovedDate?.toISOString().split('T')[0] || '',
+    enquiry.quotationApprovedDate instanceof Date
+      ? enquiry.quotationApprovedDate.toISOString().split('T')[0]
+      : enquiry.quotationApprovedDate || '',
     enquiry.quotationApprovedBy || '',
     enquiry.quotationRejectedReason || '',
     enquiry.quotationDocumentPath || '',
-    // System Specs (10)
+
+    // ── System Specs (70-79) — 10 fields ─────────────────────────
     enquiry.systemCapacity || '',
     enquiry.panelMake || '',
     enquiry.panelWattage || '',
@@ -362,67 +413,90 @@ function enquiryToRow(enquiry: Enquiry): any[] {
     enquiry.batteryCapacity || '',
     enquiry.batteryQuantity || '',
     enquiry.structureType || '',
-    // Installation (14)
-    enquiry.installationScheduledDate?.toISOString().split('T')[0] || '',
-    enquiry.installationStartDate?.toISOString().split('T')[0] || '',
-    enquiry.installationCompletedDate?.toISOString().split('T')[0] || '',
+
+    // ── Installation (80-93) — 14 fields ─────────────────────────
+    enquiry.installationScheduledDate instanceof Date
+      ? enquiry.installationScheduledDate.toISOString().split('T')[0]
+      : enquiry.installationScheduledDate || '',
+    enquiry.installationStartDate instanceof Date
+      ? enquiry.installationStartDate.toISOString().split('T')[0]
+      : enquiry.installationStartDate || '',
+    enquiry.installationCompletedDate instanceof Date
+      ? enquiry.installationCompletedDate.toISOString().split('T')[0]
+      : enquiry.installationCompletedDate || '',
     enquiry.installationTeam || '',
     enquiry.installationSupervisor || '',
     enquiry.installationNotes || '',
     enquiry.pvModuleSerialNumbers || '',
     enquiry.inverterSerialNumber || '',
     enquiry.meterNumber || '',
-    enquiry.meterInstalledDate?.toISOString().split('T')[0] || '',
+    enquiry.meterInstalledDate instanceof Date
+      ? enquiry.meterInstalledDate.toISOString().split('T')[0]
+      : enquiry.meterInstalledDate || '',
     enquiry.meterReadingInitial || '',
     enquiry.earthingDone ? 'TRUE' : 'FALSE',
     enquiry.earthingResistance || '',
     enquiry.installationPhotos || '',
-    // Inspection (7)
-    enquiry.inspectionScheduledDate?.toISOString().split('T')[0] || '',
-    enquiry.inspectionDate?.toISOString().split('T')[0] || '',
+
+    // ── Inspection (94-100) — 7 fields ───────────────────────────
+    enquiry.inspectionScheduledDate instanceof Date
+      ? enquiry.inspectionScheduledDate.toISOString().split('T')[0]
+      : enquiry.inspectionScheduledDate || '',
+    enquiry.inspectionDate instanceof Date
+      ? enquiry.inspectionDate.toISOString().split('T')[0]
+      : enquiry.inspectionDate || '',
     enquiry.inspectionOfficer || '',
     enquiry.inspectionStatus || '',
     enquiry.inspectionApproved ? 'TRUE' : 'FALSE',
     enquiry.inspectionRejectedReason || '',
     enquiry.inspectionReportPath || '',
-    // Subsidy (10)
+
+    // ── Subsidy (101-110) — 10 fields ────────────────────────────
     enquiry.subsidyAmount || '',
     enquiry.subsidyStatus || '',
-    enquiry.subsidyAppliedDate?.toISOString().split('T')[0] || '',
-    enquiry.subsidyApprovedDate?.toISOString().split('T')[0] || '',
-    enquiry.subsidyDisbursedDate?.toISOString().split('T')[0] || '',
-    enquiry.subsidyRejectedDate?.toISOString().split('T')[0] || '',
+    enquiry.subsidyAppliedDate instanceof Date
+      ? enquiry.subsidyAppliedDate.toISOString().split('T')[0]
+      : enquiry.subsidyAppliedDate || '',
+    enquiry.subsidyApprovedDate instanceof Date
+      ? enquiry.subsidyApprovedDate.toISOString().split('T')[0]
+      : enquiry.subsidyApprovedDate || '',
+    enquiry.subsidyDisbursedDate instanceof Date
+      ? enquiry.subsidyDisbursedDate.toISOString().split('T')[0]
+      : enquiry.subsidyDisbursedDate || '',
+    enquiry.subsidyRejectedDate instanceof Date
+      ? enquiry.subsidyRejectedDate.toISOString().split('T')[0]
+      : enquiry.subsidyRejectedDate || '',
     enquiry.subsidyRejectionReason || '',
     enquiry.subsidyBankAccount || '',
     enquiry.subsidyUTR || '',
     enquiry.subsidyDocumentPath || '',
-    // Tracking (6)
+
+    // ── Tracking (111-118) — 8 fields ────────────────────────────
     enquiry.allottedUser || '',
     enquiry.priority || 'medium',
     enquiry.isBlocked ? 'TRUE' : 'FALSE',
     enquiry.blockedReason || '',
     enquiry.lastEditedBy || '',
-    enquiry.lastEditedAt?.toISOString() || '',
+    enquiry.lastEditedAt instanceof Date
+      ? enquiry.lastEditedAt.toISOString()
+      : enquiry.lastEditedAt || '',
     enquiry.lastFollowupDate
-  ? (typeof enquiry.lastFollowupDate === 'string'
-      ? enquiry.lastFollowupDate
-      : (enquiry.lastFollowupDate as Date).toISOString().split('T')[0])
-  : '',
-enquiry.nextActionDate
-  ? (typeof enquiry.nextActionDate === 'string'
-      ? enquiry.nextActionDate
-      : (enquiry.nextActionDate as Date).toISOString().split('T')[0])
-  : '',
-    // Legacy
-    enquiry.registrationId || '',
-    enquiry.registrationDate?.toISOString().split('T')[0] || '',
-    enquiry.governmentPortalRef || '',
-    enquiry.dispatchDate?.toISOString().split('T')[0] || '',
-    enquiry.installedBy || '',
-    enquiry.activationDate?.toISOString().split('T')[0] || '',
-    enquiry.assignedTo || '',
+      ? (typeof enquiry.lastFollowupDate === 'string'
+          ? enquiry.lastFollowupDate
+          : (enquiry.lastFollowupDate as Date).toISOString().split('T')[0])
+      : '',
+    enquiry.nextActionDate
+      ? (typeof enquiry.nextActionDate === 'string'
+          ? enquiry.nextActionDate
+          : (enquiry.nextActionDate as Date).toISOString().split('T')[0])
+      : '',
+
+    // ── Extra (119-120) ───────────────────────────────────────────
+    enquiry.tags || '',
+    enquiry.notes || '',
   ];
 }
+
 
 // ============================================
 // CRUD OPERATIONS
