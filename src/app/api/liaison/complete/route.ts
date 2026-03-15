@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { updateLiaisonInSheet, getLiaisonRow } from '@/lib/googleSheets';
+import { updateLiaisonInSheet, getLiaisonRow, getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import { sendOrgGroupNotification } from '@/lib/telegram';
 
@@ -68,6 +68,27 @@ export async function POST(request: NextRequest) {
     }
 
     await updateLiaisonInSheet(enquiryId, updates);
+    const sheets = await getGoogleSheetsClient();
+const enqRes = await sheets.spreadsheets.values.get({
+  spreadsheetId: sheetId,
+  range: 'ENQUIRIES!A2:A',
+});
+const enqRows = enqRes.data.values || [];
+const enqRowIndex = enqRows.findIndex((r: any[]) => r[0] === enquiryId);
+if (enqRowIndex !== -1) {
+  const enqRowNumber = enqRowIndex + 2;
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: sheetId,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: [
+        { range: `ENQUIRIES!CS${enqRowNumber}`, values: [[inspectionDate || new Date().toISOString().split('T')[0]]] }, // col 96: inspectionDate
+        { range: `ENQUIRIES!CV${enqRowNumber}`, values: [[inspectionApproved !== false ? 'TRUE' : 'FALSE']] },           // col 99: inspectionApproved
+        { range: `ENQUIRIES!H${enqRowNumber}`,  values: [[inspectionApproved === false ? 'inspection-rejected' : 'inspection-approved']] }, // col 7: status
+      ],
+    },
+  });
+}
 
     // Send Telegram notification — full rich message preserved
     try {
