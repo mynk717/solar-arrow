@@ -611,7 +611,8 @@ export default function PaymentsPage() {
 const [showAddModal, setShowAddModal] = useState(false);
 const [showVerifyInstallModal, setShowVerifyInstallModal] = useState(false);
 const [selectedInstall, setSelectedInstall] = useState<Installment | null>(null);
-
+const PAGE_SIZE = 10;
+const [page, setPage] = useState(1);
 
 useEffect(() => { fetchPayments(); fetchInstallments(); }, []);
 
@@ -658,7 +659,9 @@ const fetchInstallments = async () => {
     const dateB = new Date(b.payment2Date || b.payment1Date || 0).getTime();
     return dateB - dateA;
   });
-
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  
   const metrics = {
     total: payments.length,
     unpaid: payments.filter(p => p.paymentStatus === 'unpaid').length,
@@ -717,14 +720,14 @@ const fetchInstallments = async () => {
               type="text"
               placeholder="Search enquiry, customer, phone..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
               className="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-900 focus:border-blue-500 focus:outline-none"
             />
           </div>
           <div className="flex gap-3">
             <select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
               className="flex-1 px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-blue-500 focus:outline-none"
             >
               <option value="all">All Status</option>
@@ -753,7 +756,7 @@ const fetchInstallments = async () => {
           <>
             {/* Mobile cards (hidden on lg) */}
             <div className="lg:hidden space-y-3">
-              {filtered.map(p => (
+            {paginated.map(p => (
                 <PaymentCard
                 key={p.enquiryId}
                 payment={{ ...p, installments: installments.filter(i => i.enquiryId === p.enquiryId) }}
@@ -764,6 +767,29 @@ const fetchInstallments = async () => {
               />              
               ))}
             </div>
+{/* Pagination — mobile first */}
+{totalPages > 1 && (
+  <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 px-4 py-3">
+    <button
+      onClick={() => setPage(p => Math.max(1, p - 1))}
+      disabled={page === 1}
+      className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      <ChevronUp className="rotate-[-90deg]" size={16} /> Prev
+    </button>
+    <span className="text-sm font-bold text-gray-700">
+      {page} / {totalPages}
+      <span className="text-xs font-normal text-gray-400 ml-1">({filtered.length} total)</span>
+    </span>
+    <button
+      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+      disabled={page === totalPages}
+      className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      Next <ChevronDown className="rotate-[-90deg]" size={16} />
+    </button>
+  </div>
+)}
 
             {/* Desktop table (hidden on mobile) */}
             <div className="hidden lg:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -787,7 +813,7 @@ const fetchInstallments = async () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filtered.map(p => (
+                {paginated.map(p => (
                     <tr key={p.enquiryId} className="hover:bg-gray-50">
 <td className="py-4 px-5">
   <a
@@ -857,6 +883,19 @@ const fetchInstallments = async () => {
                   ))}
                 </tbody>
               </table>
+              {totalPages > 1 && (
+  <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
+    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+      className="text-sm font-semibold text-gray-600 disabled:opacity-30 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+      ← Prev
+    </button>
+    <span className="text-sm text-gray-500">Page {page} of {totalPages} · {filtered.length} records</span>
+    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+      className="text-sm font-semibold text-gray-600 disabled:opacity-30 px-3 py-1.5 rounded-lg hover:bg-gray-100">
+      Next →
+    </button>
+  </div>
+)}
             </div>
           </>
         )}
