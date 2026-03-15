@@ -56,26 +56,26 @@ export async function GET(request: NextRequest) {
     .filter((row: any) => {
       const enquiryId = row[0]?.toString();
       if (!enquiryId) return false;
-      const quotationAmount = parseFloat(row[34]?.toString() ?? '0');
-      const estimatedCost = parseFloat(row[22]?.toString() ?? '0');
+      const quotationAmount = parseFloat(row[66]?.toString() ?? '0');
+      const estimatedCost   = parseFloat(row[54]?.toString() ?? '0');
       const hasAmount = quotationAmount > 0 || estimatedCost > 0;
       return hasAmount;
     })
     .map((row: any) => {
       // ── Correct column indices from googleSheets.ts destructure ──
       // Payment section: indices 22-31
-      const estimatedCost     = parseFloat(row[22]?.toString() ?? '0');
-      const initialPayment    = parseFloat(row[23]?.toString() ?? '0');
-      const paymentDate       = row[24]?.toString() || '';
-      const paymentMethod     = row[25]?.toString() || '';
-      const paymentType       = row[26]?.toString() || '';
-      const paymentStatus     = row[27]?.toString()?.toLowerCase() || '';
-      const paymentVerifiedBy = row[29]?.toString() || '';
-      const paymentVerificationDate = row[30]?.toString() || '';
-      const paymentUTR        = row[31]?.toString() || '';
+      const estimatedCost     = parseFloat(row[54]?.toString() ?? '0');
+      const initialPayment    = parseFloat(row[55]?.toString() ?? '0');
+      const paymentDate       = row[56]?.toString() || '';
+      const paymentMethod     = row[57]?.toString() || '';
+      const paymentType       = row[58]?.toString() || '';
+      const paymentStatus     = row[59]?.toString()?.toLowerCase() || '';
+      const paymentVerifiedBy = row[61]?.toString() || '';
+      const paymentVerificationDate = row[62]?.toString() || '';
+      const paymentUTR        = row[63]?.toString() || '';
   
       // Quotation section: indices 32-38
-      const quotationId       = row[32]?.toString() || '';
+      const quotationId       = row[64]?.toString() || '';
       const quotationAmount =
   quotationsMap[quotationId] ||          // from QUOTATIONS tab by quotationId ✅
   quotationsMap[row[0]?.toString()] ||   // from QUOTATIONS tab by enquiryId ✅
@@ -84,11 +84,11 @@ export async function GET(request: NextRequest) {
 
   
       // Installation: index 51
-      const installationStatus = row[51]?.toString() || '';
+      const installationStatus = row[7]?.toString() || '';
   
       // Tracking: index 84-85
-      const lastEditedBy      = row[84]?.toString() || '';
-      const lastEditedAt      = row[85]?.toString() || '';
+      const lastEditedBy      = row[116]?.toString() || '';
+      const lastEditedAt      = row[117]?.toString() || '';
   
       // ── Payment 1 (70%) and Payment 2 (30%) derived from paymentStatus ──
       const isVerified  = paymentStatus.includes('verified') || paymentStatus.includes('complete');
