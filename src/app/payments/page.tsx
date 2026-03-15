@@ -13,6 +13,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Loader2
 } from 'lucide-react';
 
 interface Installment {
@@ -921,6 +922,10 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
     e.preventDefault();
     if (!payment) { alert('No enquiry selected.'); return; }
     if (enteredAmount <= 0) { alert('Amount must be greater than 0'); return; }
+    if (!form.reference.trim() && form.method !== 'cash') {
+      const confirmed = window.confirm('No UTR/Reference entered. Record this payment without a reference?');
+      if (!confirmed) return;
+    }
     setLoading(true);
     try {
       const existingCount = payment.installments?.length ?? 0;
@@ -930,7 +935,7 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
         body: JSON.stringify({
           enquiryId: payment.enquiryId,
           customerName: payment.customerName,
-          installmentNumber: existingCount + 1,
+          installmentNumber: Math.max(existingCount + 1, 1),
           amount: enteredAmount,
           expectedAmount: balance,
           date: form.date,
@@ -1107,7 +1112,15 @@ function AddInstallmentModal({ payment, onClose, onSuccess }: {
             </button>
             <button type="submit" disabled={loading}
               className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
-              {loading ? 'Recording...' : 'Record Payment'}
+              {loading ? (
+  <span className="flex items-center justify-center gap-2">
+    <Loader2 size={16} className="animate-spin" /> Recording...
+  </span>
+) : (
+  <span className="flex items-center justify-center gap-2">
+    <CheckCircle size={16} /> Record Payment
+  </span>
+)}
             </button>
           </div>
         </form>
