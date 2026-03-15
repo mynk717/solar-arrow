@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const sheets = await getGoogleSheetsClient();
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: `${SHEET_NAME}!A2:CZ1000`,
+      range: `${SHEET_NAME}!A2:DR1000`,
     });
 
     const rows = response.data.values || [];
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const headerResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: `${SHEET_NAME}!A1:CZ1`,
+      range: `${SHEET_NAME}!A1:DR1`,
     });
     const headers = headerResponse.data.values?.[0] || [];
 
@@ -63,10 +63,8 @@ export async function GET(request: NextRequest) {
     const capacityIndex = headers.indexOf('capacity');
     const statusIndex = headers.indexOf('status');
     const systemCapacityIndex = headers.indexOf('systemCapacity');
-    const systemCostIndex = headers.indexOf('systemCost');
     const inspectionApprovedIndex = headers.indexOf('inspectionApproved');
     const inspectionDateIndex = headers.indexOf('inspectionDate');
-    const registrationIdIndex = headers.indexOf('registrationId');
     const consumerRegistrationNumberIndex = headers.indexOf('consumerRegistrationNumber');
     const applicationNumberIndex = headers.indexOf('applicationNumber');
     const subsidyAmountIndex = headers.indexOf('subsidyAmount');
@@ -77,12 +75,8 @@ export async function GET(request: NextRequest) {
     const subsidyRejectedDateIndex = headers.indexOf('subsidyRejectedDate');
     const subsidyRejectionReasonIndex = headers.indexOf('subsidyRejectionReason');
     const subsidyBankAccountIndex = headers.indexOf('subsidyBankAccount');
-    const subsidyBankIFSCIndex = headers.indexOf('subsidyBankIFSC');
     const subsidyUTRIndex = headers.indexOf('subsidyUTR');
-    const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');
-    const subsidyNotesIndex = headers.indexOf('subsidyNotes');
-    const gridSyncDateIndex = headers.indexOf('gridSyncDate');
-    const activationDateIndex = headers.indexOf('activationDate');
+    const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');  
     const createdAtIndex = headers.indexOf('createdAt');
     const updatedAtIndex = headers.indexOf('updatedAt');
 
@@ -101,10 +95,8 @@ export async function GET(request: NextRequest) {
         capacity: row[capacityIndex] || '',
         status: row[statusIndex] || '',
         systemCapacity: row[systemCapacityIndex] || '',
-        systemCost: row[systemCostIndex] || '',
         inspectionApproved: row[inspectionApprovedIndex] || '',
         inspectionDate: row[inspectionDateIndex] || '',
-        registrationId: row[registrationIdIndex] || '',
         consumerRegistrationNumber: row[consumerRegistrationNumberIndex] || '',
         applicationNumber: row[applicationNumberIndex] || '',
         subsidyAmount: row[subsidyAmountIndex] || '',
@@ -115,12 +107,8 @@ export async function GET(request: NextRequest) {
         subsidyRejectedDate: row[subsidyRejectedDateIndex] || '',
         subsidyRejectionReason: row[subsidyRejectionReasonIndex] || '',
         subsidyBankAccount: row[subsidyBankAccountIndex] || '',
-        subsidyBankIFSC: row[subsidyBankIFSCIndex] || '',
         subsidyUTR: row[subsidyUTRIndex] || '',
         subsidyDocumentPath: row[subsidyDocumentPathIndex] || '',
-        subsidyNotes: row[subsidyNotesIndex] || '',
-        gridSyncDate: row[gridSyncDateIndex] || '',
-        activationDate: row[activationDateIndex] || '',
         createdAt: row[createdAtIndex] || '',
         updatedAt: row[updatedAtIndex] || '',
       }));
