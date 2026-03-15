@@ -99,6 +99,16 @@ export default function SubsidyPage() {
 
     return matchesSearch && matchesStatus;
   });
+// ADD after filteredSubsidies declaration
+const sortedSubsidies = [...filteredSubsidies].sort((a, b) => {
+  const order = { pending: 0, applied: 1, approved: 2, disbursed: 3 };
+  return (order[a.subsidyStatus as keyof typeof order] ?? 0) -
+         (order[b.subsidyStatus as keyof typeof order] ?? 0);
+});
+const PAGE_SIZE = 10;
+const [page, setPage] = useState(1);
+const totalPages = Math.ceil(sortedSubsidies.length / PAGE_SIZE);
+const paginatedSubsidies = sortedSubsidies.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Stats
   const pending = subsidies.filter((s) => s.subsidyStatus === 'pending').length;
@@ -157,12 +167,12 @@ export default function SubsidyPage() {
             type="text"
             placeholder="Search by Enquiry ID or Customer..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
             className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder-slate-400 text-sm md:text-base"
           />
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
             className="px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-slate-900 text-sm md:text-base"
           >
             <option value="all">All Status</option>
@@ -197,7 +207,7 @@ export default function SubsidyPage() {
             </p>
           </div>
         ) : (
-          filteredSubsidies.map((subsidy) => (
+          sortedSubsidies.map((subsidy) => (
             <SubsidyCard
               key={subsidy.enquiryId}
               subsidy={subsidy}
@@ -491,8 +501,11 @@ function ApplyModal({ subsidy, onClose, onSuccess, onRefresh }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+  <div className="flex justify-center pt-3 pb-1 sm:hidden">
+  <div className="w-10 h-1 rounded-full bg-gray-300" />
+</div>
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-2xl font-bold text-slate-900">Apply for Subsidy</h2>
           <p className="text-slate-600 text-sm mt-1">
@@ -626,8 +639,12 @@ function UpdateModal({ subsidy, onClose, onSuccess, onRefresh }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+    {/* Handle bar — mobile only */}
+    <div className="flex justify-center pt-3 pb-1 sm:hidden">
+  <div className="w-10 h-1 rounded-full bg-gray-300" />
+</div>
         <div className="p-6 border-b border-slate-200">
           <h2 className="text-2xl font-bold text-slate-900">Update Subsidy Status</h2>
           <p className="text-slate-600 text-sm mt-1">

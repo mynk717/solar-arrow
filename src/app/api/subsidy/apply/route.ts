@@ -4,8 +4,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 const SHEET_NAME = 'ENQUIRIES';
+
+function colLetter(n: number): string {
+  let result = '';
+  while (n >= 0) {
+    result = String.fromCharCode(65 + (n % 26)) + result;
+    n = Math.floor(n / 26) - 1;
+  }
+  return result;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,129 +24,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const {
-      enquiryId,
-      subsidyAppliedDate,
-      subsidyAmount,
-      subsidyBankAccount,
-      subsidyDocumentPath,
-    } = body;
+    // ── Fix 3: session.sheetId not process.env ──
+    const sheetId = (session.user as any).sheetId;
+    const orgId   = (session.user as any).organizationId || 'default-org';
+
+    if (!sheetId) {
+      return NextResponse.json({ error: 'Sheet not configured' }, { status: 400 });
+    }
+
+    const { enquiryId, subsidyAppliedDate, subsidyAmount, subsidyBankAccount, subsidyDocumentPath } =
+      await request.json();
 
     if (!enquiryId || !subsidyAppliedDate || !subsidyAmount || !subsidyBankAccount) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const sheets = await getGoogleSheetsClient();
 
-    // Get current data
+    // ── Fix 1: range covers all 122 cols ──
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID!,
-      range: `${SHEET_NAME}!A:CZ`,
+      spreadsheetId: sheetId,
+      range: `${SHEET_NAME}!A:DR`,
     });
 
-    const rows = response.data.values || [];
-    const headers = rows[0];
-    const dataRows = rows.slice(1);
+    const rows      = response.data.values || [];
+    const headers   = rows[0];
+    const dataRows  = rows.slice(1);
 
-    // Find the row
-    const idIndex = headers.indexOf('id');
-    const rowIndex = dataRows.findIndex((row) => row[idIndex] === enquiryId);
-
+    const rowIndex = dataRows.findIndex((row) => row[headers.indexOf('id')] === enquiryId);
     if (rowIndex === -1) {
       return NextResponse.json({ error: 'Enquiry not found' }, { status: 404 });
     }
 
-    const actualRowIndex = rowIndex + 2; // +1 for header, +1 for 0-indexing
+    const rowNumber = rowIndex + 2;
 
-    // Update columns
-    const subsidyStatusIndex = headers.indexOf('subsidyStatus');
-    const subsidyAppliedDateIndex = headers.indexOf('subsidyAppliedDate');
-    const subsidyAmountIndex = headers.indexOf('subsidyAmount');
-    const subsidyBankAccountIndex = headers.indexOf('subsidyBankAccount');
-    const subsidyDocumentPathIndex = headers.indexOf('subsidyDocumentPath');
-    const updatedAtIndex = headers.indexOf('updatedAt');
-
-    const updates = [
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + subsidyStatusIndex)}${actualRowIndex}`,
-        values: [['applied']],
-      },
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + subsidyAppliedDateIndex)}${actualRowIndex}`,
-        values: [[subsidyAppliedDate]],
-      },
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + subsidyAmountIndex)}${actualRowIndex}`,
-        values: [[subsidyAmount]],
-      },
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + subsidyBankAccountIndex)}${actualRowIndex}`,
-        values: [[subsidyBankAccount]],
-      },
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + subsidyDocumentPathIndex)}${actualRowIndex}`,
-        values: [[subsidyDocumentPath || '']],
-      },
-      {
-        range: `${SHEET_NAME}!${String.fromCharCode(65 + updatedAtIndex)}${actualRowIndex}`,
-        values: [[new Date().toISOString()]],
-      },
-    ];
+    // ── Fix 2: use colLetter() not String.fromCharCode ──
+    const col = (field: string) => colLetter(headers.indexOf(field));
 
     await sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID!,
+      spreadsheetId: sheetId,
       requestBody: {
-        data: updates,
-        valueInputOption: 'RAW',
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `${SHEET_NAME}!${col('subsidyAmount')}${rowNumber}`,       values: [[subsidyAmount]] },
+          { range: `${SHEET_NAME}!${col('subsidyStatus')}${rowNumber}`,       values: [['applied']] },
+          { range: `${SHEET_NAME}!${col('subsidyAppliedDate')}${rowNumber}`,  values: [[subsidyAppliedDate]] },
+          { range: `${SHEET_NAME}!${col('subsidyBankAccount')}${rowNumber}`,  values: [[subsidyBankAccount]] },
+          { range: `${SHEET_NAME}!${col('subsidyDocumentPath')}${rowNumber}`, values: [[subsidyDocumentPath || '']] },
+          { range: `${SHEET_NAME}!${col('updatedAt')}${rowNumber}`,           values: [[new Date().toISOString()]] },
+        ],
       },
     });
 
-    // Invalidate cache
-    await redis.del('subsidies:all');
+    // ── Fix 4: org-scoped cache key ──
+    await redis.del(`org:${orgId}:subsidies:all`);
 
-    // Send Telegram notification
+    // ── Fix 5: org-scoped Telegram ──
     try {
-      const customerName = dataRows[rowIndex][headers.indexOf('customerName')];
-      const capacity = dataRows[rowIndex][headers.indexOf('capacity')];
-      
-      const message = `💰 *Subsidy Application Submitted*\n\n` +
-        `📋 Enquiry: ${enquiryId}\n` +
-        `👤 Customer: ${customerName}\n` +
-        `⚡ Capacity: ${capacity}\n` +
-        `💵 Amount: ₹${parseFloat(subsidyAmount).toLocaleString('en-IN')}\n` +
-        `📅 Applied: ${new Date(subsidyAppliedDate).toLocaleDateString('en-IN')}\n` +
-        `🏦 Account: ${subsidyBankAccount}\n\n` +
-        `🔗 [View Details](${process.env.NEXT_PUBLIC_BASE_URL}/subsidy)`;
+      const row          = dataRows[rowIndex];
+      const customerName = row[headers.indexOf('customerName')] || 'N/A';
+      const capacity     = row[headers.indexOf('capacity')] || '';
 
-      await fetch(
-        `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: 'Markdown',
-          }),
-        }
-      );
+      await sendOrgGroupNotification(orgId, {
+        text: `💰 *Subsidy Application Submitted*\n\n📋 Enquiry: ${enquiryId}\n👤 Customer: ${customerName}\n⚡ Capacity: ${capacity} kW\n💵 Amount: ₹${parseFloat(subsidyAmount).toLocaleString('en-IN')}\n📅 Applied: ${new Date(subsidyAppliedDate).toLocaleDateString('en-IN')}\n🏦 Account: ${subsidyBankAccount}`,
+        parseMode: 'Markdown',
+      });
     } catch (notifError) {
       console.error('Telegram notification failed:', notifError);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Subsidy application submitted successfully',
-    });
+    return NextResponse.json({ success: true, message: 'Subsidy application submitted successfully' });
   } catch (error: any) {
     console.error('Error applying for subsidy:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to apply for subsidy' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Failed to apply for subsidy' }, { status: 500 });
   }
 }
