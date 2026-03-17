@@ -68,16 +68,20 @@ export async function GET(req: NextRequest) {
     }
 
     const email = session.user.email;
-    const caps = getUserCapabilities(session);
+const caps = getUserCapabilities(session);
 
-    // mode = assigned_only | permitted_only | assigned_or_permitted (default)
-    const { searchParams } = new URL(req.url);
-    const mode = searchParams.get('mode') ?? 'assigned_or_permitted';
+// Guard — no sheet configured yet
+if (!session.user.sheetId) {
+  return NextResponse.json({ tasks: [], total: 0, message: 'Sheet not configured' }, { status: 200 });
+}
 
-    const [enquiries, leads] = await Promise.all([
-      fetchEnquiries(),
-      fetchLeads(),
-    ]);
+const { searchParams } = new URL(req.url);
+const mode = searchParams.get('mode') ?? 'assigned_or_permitted';
+
+const [enquiries, leads] = await Promise.all([
+  fetchEnquiries(),
+  fetchLeads(),
+]);
 
     const today = new Date().toISOString().split('T')[0];
 
