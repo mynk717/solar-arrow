@@ -27,14 +27,27 @@ export async function refreshOrganizationToken(
   organizationId: string,
   adminEmail: string
 ): Promise<string | null> {
+  const key = `org:${organizationId}:oauth:${adminEmail}`;
+  const lockKey = `${key}:refresh_lock`;
+
+  // Distributed lock — only one refresh at a time per org
+  const locked = await redis.set(lockKey, '1', { nx: true, ex: 30 });
+  if (!locked) {
+    // Another request is already refreshing — wait and return fresh token
+    await new Promise(r => setTimeout(r, 1200));
+    const fresh = await redis.get(key) as TokenData;
+    return fresh?.accessToken || null;
+  }
+
   try {
-    const key = `org:${organizationId}:oauth:${adminEmail}`;
     const tokenData = await redis.get(key) as TokenData;
 
     if (!tokenData?.refreshToken) {
+      console.error('No refresh token stored for:', key);
       return null;
     }
 
+    // Re-check after acquiring lock — another request may have refreshed
     if (!isTokenExpired(tokenData.expiresAt)) {
       return tokenData.accessToken;
     }
@@ -48,25 +61,34 @@ export async function refreshOrganizationToken(
     oauth2Client.setCredentials({ refresh_token: tokenData.refreshToken });
     const { credentials } = await oauth2Client.refreshAccessToken();
 
-    const expiresAt = credentials.expiry_date 
+    // Safe null check instead of non-null assertion
+    if (!credentials.access_token) {
+      console.error('Google returned null access_token for:', organizationId);
+      return null;
+    }
+
+    const expiresAt = credentials.expiry_date
       ? Math.floor(credentials.expiry_date / 1000)
       : Math.floor(Date.now() / 1000) + 3600;
 
-    const newTokenData = {
-      accessToken: credentials.access_token!,
+    await redis.set(key, {
+      accessToken: credentials.access_token,
       refreshToken: credentials.refresh_token || tokenData.refreshToken,
       expiresAt,
       updatedAt: new Date().toISOString(),
       scope: tokenData.scope,
-    };
+    });
 
-    await redis.set(key, newTokenData);
-    return credentials.access_token!;
+    return credentials.access_token;
   } catch (error) {
-    console.error('Refresh failed:', error);
+    console.error('Token refresh failed for org:', organizationId, error);
     return null;
+  } finally {
+    // Always release lock
+    await redis.del(lockKey);
   }
 }
+
 
 export async function getValidAccessToken(
   organizationId: string,

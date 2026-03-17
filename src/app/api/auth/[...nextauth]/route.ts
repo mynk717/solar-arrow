@@ -196,11 +196,11 @@ if (!account && !user && token.accountType === 'user' && token.email) {
       token.role = freshUser.role ?? token.role;
       token.isActive = freshUser.isActive;
 
-      // ✅ re-sync sheetId from org
-  if (!token.sheetId && freshUser.organizationId) {
-    const org = await redis.get(`org:${freshUser.organizationId}:info`) as any
-    if (org?.sheetId) token.sheetId = org.sheetId
-  }
+      // Always re-sync sheetId from Redis — not just when missing
+if (token.organizationId) {
+  const org = await redis.get(`org:${token.organizationId}:info`) as any
+  if (org?.sheetId) token.sheetId = org.sheetId
+}
     }
   } catch { /* silent — don't break auth */ }
 }
@@ -248,7 +248,11 @@ if (!account && !user && token.accountType === 'user' && token.email) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.organizationId = token.organizationId as string;
-        session.user.sheetId = token.sheetId as string;
+        // Re-read sheetId directly from Redis in session callback too
+if (token.organizationId) {
+  const org = await redis.get(`org:${token.organizationId}:info`) as any;
+  session.user.sheetId = org?.sheetId || token.sheetId as string;
+}
         session.user.accountType = token.accountType as 'admin' | 'user';
         session.user.permissions = token.permissions as any;
         session.user.organizationName = token.organizationName as string;
