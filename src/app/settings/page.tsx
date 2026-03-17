@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle, Building2, Camera } from 'lucide-react';
+import { Settings, Database, CheckCircle, LogOut, Copy, ExternalLink, RefreshCw, AlertCircle, Building2, Camera, Users } from 'lucide-react';
 import { Download, Smartphone, Check } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -421,6 +421,46 @@ const saveConfig = async (id?: string, name?: string) => {
       </label>
     </div>
   </div>
+)}
+{/* ── Organization Settings ── */}
+{(session?.user?.accountType === 'admin' || session?.user?.accountType === 'owner') && (
+  <a
+    href="/settings/organization"
+    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex items-center justify-between hover:border-blue-300 hover:shadow-md transition-all"
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+        <Building2 size={18} className="text-blue-600" />
+      </div>
+      <div>
+        <p className="font-bold text-gray-900 text-sm">Organization Settings</p>
+        <p className="text-xs text-gray-500 mt-0.5">Name, Sheet ID, lead notification groups</p>
+      </div>
+    </div>
+    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  </a>
+)}
+{/* ── Users Settings ── */}
+{(session?.user?.accountType === 'admin' || session?.user?.accountType === 'owner') && (
+  <a
+    href="/settings/users"
+    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-4 flex items-center justify-between hover:border-blue-300 hover:shadow-md transition-all"
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+        <Users size={18} className="text-purple-600" />
+      </div>
+      <div>
+        <p className="font-bold text-gray-900 text-sm">Users & Roles</p>
+        <p className="text-xs text-gray-500 mt-0.5">Manage team members and permissions</p>
+      </div>
+    </div>
+    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  </a>
 )}
 
           {/* ── Expired warning for regular users ── */}
