@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Shield, Users, Copy, Check, Plus, Trash2, Edit2 } from 'lucide-react';
+import { useRouter } from 'next/navigation'; // ADD THIS
+import toast, { Toaster } from 'react-hot-toast'; // ADD THIS
+import { Shield, Users, Copy, Check, Plus, Trash2, Edit2, ExternalLink } from 'lucide-react';
 
 interface Organization {
   id: string;
@@ -27,7 +29,17 @@ export default function OrganizationPage() {
   const [editingGroup, setEditingGroup] = useState(false);
   const [newChatId, setNewChatId] = useState('');
   const [copied, setCopied] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+const [newOrgName, setNewOrgName] = useState('');
 
+
+  const router = useRouter();
+
+useEffect(() => {
+  if (session && session.user?.accountType !== 'admin' && session.user?.accountType !== 'owner') {
+    router.push('/unauthorized');
+  }
+}, [session, router]);
   // Load organization data
   useEffect(() => {
     if (status === 'authenticated') {
@@ -61,7 +73,6 @@ export default function OrganizationPage() {
 
   const addChatId = async () => {
     if (!newChatId.trim() || !org?.id) return;
-
     try {
       const response = await fetch('/api/admin/set-lead-notify', {
         method: 'POST',
@@ -71,45 +82,71 @@ export default function OrganizationPage() {
           chatIds: [...org.leadNotifyGroups, newChatId.trim()]
         })
       });
-
+      const data = await response.json();
       if (response.ok) {
+        toast.success('✅ Notification group added!');
         loadOrgData();
         setNewChatId('');
         setEditingGroup(false);
+      } else {
+        toast.error(`❌ ${data.error || 'Failed to add group'}`);
       }
-    } catch (error) {
-      console.error('Failed to add chat ID:', error);
+    } catch {
+      toast.error('❌ Network error. Please try again.');
     }
   };
-
+  
   const removeChatId = async (chatId: string) => {
     if (!confirm('Remove this chat from lead notifications?')) return;
-
     try {
       const newGroups = org!.leadNotifyGroups.filter(id => id !== chatId);
       const response = await fetch('/api/admin/set-lead-notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgId: org!.id,
-          chatIds: newGroups
-        })
+        body: JSON.stringify({ orgId: org!.id, chatIds: newGroups })
       });
-
+      const data = await response.json();
       if (response.ok) {
+        toast.success('✅ Notification group removed.');
         loadOrgData();
+      } else {
+        toast.error(`❌ ${data.error || 'Failed to remove group'}`);
       }
-    } catch (error) {
-      console.error('Failed to remove chat ID:', error);
+    } catch {
+      toast.error('❌ Network error. Please try again.');
     }
   };
+  
 
   const copyOrgId = () => {
     navigator.clipboard.writeText(org?.id || '');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
+  const saveOrgName = async () => {
+    if (!newOrgName.trim() || newOrgName.trim() === org?.name) {
+      setEditingName(false);
+      return;
+    }
+    try {
+      const response = await fetch('/api/org/info', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newOrgName.trim() }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('✅ Organization name updated!');
+        loadOrgData();
+        setEditingName(false);
+      } else {
+        toast.error(`❌ ${data.error || 'Failed to update name'}`);
+      }
+    } catch {
+      toast.error('❌ Network error. Please try again.');
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -123,6 +160,7 @@ export default function OrganizationPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+    <Toaster />
       {/* Header */}
       <div className="mb-8 flex items-center gap-3">
         <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -137,31 +175,97 @@ export default function OrganizationPage() {
       {/* Org Card */}
       {org ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Org ID</label>
-              <div className="flex items-center gap-2">
-                <code className="bg-gray-100 px-3 py-1.5 rounded-lg font-mono text-sm text-gray-900 font-medium">
-                  {org.id}
-                </code>
-                <button
-                  onClick={copyOrgId}
-                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                  title="Copy Org ID"
-                >
-                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-gray-500" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Organization Name</label>
-              <span className="text-lg font-semibold text-gray-900">{org.name}</span>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Users</label>
-              <span className="text-lg font-semibold text-gray-900">{users.length}</span>
-            </div>
-          </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+  <div>
+    <label className="block text-sm font-semibold text-gray-900 mb-2">Org ID</label>
+    <div className="flex items-center gap-2">
+      <code className="bg-gray-100 px-3 py-1.5 rounded-lg font-mono text-sm text-gray-900 font-medium">
+        {org.id}
+      </code>
+      <button
+        onClick={copyOrgId}
+        className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+        title="Copy Org ID"
+      >
+        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-gray-500" />}
+      </button>
+    </div>
+  </div>
+
+  <div>
+  <label className="block text-sm font-semibold text-gray-900 mb-2">Organization Name</label>
+  {editingName ? (
+    <div className="flex items-center gap-2 flex-wrap">
+      <input
+        type="text"
+        value={newOrgName}
+        onChange={(e) => setNewOrgName(e.target.value)}
+        autoFocus
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') saveOrgName();
+          if (e.key === 'Escape') setEditingName(false);
+        }}
+        className="px-3 py-1.5 border-2 border-blue-500 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300 w-48"
+      />
+      <button
+        onClick={saveOrgName}
+        className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-700"
+      >
+        Save
+      </button>
+      <button
+        onClick={() => setEditingName(false)}
+        className="text-xs bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-gray-300"
+      >
+        Cancel
+      </button>
+    </div>
+  ) : (
+    <div className="flex items-center gap-2">
+      <span className="text-lg font-semibold text-gray-900">{org.name}</span>
+      <button
+        onClick={() => { setNewOrgName(org.name); setEditingName(true); }}
+        className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+        title="Edit organization name"
+      >
+        <Edit2 className="h-4 w-4 text-gray-400 hover:text-gray-700" />
+      </button>
+    </div>
+  )}
+</div>
+
+  <div>
+    <label className="block text-sm font-semibold text-gray-900 mb-2">Users</label>
+    <span className="text-lg font-semibold text-gray-900">{users.length}</span>
+  </div>
+
+  {/* ADD THESE TWO NEW CELLS */}
+  <div>
+    <label className="block text-sm font-semibold text-gray-900 mb-2">Google Sheet</label>
+    {org.sheetId ? (
+      <a
+        href={`https://docs.google.com/spreadsheets/d/${org.sheetId}/edit`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm font-medium"
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+        Open Sheet
+      </a>
+    ) : (
+      <span className="text-sm text-red-500 font-medium">⚠️ Not configured</span>
+    )}
+  </div>
+
+  <div>
+    <label className="block text-sm font-semibold text-gray-900 mb-2">Created</label>
+    <span className="text-sm text-gray-600">
+      {new Date(org.createdAt).toLocaleDateString('en-IN', {
+        day: 'numeric', month: 'short', year: 'numeric'
+      })}
+    </span>
+  </div>
+</div>
 
           {/* Lead Assignment Notifications */}
           <div>
@@ -234,9 +338,12 @@ export default function OrganizationPage() {
           <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No Organization</h2>
           <p className="text-gray-600 mb-6">Organization not configured yet</p>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold">
-            Setup Organization
-          </button>
+          <button
+  onClick={() => router.push('/onboard')}
+  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold"
+>
+  Setup Organization
+</button>
         </div>
       )}
     </div>

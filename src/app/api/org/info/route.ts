@@ -36,3 +36,36 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (session.user.accountType !== 'admin' && session.user.accountType !== 'owner') {
+      return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+    }
+
+    const orgId = session.user.organizationId;
+    if (!orgId) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 400 });
+    }
+
+    const { name } = await request.json();
+    if (!name?.trim()) {
+      return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 });
+    }
+
+    const existingOrg = await redis.get(`org:${orgId}:info`) as any;
+    await redis.set(`org:${orgId}:info`, {
+      ...existingOrg,
+      name: name.trim(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    return NextResponse.json({ success: true, name: name.trim() });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
