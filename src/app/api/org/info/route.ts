@@ -28,6 +28,8 @@ const leadGroupsRaw = await redis.get(`org:${orgId}:lead_assign_groups`);
 const leadNotifyGroups = leadGroupsRaw
   ? JSON.parse(leadGroupsRaw as string)
   : (orgData?.leadNotifyGroups ?? []);
+  const telegramGroupChatId = await redis.get(`org:${orgId}:telegram:group_chat_id`) as string | null;
+
 
 return NextResponse.json({
   id: orgId,
@@ -35,6 +37,7 @@ return NextResponse.json({
   sheetId: session.user.sheetId,
   createdAt: orgData?.createdAt,
   leadNotifyGroups,
+  telegramGroupChatId: telegramGroupChatId || null,
 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

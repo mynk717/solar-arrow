@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const users = await Promise.all(
       userEmails.map(async (email) => {
         const userInfo = await redis.get(`user:${email}:info`) as any;
-        const telegramData = await redis.get(`user:${email}:telegramChatId`) as any;
+        const telegramData = await redis.get(`user:${email}:telegram:chat_id`) as any;
         return userInfo ? {
           email: userInfo.email,
           name: userInfo.name,
