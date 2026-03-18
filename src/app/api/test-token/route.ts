@@ -25,77 +25,62 @@ export async function GET() {
       }, { status: 400 });
     }
 
-    // ✅ For REGULAR USERS (non-admin): Just check if ANY admin has valid tokens
-    if (session.user.accountType === 'user') {
-      // Get all admins in the organization
-      const adminEmails = await redis.smembers(`org:${session.user.organizationId}:admins`) as string[];
-      
-      if (adminEmails.length === 0) {
-        return NextResponse.json({ 
-          error: 'No admin configured for this organization', 
-          status: 'expired' 
-        }, { status: 400 });
-      }
+    // ✅ For non-owners: use org owner token
+// Only accountType 'owner' has their own OAuth token in Redis
+if (session.user.accountType !== 'owner') {
+  const adminEmails = await redis.smembers(`org:${session.user.organizationId}:admins`) as string[];
 
-      // Check if ANY admin has valid tokens
-      let hasValidAdminToken = false;
-      for (const adminEmail of adminEmails) {
-        const token = await getValidAccessToken(session.user.organizationId, adminEmail);
-        if (token) {
-          hasValidAdminToken = true;
-          break;
-        }
-      }
-
-      if (!hasValidAdminToken) {
-        return NextResponse.json({ 
-          error: 'Organization admin needs to re-authenticate', 
-          status: 'expired' 
-        }, { status: 401 });
-      }
-
-      // ✅ User is good - admin has valid tokens
+  for (const adminEmail of adminEmails) {
+    const token = await getValidAccessToken(session.user.organizationId, adminEmail);
+    if (token) {
       return NextResponse.json({
         status: 'valid',
         message: 'Connected via organization admin',
         email: session.user.email,
-        accountType: 'user'
+        accountType: session.user.accountType
       });
     }
+  }
 
-    // ✅ For ADMINS: Check their own token
-    const accessToken = await getValidAccessToken(
-      session.user.organizationId, 
-      session.user.email
-    );
-    
-    if (!accessToken) {
-      return NextResponse.json({ 
-        error: 'Invalid token. Please re-authenticate.', 
-        status: 'expired' 
-      }, { status: 401 });
-    }
+  return NextResponse.json({
+    error: 'Organization admin needs to re-authenticate',
+    status: 'expired'
+  }, { status: 401 });
+}
 
-    // Validate token with Google
-    const tokenInfo = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
-    
-    if (!tokenInfo.ok) {
-      return NextResponse.json({ 
-        error: 'Invalid token', 
-        status: 'expired' 
-      }, { status: 401 });
-    }
+// ✅ For OWNER only: check their own OAuth token
+const accessToken = await getValidAccessToken(
+  session.user.organizationId,
+  session.user.email
+);
 
-    const info = await tokenInfo.json();
+if (!accessToken) {
+  return NextResponse.json({
+    error: 'Invalid token. Please re-authenticate.',
+    status: 'expired'
+  }, { status: 401 });
+}
 
-    return NextResponse.json({
-      status: 'valid',
-      message: 'Connected to Google',
-      scopes: info.scope,
-      hasSheets: info.scope?.includes('spreadsheets'),
-      hasDrive: info.scope?.includes('drive'),
-      email: info.email
-    });
+const tokenInfo = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${accessToken}`);
+
+if (!tokenInfo.ok) {
+  return NextResponse.json({
+    error: 'Invalid token',
+    status: 'expired'
+  }, { status: 401 });
+}
+
+const info = await tokenInfo.json();
+
+return NextResponse.json({
+  status: 'valid',
+  message: 'Connected to Google',
+  scopes: info.scope,
+  hasSheets: info.scope?.includes('spreadsheets'),
+  hasDrive: info.scope?.includes('drive'),
+  email: info.email
+});
+
   } catch (error: any) {
     console.error('Test token error:', error);
     return NextResponse.json({ 
