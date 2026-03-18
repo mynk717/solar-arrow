@@ -24,7 +24,14 @@ export async function POST(request: NextRequest) {
       `org:${orgId}:lead_assign_groups`,
       JSON.stringify(chatIds)
     );
-
+    const existingOrg = await redis.get(`org:${orgId}:info`) as any;
+    if (existingOrg) {
+      await redis.set(`org:${orgId}:info`, {
+        ...existingOrg,
+        leadNotifyGroups: chatIds,
+        updatedAt: new Date().toISOString(),
+      });
+    }
     return NextResponse.json({ 
       success: true, 
       message: `Set ${chatIds.length} chat IDs for lead assignment notifications`,

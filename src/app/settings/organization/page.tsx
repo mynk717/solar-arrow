@@ -19,6 +19,9 @@ interface User {
   email: string;
   name: string;
   role: string;
+  department?: string;
+  isActive?: boolean;
+  telegramConnected?: boolean;
 }
 
 export default function OrganizationPage() {
@@ -332,6 +335,49 @@ useEffect(() => {
               )}
             </div>
           </div>
+                    {/* Users & Telegram Status */}
+                    <div className="mt-8 border-t border-gray-100 pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-gray-600" />
+              Team Members
+              <span className="text-sm font-normal text-gray-400 ml-1">({users.length})</span>
+            </h2>
+            {users.length === 0 ? (
+              <p className="text-gray-500 text-sm">No users found.</p>
+            ) : (
+              <div className="space-y-2">
+                {users.map((user, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-blue-700 font-bold text-sm">{user.name?.[0]?.toUpperCase() || '?'}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 font-medium">
+                        {user.role}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                        user.telegramConnected
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z"/>
+                        </svg>
+                        {user.telegramConnected ? 'Telegram ✓' : 'No Telegram'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">

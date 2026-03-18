@@ -21,17 +21,21 @@ export async function GET(request: NextRequest) {
     }
 
     const orgData = await redis.get(`org:${orgId}:info`) as any;
-    const leadNotifyGroups = await redis.get(`org:${orgId}:lead_assign_groups`);
     const usersCount = await redis.scard(`org:${orgId}:users`);
 
-    return NextResponse.json({
-      id: orgId,
-      name: orgData?.name || 'Unnamed Organization',
-      sheetId: session.user.sheetId,
-      usersCount: usersCount || 0,
-      leadNotifyGroups: leadNotifyGroups ? JSON.parse(leadNotifyGroups as string) : [],
-      createdAt: orgData?.createdAt || new Date().toISOString()
-    });
+    // Read lead notify groups from their actual Redis key
+const leadGroupsRaw = await redis.get(`org:${orgId}:lead_assign_groups`);
+const leadNotifyGroups = leadGroupsRaw
+  ? JSON.parse(leadGroupsRaw as string)
+  : (orgData?.leadNotifyGroups ?? []);
+
+return NextResponse.json({
+  id: orgId,
+  name: orgData?.name || 'Unnamed Organization',
+  sheetId: session.user.sheetId,
+  createdAt: orgData?.createdAt,
+  leadNotifyGroups,
+});
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
