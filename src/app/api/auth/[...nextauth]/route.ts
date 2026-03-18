@@ -196,6 +196,12 @@ if (!account && !user && token.accountType === 'user' && token.email) {
       token.role = freshUser.role ?? token.role;
       token.isActive = freshUser.isActive;
 
+      // Promote accountType if role is admin — credential admins should see admin UI
+if (freshUser.role === 'admin' || freshUser.role === 'owner') {
+  token.accountType = 'admin';
+}
+
+
       // Always re-sync sheetId from Redis — not just when missing
 if (token.organizationId) {
   const org = await redis.get(`org:${token.organizationId}:info`) as any
