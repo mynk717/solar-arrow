@@ -14,6 +14,7 @@ import AppShell from '@/components/AppShell';
 
 
 
+
 const inter = Inter({ subsets: ['latin'] });
 
 // Viewport config

@@ -6,6 +6,8 @@ import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import PWAInstaller from '@/components/PWAInstaller';
+import TokenAutoRefresh from '@/components/TokenAutoRefresh';
+
 
 // Exact paths — no sidebar/shell
 const PUBLIC_EXACT = ['/', '/login', '/onboard', '/features', '/pricing', '/demo'];
@@ -25,6 +27,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <>
+      <TokenAutoRefresh />
     <div className="flex flex-col min-h-screen bg-gray-50">
       <div className="flex flex-1">
         <Sidebar />
@@ -34,5 +38,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <BottomNav />
       <PWAInstaller />
     </div>
+    </>
   );
 }
