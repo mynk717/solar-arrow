@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { convertLeadToEnquiry } from '@/lib/googleSheets';
-import { telegramBot } from '@/lib/telegram';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 import {redis} from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
@@ -23,32 +23,14 @@ export async function POST(request: NextRequest) {
     // Convert lead to enquiry
     const enquiry = await convertLeadToEnquiry(leadId, enquiryData, session.user.email);
 
-    // Send Telegram notification
-    const sheetId = session.user.sheetId;
-    if (sheetId) {
-      try {
-        const chatIdsData = await redis.get(`sheet:${sheetId}:leadnotify`);
-        const chatIds = chatIdsData ? JSON.parse(chatIdsData as string) : [];
-
-        const message = `🎯 *Lead Converted to Enquiry!*
-
-Lead ID: ${leadId}
-Enquiry ID: ${enquiry.id}
-Customer: ${enquiry.customerName}
-Capacity: ${enquiry.capacity}kW
-Source: ${enquiry.leadSource || 'N/A'}
-Converted by: ${session.user.email}
-
-Status: Ready for survey scheduling`;
-
-        for (const chatId of chatIds) {
-          if (chatId) {
-            await telegramBot.sendMessage(chatId, message, 'Markdown');
-          }
-        }
-      } catch (error) {
-        console.error('Telegram notification failed:', error);
-      }
+    try {
+      const orgId = (session.user as any).organizationId || 'default-org';
+      await sendOrgGroupNotification(orgId, {
+        text: `🎯 *LEAD CONVERTED TO ENQUIRY*\n\n*Lead:* ${leadId}\n*Enquiry:* ${enquiry.id}\n*Customer:* ${enquiry.customerName}\n*Capacity:* ${enquiry.capacity} kW\n*Source:* ${enquiry.leadSource || 'N/A'}\n\n*Converted By:* ${session.user.email}\n\n_Ready for survey scheduling._`,
+        parseMode: 'Markdown',
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
     }
 
     return NextResponse.json({ success: true, enquiry });

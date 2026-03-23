@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
+import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,7 +53,29 @@ export async function POST(request: NextRequest) {
 
     await redis.del(`org:${orgId}:payments:installments`);
     await redis.del(`org:${orgId}:enquiries`);
-
+    try {
+      const enquiryId = rows[rowIndex][1] || '';
+      const customerName = rows[rowIndex][2] || enquiryId;
+      await notifyEnquiryActivity(
+        orgId,
+        enquiryId,
+        customerName,
+        'payment',
+        {
+          installmentId: id,
+          amount,
+          paymentMethod: method,
+          paymentDate: date,
+          paymentReference: reference || '',
+          paymentStatus: 'verified',
+          verifiedBy: session.user.email,
+        },
+        session.user.email!,
+        notes || 'Installment payment verified'
+      );
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

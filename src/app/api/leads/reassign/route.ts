@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateLead } from '@/lib/googleSheets';
+import { notifyLeadAssigned } from '@/lib/telegram';
+import { invalidateLeadsCache } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +37,28 @@ export async function POST(request: Request) {
       },
       session.user.email || 'system'
     );
+    const orgId = (session.user as any).organizationId || 'default-org';
 
+    try {
+      await notifyLeadAssigned(orgId, {
+        id: leadId,
+        customerName: leadId,
+        phone: '',
+        area: undefined,
+        capacity: undefined,
+        priority: 'medium',
+        assignedToName: newAssigneeName || newAssignee,
+        assignedToEmail: newAssignee,
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
+
+    try {
+      await invalidateLeadsCache(orgId);
+    } catch (cacheErr) {
+      console.error('Cache invalidation failed:', cacheErr);
+    }
     return NextResponse.json({
       success: true,
       message: 'Lead reassigned successfully',

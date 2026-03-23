@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { updateLead } from '@/lib/googleSheets';
 import { invalidateLeadsCache } from '@/lib/redis';
+import { notifyLeadActivity } from '@/lib/notificationHelpers';
 
 export async function POST(request: Request) {
   try {
@@ -48,6 +49,24 @@ export async function POST(request: Request) {
     // ✅ Invalidate cache
     await invalidateLeadsCache(orgId);
     console.log('✅ Cache invalidated after qualification');
+
+    try {
+      await notifyLeadActivity(
+        orgId,
+        leadId,
+        leadId,
+        'status',
+        {
+          status: 'qualified',
+          qualifiedBy: userEmail,
+          estimatedBudget: estimatedBudget || 'N/A',
+        },
+        userEmail,
+        qualificationNotes || 'Lead marked as qualified'
+      );
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
 
     return NextResponse.json({
       success: true,
