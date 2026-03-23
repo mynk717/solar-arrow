@@ -457,4 +457,243 @@ export interface EnquiryRow {
       rows,
     };
   }
-  
+  // ── 8. Registration Status Report ────────────────────────────────────────────
+
+export interface RegistrationRow {
+  id: string;
+  enquiryId: string;
+  registrationId: string;
+  applicationNumber: string;
+  consumerNumber: string;
+  discomCircle: string;
+  discomDivision: string;
+  discomSubDivision: string;
+  registrationStatus: string;
+  submittedDate: string;
+  approvedDate: string;
+  rejectedDate: string;
+  feasibilityApprovalNumber: string;
+  notes: string;
+  rejectionReason: string;
+  submittedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function registrationStatusReport(
+  registrations: RegistrationRow[],
+  filters: ReportFilters
+) {
+  let rows = registrations;
+  if (filters.from) rows = rows.filter(r => new Date(r.submittedDate) >= new Date(filters.from!));
+  if (filters.to)   rows = rows.filter(r => new Date(r.submittedDate) <= new Date(filters.to! + 'T23:59:59'));
+  if (filters.area) rows = rows.filter(r => r.discomCircle === filters.area);
+  if (filters.status) rows = rows.filter(r => r.registrationStatus === filters.status);
+
+  // Group by period (week/month)
+  const byMonth: Record<string, number> = {};
+  rows.forEach(r => {
+    const key = monthKey(r.submittedDate);
+    byMonth[key] = (byMonth[key] || 0) + 1;
+  });
+
+  const approved  = rows.filter(r => r.registrationStatus === 'approved');
+  const rejected  = rows.filter(r => r.registrationStatus === 'rejected');
+  const pending   = rows.filter(r => r.registrationStatus === 'submitted');
+
+  const avgApprovalDays = approved.length
+    ? Math.round(
+        approved
+          .filter(r => r.submittedDate && r.approvedDate)
+          .reduce((s, r) => s + daysBetween(r.submittedDate, r.approvedDate), 0) /
+        approved.length
+      )
+    : 0;
+
+  return {
+    kpis: {
+      totalSubmitted: rows.length,
+      approved: approved.length,
+      pending: pending.length,
+      rejected: rejected.length,
+      avgApprovalDays,
+    },
+    rows: rows.map(r => ({
+      enquiryId:              r.enquiryId,
+      applicationNumber:      r.applicationNumber,
+      consumerNumber:         r.consumerNumber,
+      discomCircle:           r.discomCircle,
+      discomDivision:         r.discomDivision,
+      registrationStatus:     r.registrationStatus,
+      submittedDate:          r.submittedDate,
+      approvedDate:           r.approvedDate || '-',
+      rejectedDate:           r.rejectedDate || '-',
+      rejectionReason:        r.rejectionReason || '-',
+      feasibilityNumber:      r.feasibilityApprovalNumber || '-',
+      submittedBy:            r.submittedBy,
+    })).sort((a, b) => b.submittedDate.localeCompare(a.submittedDate)),
+  };
+}
+
+// ── 9. Payment Tracker ────────────────────────────────────────────────────────
+
+export interface PaymentRow {
+  id: string;
+  enquiryId: string;
+  customerName: string;
+  installmentNumber: number;
+  amount: number;
+  expectedAmount: number;
+  status: string;
+  date: string;
+  method: string;
+  reference: string;
+  verifiedBy: string;
+  verifiedAt: string;
+  notes: string;
+  createdAt: string;
+  createdBy: string;
+}
+
+export function paymentTrackerReport(
+  payments: PaymentRow[],
+  filters: ReportFilters
+) {
+  let rows = payments;
+  if (filters.from)   rows = rows.filter(r => new Date(r.date) >= new Date(filters.from!));
+  if (filters.to)     rows = rows.filter(r => new Date(r.date) <= new Date(filters.to! + 'T23:59:59'));
+  if (filters.status) rows = rows.filter(r => r.status === filters.status);
+
+  const verified  = rows.filter(r => r.status === 'verified');
+  const pending   = rows.filter(r => r.status === 'pending');
+  const totalCollected  = verified.reduce((s, r) => s + r.amount, 0);
+  const totalExpected   = rows.reduce((s, r) => s + r.expectedAmount, 0);
+
+  return {
+    kpis: {
+      totalInstallments: rows.length,
+      verified: verified.length,
+      pending: pending.length,
+      totalCollected: '₹' + totalCollected.toLocaleString('en-IN'),
+      totalExpected:  '₹' + totalExpected.toLocaleString('en-IN'),
+    },
+    rows: rows.map(r => ({
+      enquiryId:         r.enquiryId,
+      customerName:      r.customerName,
+      installmentNumber: r.installmentNumber,
+      amount:            '₹' + r.amount.toLocaleString('en-IN'),
+      expectedAmount:    '₹' + r.expectedAmount.toLocaleString('en-IN'),
+      status:            r.status,
+      date:              r.date,
+      method:            r.method,
+      reference:         r.reference || '-',
+      verifiedBy:        r.verifiedBy || '-',
+    })).sort((a, b) => b.date.localeCompare(a.date)),
+  };
+}
+
+// ── 10. Incomplete Payments ───────────────────────────────────────────────────
+
+export function incompletePaymentsReport(
+  payments: PaymentRow[],
+  enquiries: EnquiryRow[],
+  filters: ReportFilters
+) {
+  const enqMap = Object.fromEntries(enquiries.map(e => [e.id, e]));
+
+  // Group payments by enquiryId
+  const byEnquiry: Record<string, PaymentRow[]> = {};
+  payments.forEach(p => {
+    if (!byEnquiry[p.enquiryId]) byEnquiry[p.enquiryId] = [];
+    byEnquiry[p.enquiryId].push(p);
+  });
+
+  const rows = Object.entries(byEnquiry)
+    .map(([enquiryId, pmts]) => {
+      const eq = enqMap[enquiryId] || {} as EnquiryRow;
+      const totalPaid     = pmts.filter(p => p.status === 'verified').reduce((s, p) => s + p.amount, 0);
+      const totalExpected = pmts.reduce((s, p) => s + p.expectedAmount, 0);
+      const pendingCount  = pmts.filter(p => p.status === 'pending').length;
+      const balance       = totalExpected - totalPaid;
+
+      return {
+        enquiryId,
+        customerName:   pmts[0]?.customerName || eq.customerName || '-',
+        area:           eq.area || '-',
+        capacityKw:     parseFloat(eq.capacity) || 0,
+        totalExpected:  '₹' + totalExpected.toLocaleString('en-IN'),
+        totalPaid:      '₹' + totalPaid.toLocaleString('en-IN'),
+        balance:        '₹' + balance.toLocaleString('en-IN'),
+        pendingCount,
+        installments:   pmts.length,
+        enquiryStatus:  eq.status || '-',
+      };
+    })
+    .filter(r => r.pendingCount > 0)  // only show those with pending installments
+    .sort((a, b) => b.pendingCount - a.pendingCount);
+
+  if (filters.area) return { kpis: {}, rows: rows.filter(r => r.area === filters.area) };
+
+  const totalBalance = payments
+    .filter(p => p.status === 'pending')
+    .reduce((s, p) => s + p.expectedAmount, 0);
+
+  return {
+    kpis: {
+      enquiriesWithPending: rows.length,
+      totalPendingInstallments: rows.reduce((s, r) => s + r.pendingCount, 0),
+      totalBalanceDue: '₹' + totalBalance.toLocaleString('en-IN'),
+      highestBalance: rows[0]?.customerName || 'N/A',
+    },
+    rows,
+  };
+}
+
+// ── 11. Sales Summary ─────────────────────────────────────────────────────────
+
+export function salesSummaryReport(
+  enquiries: EnquiryRow[],
+  filters: ReportFilters
+) {
+  const filtered = filterByDate(enquiries, filters);
+
+  const byMonth: Record<string, {
+    month: string;
+    enquiries: number;
+    registrations: number;
+    totalKw: number;
+    quotationAmount: number;
+  }> = {};
+
+  filtered.forEach(r => {
+    const key = monthKey(r.createdAt);
+    if (!byMonth[key]) byMonth[key] = { month: key, enquiries: 0, registrations: 0, totalKw: 0, quotationAmount: 0 };
+    byMonth[key].enquiries++;
+    byMonth[key].totalKw += parseFloat(r.capacity) || 0;
+    byMonth[key].quotationAmount += parseFloat((r as any).finalCost || (r as any).estimatedCost || 0);
+    if ((r as any).registrationStatus === 'approved' || (r as any).applicationNumber) {
+      byMonth[key].registrations++;
+    }
+  });
+
+  const rows = Object.values(byMonth)
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map(r => ({
+      ...r,
+      totalKw: +r.totalKw.toFixed(2),
+      quotationAmount: '₹' + r.quotationAmount.toLocaleString('en-IN'),
+    }));
+
+  const totalKw = filtered.reduce((s, r) => s + (parseFloat(r.capacity) || 0), 0);
+  const totalAmount = filtered.reduce((s, r) => s + parseFloat((r as any).finalCost || (r as any).estimatedCost || 0), 0);
+
+  return {
+    kpis: {
+      totalEnquiries: filtered.length,
+      totalKw: totalKw.toFixed(2) + ' kW',
+      totalQuotationValue: '₹' + totalAmount.toLocaleString('en-IN'),
+      avgKwPerEnquiry: filtered.length ? (totalKw / filtered.length).toFixed(2) + ' kW' : '0 kW',
+    },
+    rows,
+  };
+}

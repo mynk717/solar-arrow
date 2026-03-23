@@ -5,9 +5,10 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
 import {
-  EnquiryRow, LiaisonRow, ReportFilters,
+  EnquiryRow, LiaisonRow, ReportFilters, RegistrationRow, PaymentRow,
   monthlyBusinessReview, pipelineFunnel, teamPerformance,
   liaisonAging, areaAnalysis, inspectionHealth, documentCompliance,
+  registrationStatusReport, paymentTrackerReport, incompletePaymentsReport, salesSummaryReport,
 } from '@/lib/reportUtils';
 
 const RAW_CACHE_TTL = 300; // 5 minutes
@@ -19,17 +20,19 @@ async function getRawData(sheetId: string, orgId: string, forceRefresh: boolean)
     const cached = await redis.get(cacheKey);
     if (cached) {
       const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
-      return parsed as { enquiries: EnquiryRow[]; liaisons: LiaisonRow[] };
+      return parsed as { enquiries: EnquiryRow[]; liaisons: LiaisonRow[]; registrations: RegistrationRow[]; payments: PaymentRow[] };
     }
   }
 
   const sheets = await getGoogleSheetsClient();
 
   // Read ENQUIRIES headers + data + LIAISON data in parallel
-  const [eqHeaders, eqData, lnData] = await Promise.all([
-    sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'ENQUIRIES!A1:CZ1' }),
+  const [eqHeaders, eqData, lnData, regData, payData] = await Promise.all([
+        sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'ENQUIRIES!A1:CZ1' }),
     sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'ENQUIRIES!A2:CZ1000' }),
     sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'LIAISON!A2:AP1000' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'REGISTRATION!A2:R5000' }),
+    sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'PAYMENTS!A2:O5000' }),
   ]);
 
   const headers = eqHeaders.data.values?.[0] || [];
@@ -80,9 +83,52 @@ async function getRawData(sheetId: string, orgId: string, forceRefresh: boolean)
     })
     .filter(r => r.enquiryId);
 
-  const result = { enquiries, liaisons };
+    const registrations: RegistrationRow[] = (regData.data.values || [])
+    .map((row) => ({
+      id:                       row[0] || '',
+      enquiryId:                row[1] || '',
+      registrationId:           row[2] || '',
+      applicationNumber:        row[3] || '',
+      consumerNumber:           row[4] || '',
+      discomCircle:             row[5] || '',
+      discomDivision:           row[6] || '',
+      discomSubDivision:        row[7] || '',
+      registrationStatus:       row[8] || '',
+      submittedDate:            row[9] || '',
+      approvedDate:             row[10] || '',
+      rejectedDate:             row[11] || '',
+      feasibilityApprovalNumber: row[12] || '',
+      notes:                    row[13] || '',
+      rejectionReason:          row[14] || '',
+      submittedBy:              row[15] || '',
+      createdAt:                row[16] || '',
+      updatedAt:                row[17] || '',
+    }))
+    .filter(r => r.id);
+
+  const payments: PaymentRow[] = (payData.data.values || [])
+    .map((row) => ({
+      id:                row[0] || '',
+      enquiryId:         row[1] || '',
+      customerName:      row[2] || '',
+      installmentNumber: parseInt(row[3] || '1'),
+      amount:            parseFloat(row[4] || '0'),
+      expectedAmount:    parseFloat(row[5] || '0'),
+      status:            row[6] || 'pending',
+      date:              row[7] || '',
+      method:            row[8] || '',
+      reference:         row[9] || '',
+      verifiedBy:        row[10] || '',
+      verifiedAt:        row[11] || '',
+      notes:             row[12] || '',
+      createdAt:         row[13] || '',
+      createdBy:         row[14] || '',
+    }))
+    .filter(r => r.id);
+
+  const result = { enquiries, liaisons, registrations, payments };
   await redis.set(cacheKey, JSON.stringify(result), { ex: RAW_CACHE_TTL });
-  return result;
+  return result as { enquiries: EnquiryRow[]; liaisons: LiaisonRow[]; registrations: RegistrationRow[]; payments: PaymentRow[] };
 }
 
 export async function GET(request: NextRequest) {
@@ -123,7 +169,7 @@ export async function GET(request: NextRequest) {
         : undefined,
     };
 
-    const { enquiries, liaisons } = await getRawData(sheetId, orgId, forceRefresh);
+    const { enquiries, liaisons, registrations, payments } = await getRawData(sheetId, orgId, forceRefresh);
 
     let data: any;
     switch (type) {
@@ -134,6 +180,10 @@ export async function GET(request: NextRequest) {
       case 'area':       data = areaAnalysis(enquiries, liaisons, filters); break;
       case 'inspection': data = inspectionHealth(enquiries, liaisons, filters); break;
       case 'compliance': data = documentCompliance(enquiries, liaisons, filters); break;
+      case 'registration':        data = registrationStatusReport(registrations, filters); break;
+      case 'payments':            data = paymentTrackerReport(payments, filters); break;
+      case 'incomplete-payments': data = incompletePaymentsReport(payments, enquiries, filters); break;
+      case 'sales':               data = salesSummaryReport(enquiries, filters); break;
       default:
         return NextResponse.json(
           { error: `Unknown report type: ${type}` },
