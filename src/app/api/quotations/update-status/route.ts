@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { telegramBot } from '@/lib/telegram';
 import { redis } from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,31 +33,14 @@ export async function POST(request: NextRequest) {
     });
 
     const sheetId = session.user.sheetId;
-    if (sheetId) {
-      try {
-        const chatIdsData = await redis.get(`sheet:${sheetId}:quotation_notify`);
-        const chatIds = chatIdsData ? JSON.parse(chatIdsData as string) : [];
-        
-        const message = `
-${status === 'approved' ? '✅' : '❌'} *Quotation ${status === 'approved' ? 'Approved' : 'Rejected'}*
-
-📋 *Quotation ID:* ${quotationId}
-👤 *Customer:* ${enquiry.customerName}
-⚡ *Capacity:* ${enquiry.capacity} kW
-
-💵 *Final Cost:* ₹${(enquiry.finalCost || 0).toLocaleString()}
-
-${status === 'approved' ? '🎉 Customer has approved the quotation! Proceed with registration.' : '⚠️ Customer has rejected the quotation. Follow up required.'}
-        `.trim();
-
-        for (const chatId of chatIds) {
-          if (chatId) {
-            await telegramBot.sendMessage(chatId, message, 'Markdown');
-          }
-        }
-      } catch (error) {
-        console.error('Telegram notification failed:', error);
-      }
+    try {
+      const orgId = (session.user as any).organizationId || 'default-org';
+      await sendOrgGroupNotification(orgId, {
+        text: `${status === 'approved' ? '✅' : '❌'} *Quotation ${status === 'approved' ? 'Approved' : 'Rejected'}*\n\n📋 *Quotation:* ${quotationId}\n👤 *Customer:* ${enquiry.customerName}\n⚡ ${enquiry.capacity} kW\n\n${status === 'approved' ? '🎉 Proceed with registration.' : '⚠️ Follow up required.'}`,
+        parseMode: 'Markdown',
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
     }
 
     return NextResponse.json({ success: true });

@@ -3,57 +3,12 @@ import { NextResponse } from 'next/server';
 import { fetchQuotation, updateQuotation, updateLead } from '@/lib/googleSheets';
 import { validateQuotationToken } from '@/lib/quotations';
 import { invalidateLeadsCache } from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 /**
  * Send Telegram notification for approval
  */
-async function sendTelegramNotification(quotation: any) {
-  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
-  if (!telegramBotToken || !telegramChatId) {
-    console.warn('⚠️ Telegram credentials not configured');
-    return;
-  }
-
-  const message = `✅ *QUOTATION APPROVED!*
-
-🎉 Customer has approved the quotation!
-
-📋 *Quotation ID:* ${quotation.quotationId}
-👤 *Customer:* ${quotation.customerName}
-📞 *Phone:* ${quotation.customerPhone}
-📧 *Email:* ${quotation.customerEmail}
-⚡ *Capacity:* ${quotation.systemCapacity} kW
-💰 *Final Amount:* ₹${quotation.finalAmount.toLocaleString('en-IN')}
-
-${quotation.leadId ? `🔗 *Lead ID:* ${quotation.leadId}` : ''}
-🏢 *Organization:* ${quotation.organizationName}
-
-⏰ *Approved:* ${new Date().toLocaleString('en-IN')}
-
-🚀 *Action Required:* Contact customer to proceed with installation!`;
-
-  try {
-    const response = await fetch(`https://api.telegram.org/bot${telegramBotToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: telegramChatId,
-        text: message,
-        parse_mode: 'Markdown',
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Telegram API error');
-    }
-
-    console.log('✅ Telegram notification sent for approval');
-  } catch (error) {
-    console.error('❌ Failed to send Telegram notification:', error);
-  }
-}
 
 export async function POST(request: Request) {
   try {
@@ -112,8 +67,14 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send Telegram notification
-    await sendTelegramNotification(quotation);
+    try {
+      await sendOrgGroupNotification(orgId, {
+        text: `✅ *QUOTATION APPROVED BY CUSTOMER*\n\n📋 *Quotation:* ${quotationId}\n👤 *Customer:* ${quotation.customerName}\n📞 ${quotation.customerPhone}\n⚡ ${quotation.systemCapacity} kW\n💰 ₹${quotation.finalAmount?.toLocaleString('en-IN')}\n\n🚀 *Action Required:* Contact customer to proceed with registration!`,
+        parseMode: 'Markdown',
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
 
     console.log(`✅ Quotation ${quotationId} approved`);
 

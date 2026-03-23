@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { logLeadActivity, updateLead } from '@/lib/googleSheets';
+import { notifyLeadActivity } from '@/lib/notificationHelpers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +43,23 @@ export async function POST(request: NextRequest) {
       },
       session.user.email
     );
-
+    try {
+      const orgId = (session.user as any).organizationId || 'default-org';
+      await notifyLeadActivity(
+        orgId,
+        leadId,
+        leadId, // no customerName available here; optionally fetch lead first
+        'call',
+        {
+          callOutcome,
+          nextFollowupDate: nextFollowupDate || 'Not set',
+        },
+        session.user.email!,
+        notes || ''
+      );
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error logging call:', error);

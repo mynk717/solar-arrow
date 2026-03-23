@@ -9,7 +9,7 @@ export async function notifyEnquiryActivity(
   orgId: string,
   enquiryId: string,
   customerName: string,
-  activityType: 'status' | 'payment' | 'survey' | 'installation' | 'inspection' | 'dispatch' | 'registration' | 'general',
+  activityType: 'status' | 'payment' | 'survey' | 'installation' | 'inspection' | 'dispatch' | 'registration' | 'quotation' | 'general',
   updates: Record<string, any>,
   performedBy: string,
   notes?: string
@@ -23,6 +23,7 @@ export async function notifyEnquiryActivity(
       inspection: 'Inspection Updated',
       dispatch: 'Dispatch Updated',
       registration: 'Registration Updated',
+      quotation: 'Quotation Updated',
       general: 'Enquiry Updated',
     };
 
@@ -35,7 +36,8 @@ export async function notifyEnquiryActivity(
       dispatch: '🚚',
       registration: '📄',
       general: '📝',
-    };
+      quotation: '💼',
+        };
 
     // Format updates for better display
     const formattedUpdates: Record<string, any> = {};

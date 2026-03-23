@@ -12,7 +12,7 @@ async function sendTelegramNotification(enquiry: any, approved: boolean, reason?
 
   try {
     const orgId = enquiry.organizationId || 'default-org';
-    const chatId = await redis.get(`org:${orgId}:telegram:surveyteam`);
+    const chatId = await redis.get(`org:${orgId}:telegram:survey_team`);
     
     if (!chatId) return;
 

@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { telegramBot } from '@/lib/telegram';
 import { redis } from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    const orgId = (session.user as any).organizationId || 'default-org';
     const { enquiryId, surveyApproved, surveyNotes, roofType, roofArea } = await request.json();
 
     if (!enquiryId || surveyApproved === undefined || !surveyNotes) {
@@ -34,36 +35,13 @@ export async function POST(request: NextRequest) {
 
     // Send Telegram notification
     const sheetId = session.user.sheetId;
-    if (sheetId) {
-      try {
-        const chatIdsData = await redis.get(`sheet:${sheetId}:survey_notify`);
-        const chatIds = chatIdsData ? JSON.parse(chatIdsData as string) : [];
-        
-        const message = `
-${surveyApproved ? '✅' : '❌'} *Survey ${surveyApproved ? 'Approved' : 'Rejected'}*
-
-📋 *Enquiry:* ${enquiryId}
-👤 *Customer:* ${enquiry.customerName}
-📍 *Location:* ${enquiry.area}
-⚡ *Capacity:* ${enquiry.capacity} kW
-
-👷 *Surveyor:* ${enquiry.surveyedBy}
-${roofType ? `🏠 *Roof Type:* ${roofType}` : ''}
-${roofArea ? `📏 *Roof Area:* ${roofArea} sq ft` : ''}
-
-📝 *Notes:* ${surveyNotes}
-
-${surveyApproved ? '⏭️ *Next:* Quotation & Registration' : '⚠️ *Status:* Site not suitable for installation'}
-        `.trim();
-
-        for (const chatId of chatIds) {
-          if (chatId) {
-            await telegramBot.sendMessage(chatId, message, 'Markdown');
-          }
-        }
-      } catch (error) {
-        console.error('Telegram notification failed:', error);
-      }
+    try {
+      await sendOrgGroupNotification(orgId, {
+        text: `${surveyApproved ? '✅' : '❌'} *Survey ${surveyApproved ? 'Approved' : 'Rejected'}*\n\n📋 *Enquiry:* ${enquiryId}\n👤 *Customer:* ${enquiry.customerName}\n📍 ${enquiry.area}\n⚡ ${enquiry.capacity} kW\n\n${roofType ? `🏠 Roof: ${roofType}` : ''}\n${roofArea ? `📏 Area: ${roofArea} sq ft` : ''}\n📝 *Notes:* ${surveyNotes}\n\n${surveyApproved ? '⏭️ Next: Quotation & Registration' : '⚠️ Site not suitable'}`,
+        parseMode: 'Markdown',
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
     }
 
     return NextResponse.json({ success: true });

@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { telegramBot } from '@/lib/telegram';
 import {redis} from '@/lib/redis';
+import { sendOrgGroupNotification } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,33 +35,14 @@ export async function POST(request: NextRequest) {
 
     // Send Telegram notifications
     const sheetId = session.user.sheetId;
-    if (sheetId) {
-      try {
-        const chatIdsData = await redis.get(`sheet:${sheetId}:inspection_notify`);
-const chatIds = chatIdsData ? JSON.parse(chatIdsData as string) : [];
-        
-        const message = `
-${approved ? '🎉' : '⚠️'} *Inspection ${approved ? 'Approved' : 'Rejected'}*
-
-📋 *Enquiry:* ${enquiryId}
-👤 *Customer:* ${enquiry.customerName}
-📍 *Location:* ${enquiry.area}
-⚡ *Capacity:* ${enquiry.capacity} kW
-
-👮 *Inspector:* ${inspectionOfficer}
-${inspectionNotes ? `📝 *Notes:* ${inspectionNotes}` : ''}
-
-${approved ? '✅ *Status:* System now ACTIVE' : '❌ *Status:* Requires rectification'}
-        `.trim();
-
-        for (const chatId of chatIds) {
-          if (chatId) {
-            await telegramBot.sendMessage(chatId, message, 'Markdown');
-          }
-        }
-      } catch (error) {
-        console.error('Telegram notification failed:', error);
-      }
+    try {
+      const orgId = (session.user as any).organizationId || 'default-org';
+      await sendOrgGroupNotification(orgId, {
+        text: `${approved ? '🎉' : '⚠️'} *Inspection ${approved ? 'Approved' : 'Rejected'}*\n\n📋 *Enquiry:* ${enquiryId}\n👤 *Customer:* ${enquiry.customerName}\n📍 ${enquiry.area}\n⚡ ${enquiry.capacity} kW\n\n👮 *Inspector:* ${inspectionOfficer}\n${inspectionNotes ? `📝 *Notes:* ${inspectionNotes}` : ''}\n\n${approved ? '✅ System now ACTIVE' : '❌ Requires rectification'}`,
+        parseMode: 'Markdown',
+      });
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
     }
 
     return NextResponse.json({ success: true });

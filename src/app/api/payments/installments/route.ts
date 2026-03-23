@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
+import { notifyEnquiryActivity } from '@/lib/notificationHelpers';
 
 // GET — fetch all installments for an enquiryId
 export async function GET(request: NextRequest) {
@@ -100,6 +101,27 @@ export async function POST(request: NextRequest) {
     });
 
     await redis.del(`org:${orgId}:payments:installments`);
+    try {
+      await notifyEnquiryActivity(
+        orgId,
+        enquiryId,
+        customerName || enquiryId,
+        'payment',
+        {
+          installmentNumber,
+          amount,
+          expectedAmount: expectedAmount || amount,
+          paymentMethod: method,
+          paymentDate: date,
+          paymentReference: reference || '',
+          paymentStatus: 'pending',
+        },
+        session.user.email!,
+        notes || 'New installment recorded'
+      );
+    } catch (notifErr) {
+      console.error('Notification failed (non-blocking):', notifErr);
+    }
     return NextResponse.json({ success: true, id });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
