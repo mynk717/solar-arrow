@@ -196,7 +196,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Report tabs */}
-        <div className="flex gap-1 mt-4 overflow-x-auto pb-1">
+        <div className="flex gap-1 mt-4 overflow-x-auto pb-1 scrollbar-hide -mx-6 px-6">
           {REPORTS.map(r => {
             const Icon = r.icon;
             const active = activeReport === r.id;
