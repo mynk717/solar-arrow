@@ -196,7 +196,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Report tabs */}
-        <div className="flex gap-1 mt-4 overflow-x-auto pb-1 scrollbar-hide -mx-6 px-6">
+        <div className="flex gap-1 mt-4 overflow-x-auto pb-2 scrollbar-hide">
           {REPORTS.map(r => {
             const Icon = r.icon;
             const active = activeReport === r.id;
@@ -204,11 +204,11 @@ export default function ReportsPage() {
               <button
                 key={r.id}
                 onClick={() => setActiveReport(r.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border ${
                   active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                    : 'text-slate-700 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                }`}                
               >
                 <Icon size={15} />
                 {r.label}
@@ -223,31 +223,31 @@ export default function ReportsPage() {
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1">Date Field</label>
           <select value={dateField} onChange={e => setDateField(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             {DATE_FIELDS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1">From</label>
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1">To</label>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1">Area</label>
           <input type="text" placeholder="e.g. Jagdalpur" value={area} onChange={e => setArea(e.target.value)}
-            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-36 focus:ring-2 focus:ring-blue-500" />
+                        className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-36 text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
         </div>
 
         {activeReport === 'team' && (
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Team</label>
             <input type="text" placeholder="Team name" value={team} onChange={e => setTeam(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-36 focus:ring-2 focus:ring-blue-500" />
+                            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm w-36 text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
           </div>
         )}
 
@@ -262,7 +262,7 @@ export default function ReportsPage() {
                   }`}>{p}d</button>
               ))}
               <input type="number" value={stuckDays} min={1} onChange={e => setStuckDays(Number(e.target.value))}
-                className="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                className="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500"                />
             </div>
           </div>
         )}
@@ -271,7 +271,7 @@ export default function ReportsPage() {
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Doc Status</label>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">All</option>
               <option value="complete">Fully Complete</option>
               <option value="partial">Partial</option>
@@ -284,7 +284,7 @@ export default function ReportsPage() {
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Payment Status</label>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">All</option>
               <option value="pending">Pending</option>
               <option value="verified">Verified</option>
@@ -296,7 +296,7 @@ export default function ReportsPage() {
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1">Status</label>
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">All</option>
               <option value="submitted">Submitted</option>
               <option value="approved">Approved</option>
