@@ -1,8 +1,7 @@
 // public/sw.js
-const CACHE_NAME = 'solar-arrow-v2';
+const CACHE_NAME = 'solar-arrow-v3';
 const urlsToCache = [
   '/',
-  '/dashboard',
   '/manifest.json'
 ];
 
