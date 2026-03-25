@@ -190,7 +190,8 @@ export const authOptions: AuthOptions = {
 // ✅ Re-fetch permissions on every JWT refresh EXCEPT first login
 if (!account && !user && token.accountType === 'user' && token.email) {
   try {
-    const freshUser = await redis.get(`user:${token.email}:info`) as any;
+    const userId = await redis.get(`user:email:${token.email}`);
+    const freshUser = userId ? await redis.get(`user:${userId}:info`) as any : null;
     if (freshUser) {
       token.permissions = freshUser.permissions ?? token.permissions;
       token.role = freshUser.role ?? token.role;
