@@ -100,6 +100,11 @@ export async function getTelegramGroupChatId(orgId: string): Promise<string | nu
   return await redis.get(`org:${orgId}:telegram:group_chat_id`) as string | null;
 }
 
+/** Remove organization Telegram GROUP chat ID */
+export async function removeTelegramGroupChatId(orgId: string) {
+  await redis.del(`org:${orgId}:telegram:group_chat_id`);
+}
+
 /** Save user's personal Telegram chat ID */
 export async function saveUserTelegramChatId(userEmail: string, chatId: string, name?: string) {
   await redis.set(`user:${userEmail}:telegram:chat_id`, chatId);

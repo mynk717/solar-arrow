@@ -203,7 +203,15 @@ export default function TelegramSettingsPage() {
       alert('Please enter a group chat ID');
       return;
     }
-
+    const trimmed = groupChatId.trim();
+    if (!trimmed.startsWith('-')) {
+      alert('❌ Invalid Chat ID!\n\nGroup Chat IDs must start with a minus sign (-).\n\nExample: -5142278285\n\nPlease check and re-enter the correct Chat ID.');
+      return;
+    }
+    if (!/^-\d+$/.test(trimmed)) {
+      alert('❌ Invalid Chat ID format!\n\nChat ID should only contain numbers after the minus sign.\n\nExample: -5142278285');
+      return;
+    }
     setSaving(true);
     try {
       const response = await fetch('/api/settings/telegram', {
@@ -309,22 +317,30 @@ export default function TelegramSettingsPage() {
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={testGroupNotification}
-                  disabled={testing}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
-                >
-                  <Send size={18} />
-                  {testing ? 'Sending...' : 'Test Notification'}
-                </button>
-
-                <button
-                  onClick={() => setIsGroupConnected(false)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-lg font-bold"
-                >
-                  Change Group
-                </button>
-
+              <button
+  onClick={async () => {
+    if (confirm('This will disconnect the group. You can reconnect with a new Chat ID.')) {
+      try {
+        const res = await fetch('/api/settings/telegram', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'group' }),
+        });
+        if (res.ok) {
+          setIsGroupConnected(false);
+          setGroupChatId('');
+        } else {
+          alert('❌ Failed to disconnect group.');
+        }
+      } catch {
+        alert('❌ Network error.');
+      }
+    }
+  }}
+  className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-lg font-bold"
+>
+  Change Group
+</button>
                 <a
                   href="https://t.me/SolarArrowBot"
                   target="_blank"
@@ -377,7 +393,7 @@ export default function TelegramSettingsPage() {
                   className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg text-gray-900 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   placeholder="-5142278285"
                   value={groupChatId}
-                  onChange={(e) => setGroupChatId(e.target.value)}
+                  onChange={(e) => setGroupChatId(e.target.value.trim())}
                 />
                 <p className="text-xs text-gray-600 mt-2">
                   💡 The Chat ID starts with a minus sign (e.g., -5142278285)
@@ -437,11 +453,30 @@ export default function TelegramSettingsPage() {
               </button>
 
               <button
-                onClick={() => setIsUserConnected(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2.5 rounded-lg font-bold"
-              >
-                Reconnect
-              </button>
+  onClick={async () => {
+    if (confirm('This will disconnect your current Telegram. You will need to reconnect via verification code.')) {
+      try {
+        const res = await fetch('/api/settings/telegram', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'personal' }),
+        });
+        if (res.ok) {
+          setIsUserConnected(false);
+          setUserChatId('');
+        } else {
+          alert('❌ Failed to disconnect.');
+        }
+      } catch {
+        alert('❌ Network error.');
+      }
+    }
+  }}
+  className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2.5 rounded-lg font-bold"
+>
+  Disconnect & Reconfigure
+</button>
+
             </div>
           </div>
         ) : (
