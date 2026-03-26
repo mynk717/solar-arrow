@@ -34,7 +34,6 @@ export default function LeadsPage() {
   const userRole = session?.user?.role || 'admin';
 
   // View state
-  const [view, setView] = useState<'funnel' | 'list' | 'board'>('funnel');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCallLogModal, setShowCallLogModal] = useState(false);
@@ -267,43 +266,6 @@ return (
               </div>
             </div>
 
-            {/* Funnel Metrics */}
-            <div data-tour="leads-funnel"><LeadFunnelView metrics={metrics} leads={rawLeads} /></div>
-
-            {/* View Switcher */}
-            <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
-              <button
-                onClick={() => setView('funnel')}
-                className={`px-4 py-2.5 rounded-lg font-semibold whitespace-nowrap touch-manipulation ${
-                  view === 'funnel' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-900 border-2 border-gray-300 hover:border-blue-600'
-                }`}
-              >
-                Funnel View
-              </button>
-              <button
-                onClick={() => setView('list')}
-                className={`px-4 py-2.5 rounded-lg font-semibold whitespace-nowrap touch-manipulation ${
-                  view === 'list' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-900 border-2 border-gray-300 hover:border-blue-600'
-                }`}
-              >
-                List View
-              </button>
-              <button
-                onClick={() => setView('board')}
-                className={`px-4 py-2.5 rounded-lg font-semibold whitespace-nowrap touch-manipulation ${
-                  view === 'board' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-gray-900 border-2 border-gray-300 hover:border-blue-600'
-                }`}
-              >
-                Board View
-              </button>
-            </div>
-
             {/* Filters */}
 <div data-tour="leads-filters" className="bg-white rounded-lg shadow-md p-4 mb-6">
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -374,8 +336,7 @@ return (
 </div>
 
             {/* Content based on view */}
-            {view === 'funnel' && <FunnelView leads={filteredLeads} />}
-            {view === 'list' && (
+            <>
   <LeadListView
     leads={myLeads}
     onViewLead={setSelectedLead}
@@ -388,10 +349,7 @@ return (
     onSelectAll={(leads) => setSelectedLeads(leads.map(l => l.id))}
     onDeselectAll={() => setSelectedLeads([])}
   />
-)}
-
-            {view === 'board' && <KanbanBoardView leads={filteredLeads} />}
-
+</>
             {/* Modals - Lazy render */}
             {selectedLead && !showCallLogModal && !showConvertModal && (
   <LeadDetailsModal
@@ -479,127 +437,6 @@ function calculateMetrics(leads: Lead[]) {
     conversionRate: qualified > 0 ? ((converted / qualified) * 100).toFixed(1) : '0',
     overallConversion: total > 0 ? ((converted / total) * 100).toFixed(1) : '0',
   };
-}
-
-// Lead Funnel Visualization Component
-function LeadFunnelView({ metrics, leads }: { metrics: any; leads: Lead[] }) {
-  const stages = [
-    { label: 'New Leads', count: metrics.newLeads, color: 'bg-gray-500', icon: UserPlus },
-    { label: 'Assigned', count: metrics.assigned, color: 'bg-blue-500', icon: Users },
-    { label: 'Contacted', count: metrics.contacted, color: 'bg-yellow-500', icon: Phone },
-    { label: 'Qualified', count: metrics.qualified, color: 'bg-green-500', icon: CheckCircle },
-    { label: 'Converted', count: metrics.converted, color: 'bg-purple-500', icon: TrendingUp },
-  ];
-
-  return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Lead Funnel</h2>
-
-      {/* Desktop/Tablet View */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4 mb-6">
-        {stages.map((stage, idx) => {
-          const Icon = stage.icon;
-          const percentage = metrics.total > 0 ? ((stage.count / metrics.total) * 100).toFixed(0) : 0;
-
-          return (
-            <div key={idx} className="relative">
-              <div className={`${stage.color} text-white rounded-lg p-4 text-center shadow-md`}>
-                <Icon className="mx-auto mb-2" size={24} />
-                <div className="text-3xl font-bold">{stage.count}</div>
-                <div className="text-sm font-semibold opacity-95 mt-1">{stage.label}</div>
-                <div className="text-xs font-medium opacity-85 mt-1">{percentage}%</div>
-              </div>
-              {idx < stages.length - 1 && (
-                <ArrowRight className="hidden lg:block absolute -right-6 top-1/2 transform -translate-y-1/2 text-gray-400" size={24} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Mobile View */}
-      <div className="md:hidden space-y-3 mb-6">
-        {stages.map((stage, idx) => {
-          const Icon = stage.icon;
-          const percentage = metrics.total > 0 ? ((stage.count / metrics.total) * 100).toFixed(0) : 0;
-
-          return (
-            <div key={idx} className={`${stage.color} text-white rounded-lg p-4 flex items-center justify-between shadow-md`}>
-              <div className="flex items-center gap-3">
-                <Icon size={24} />
-                <div className="text-lg font-bold">{stage.label}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{stage.count}</div>
-                <div className="text-xs font-medium opacity-85">{percentage}%</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-6 border-t-2 border-gray-200">
-        <div className="text-center bg-blue-50 rounded-lg p-3">
-          <div className="text-2xl font-bold text-blue-700">{metrics.contactRate}%</div>
-          <div className="text-sm font-semibold text-gray-900 mt-1">Contact Rate</div>
-        </div>
-        <div className="text-center bg-green-50 rounded-lg p-3">
-          <div className="text-2xl font-bold text-green-700">{metrics.qualificationRate}%</div>
-          <div className="text-sm font-semibold text-gray-900 mt-1">Qualification</div>
-        </div>
-        <div className="text-center bg-purple-50 rounded-lg p-3">
-          <div className="text-2xl font-bold text-purple-700">{metrics.conversionRate}%</div>
-          <div className="text-sm font-semibold text-gray-900 mt-1">Conversion</div>
-        </div>
-        <div className="text-center bg-orange-50 rounded-lg p-3">
-          <div className="text-2xl font-bold text-orange-700">{metrics.overallConversion}%</div>
-          <div className="text-sm font-semibold text-gray-900 mt-1">Overall</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Funnel View with stage details
-function FunnelView({ leads }: { leads: Lead[] }) {
-  const stages = [
-    { status: 'new' as LeadStatus, label: 'New Leads', color: 'border-gray-300 bg-gray-50' },
-    { status: 'assigned' as LeadStatus, label: 'Assigned', color: 'border-blue-300 bg-blue-50' },
-    { status: 'contacted' as LeadStatus, label: 'Contacted', color: 'border-yellow-300 bg-yellow-50' },
-    { status: 'qualified' as LeadStatus, label: 'Qualified', color: 'border-green-300 bg-green-50' },
-    { status: 'converted' as LeadStatus, label: 'Converted', color: 'border-purple-300 bg-purple-50' },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {stages.map((stage) => {
-const stageLeads = leads.filter((l) => {
-  if (stage.status === 'contacted') return ['contacted', 'callback'].includes(l.status);
-  if (stage.status === 'converted') return l.converted || l.status === 'converted';
-  return l.status === stage.status;
-});
-
-        return (
-          <div key={stage.status} className={`border-2 rounded-lg p-4 ${stage.color}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">{stage.label}</h3>
-              <span className="text-2xl font-bold text-gray-900 bg-white px-3 py-1 rounded-full">{stageLeads.length}</span>
-            </div>
-
-            {stageLeads.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {stageLeads.slice(0, 6).map((lead) => (
-                  <LeadCard key={lead.id} lead={lead} compact />
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-800 font-medium text-sm">No leads in this stage</p>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 // Lead List View Component  
@@ -867,42 +704,6 @@ function LeadListView({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Kanban Board View
-function KanbanBoardView({ leads }: { leads: Lead[] }) {
-  const columns: { status: LeadStatus; label: string; color: string }[] = [
-    { status: 'new', label: 'New', color: 'bg-gray-50 border-gray-300' },
-    { status: 'assigned', label: 'Assigned', color: 'bg-blue-50 border-blue-300' },
-    { status: 'contacted', label: 'Contacted', color: 'bg-yellow-50 border-yellow-300' },
-    { status: 'qualified', label: 'Qualified', color: 'bg-green-50 border-green-300' },
-    { status: 'converted', label: 'Converted', color: 'bg-purple-50 border-purple-300' },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
-      {columns.map((column) => {
-        const columnLeads = leads.filter(l => l.status === column.status);
-
-        return (
-          <div key={column.status} className={`${column.color} border-2 rounded-lg p-4 min-h-[500px]`}>
-            <div className="flex justify-between items-center mb-4 sticky top-0 bg-inherit pb-2">
-              <h3 className="font-bold text-gray-900 text-lg">{column.label}</h3>
-              <span className="bg-white text-gray-900 px-3 py-1 rounded-full text-sm font-bold shadow-sm border border-gray-300">
-                {columnLeads.length}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {columnLeads.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }

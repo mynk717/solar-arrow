@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { getGoogleSheetsClient } from '@/lib/googleSheets';
+import { getGoogleSheetsClient, getSheetId } from '@/lib/googleSheets';
 
 // Activity type definition
 interface Activity {
@@ -28,14 +28,10 @@ export async function GET(
     const { id: leadId } = await params;
 
     // Fetch activities from ACTIVITY_LOG tab for this lead
-    const sheetId = session.user.sheetId;
-
-    if (!sheetId) {
-      return NextResponse.json({ error: 'Sheet ID not found' }, { status: 400 });
-    }
-
-    // Get Google Sheets client
-    const sheets = await getGoogleSheetsClient();
+    const [sheets, sheetId] = await Promise.all([
+      getGoogleSheetsClient(),
+      getSheetId(),
+    ]);
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,

@@ -71,7 +71,7 @@ export async function getGoogleSheetsClient() {
 }
 
 /** Get Sheet ID from Redis (not from session) */
-async function getSheetId(): Promise<string> {
+export async function getSheetId(): Promise<string> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.organizationId) {
     throw new Error('Not authenticated');
