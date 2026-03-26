@@ -17,7 +17,16 @@ export async function POST(request: Request) {
     const userRole = (session.user as any).role || 'user';
     const userEmail = session.user.email;
 
-    const { leadId, qualificationNotes, estimatedBudget } = await request.json();
+    const { 
+      leadId, 
+      qualificationNotes, 
+      estimatedBudget,
+      purchaseTimelineDays,
+      electricityBill,
+      roofType,
+      decisionMaker,
+      purchaseIntent,
+    } = await request.json();    
 
     if (!leadId) {
       return NextResponse.json({ error: 'Lead ID required' }, { status: 400 });
@@ -37,7 +46,12 @@ export async function POST(request: Request) {
         qualifiedDate: new Date(),
         qualifiedBy: userEmail,
         estimatedBudget: estimatedBudget ? parseFloat(estimatedBudget) : undefined,
-        notes: qualificationNotes || '',
+purchaseTimelineDays: purchaseTimelineDays ? parseInt(purchaseTimelineDays) : undefined,
+electricityBill: electricityBill || undefined,
+roofType: roofType || undefined,
+decisionMaker: decisionMaker || undefined,
+purchaseIntent: purchaseIntent || undefined,
+notes: qualificationNotes || '',
         lastActivityBy: userEmail,
         lastActivityDate: new Date(),
       },

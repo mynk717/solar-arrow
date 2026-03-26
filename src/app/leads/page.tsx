@@ -1,7 +1,7 @@
 // src/app/leads/page.tsx - PWA OPTIMIZED + DARK TEXT
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Phone,
@@ -603,80 +603,115 @@ const stageLeads = leads.filter((l) => {
 }
 
 // Lead List View Component  
-function LeadListView({ 
-  leads, 
-  onViewLead, 
-  onCallLog, 
-  onConvert, 
+function LeadListView({
+  leads,
+  onViewLead,
+  onCallLog,
+  onConvert,
   isDemoMode,
-  // ADD THESE PARAMETERS ↓
   selectedLeads,
   onSelectLead,
   onSelectAll,
-  onDeselectAll
-  // END OF NEW PARAMETERS ↑
+  onDeselectAll,
 }: {
   leads: Lead[];
   onViewLead: (lead: Lead) => void;
   onCallLog: (lead: Lead) => void;
   onConvert: (lead: Lead) => void;
   isDemoMode: boolean;
-  // ADD THESE TYPES ↓
   selectedLeads: string[];
   onSelectLead: (leadId: string) => void;
   onSelectAll: (leads: Lead[]) => void;
   onDeselectAll: () => void;
-  // END OF NEW TYPES ↑
 }) {
+  const [sortField, setSortField] = useState<'customerName' | 'status' | 'priority' | 'createdAt'>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const sorted = useMemo(() => {
+    return [...leads].sort((a, b) => {
+      let av: string = String(a[sortField] ?? '');
+      let bv: string = String(b[sortField] ?? '');
+      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }, [leads, sortField, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function toggleSort(field: typeof sortField) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+    setPage(1);
+  }
+
+  // Reset to page 1 when leads change (filter applied)
+  useEffect(() => { setPage(1); }, [leads.length]);
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => {
+    if (sortField !== field) return <span className="text-gray-400 ml-1">↕</span>;
+    return <span className="text-blue-600 ml-1">{sortDir === 'asc' ? '↑' : '↓'}</span>;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
+
       {/* Desktop Table */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-100 border-b-2 border-gray-300">
             <tr>
-              {/* ADD THIS CHECKBOX COLUMN ↓ */}
-    <th className="text-left py-4 px-6 font-bold text-gray-900">
-      <input
-        type="checkbox"
-        checked={selectedLeads.length === leads.length && leads.length > 0}
-        onChange={(e) => {
-          if (e.target.checked) {
-            onSelectAll(leads); 
-          } else {
-            onDeselectAll();
-          }
-        }}
-        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
-        title="Select All"
-      />
-    </th>
+              <th className="text-left py-4 px-6 font-bold text-gray-900">
+                <input
+                  type="checkbox"
+                  checked={selectedLeads.length === paginated.length && paginated.length > 0}
+                  onChange={(e) => e.target.checked ? onSelectAll(paginated) : onDeselectAll()}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+                  title="Select All"
+                />
+              </th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Lead ID</th>
-              <th className="text-left py-4 px-6 font-bold text-gray-900">Customer</th>
+              <th
+                className="text-left py-4 px-6 font-bold text-gray-900 cursor-pointer hover:text-blue-600 select-none"
+                onClick={() => toggleSort('customerName')}
+              >
+                Customer <SortIcon field="customerName" />
+              </th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Contact</th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Source</th>
-              <th className="text-left py-4 px-6 font-bold text-gray-900">Status</th>
+              <th
+                className="text-left py-4 px-6 font-bold text-gray-900 cursor-pointer hover:text-blue-600 select-none"
+                onClick={() => toggleSort('status')}
+              >
+                Status <SortIcon field="status" />
+              </th>
+              <th
+                className="text-left py-4 px-6 font-bold text-gray-900 cursor-pointer hover:text-blue-600 select-none"
+                onClick={() => toggleSort('priority')}
+              >
+                Priority <SortIcon field="priority" />
+              </th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Assigned To</th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Actions</th>
             </tr>
           </thead>
           <tbody>
-  {leads.map(lead => (
-    <tr 
-      key={lead.id} 
-      className={`border-t border-gray-200 hover:bg-gray-50 ${
-        selectedLeads.includes(lead.id) ? 'bg-blue-50' : ''
-      }`}
-    >
-      {/* ADD THIS CHECKBOX CELL ↓ */}
-      <td className="py-4 px-6">
-        <input
-          type="checkbox"
-          checked={selectedLeads.includes(lead.id)}
-          onChange={() => onSelectLead(lead.id)}
-          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
-        />
-      </td>
+            {paginated.map(lead => (
+              <tr
+                key={lead.id}
+                className={`border-t border-gray-200 hover:bg-gray-50 ${
+                  selectedLeads.includes(lead.id) ? 'bg-blue-50' : ''
+                }`}
+              >
+                <td className="py-4 px-6">
+                  <input
+                    type="checkbox"
+                    checked={selectedLeads.includes(lead.id)}
+                    onChange={() => onSelectLead(lead.id)}
+                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500"
+                  />
+                </td>
                 <td className="py-4 px-6 font-mono text-sm font-semibold text-gray-900">{lead.id}</td>
                 <td className="py-4 px-6">
                   <div className="font-bold text-gray-900">{lead.customerName}</div>
@@ -691,55 +726,35 @@ function LeadListView({
                     {lead.source}
                   </span>
                 </td>
+                <td className="py-4 px-6"><LeadStatusBadge status={lead.status} /></td>
                 <td className="py-4 px-6">
-                  <LeadStatusBadge status={lead.status} />
+                  <span className="px-2 py-1 bg-blue-50 text-blue-800 font-semibold rounded text-xs border border-blue-200">
+                    {lead.priority}
+                  </span>
                 </td>
                 <td className="py-4 px-6 text-sm font-medium text-gray-900">{lead.assignedToName || '-'}</td>
                 <td className="py-4 px-6">
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => onViewLead(lead)}
-                      className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 touch-manipulation"
-                      title="View Details"
-                      aria-label="View Details"
-                    >
+                    <button onClick={() => onViewLead(lead)} className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 touch-manipulation" title="View Details" aria-label="View Details">
                       <Eye size={18} />
                     </button>
                     {lead.status !== 'converted' && (
-  <>
-    <button
-      onClick={() => onCallLog(lead)}
-      disabled={isDemoMode}
-      className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 disabled:opacity-50 touch-manipulation"
-      title="Log Call"
-      aria-label="Log Call"
-    >
-      <Phone size={18} />
-    </button>
-    {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
-      <button
-        onClick={() => onViewLead(lead)}
-        disabled={isDemoMode}
-        className="text-emerald-600 hover:text-emerald-800 p-2 rounded-lg hover:bg-emerald-50 disabled:opacity-50 touch-manipulation"
-        title="Qualify Lead"
-        aria-label="Qualify Lead"
-      >
-        <CheckCircle size={18} />
-      </button>
-    )}
-    {lead.status === 'qualified' && (
-      <button
-        onClick={() => onConvert(lead)}
-        disabled={isDemoMode}
-        className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50 disabled:opacity-50 touch-manipulation"
-        title="Convert to Enquiry"
-        aria-label="Convert to Enquiry"
-      >
-        <ArrowRight size={18} />
-      </button>
-    )}
-  </>
-)}
+                      <>
+                        <button onClick={() => onCallLog(lead)} disabled={isDemoMode} className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 disabled:opacity-50 touch-manipulation" title="Log Call" aria-label="Log Call">
+                          <Phone size={18} />
+                        </button>
+                        {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
+                          <button onClick={() => onViewLead(lead)} disabled={isDemoMode} className="text-emerald-600 hover:text-emerald-800 p-2 rounded-lg hover:bg-emerald-50 disabled:opacity-50 touch-manipulation" title="Qualify Lead" aria-label="Qualify Lead">
+                            <CheckCircle size={18} />
+                          </button>
+                        )}
+                        {lead.status === 'qualified' && (
+                          <button onClick={() => onConvert(lead)} disabled={isDemoMode} className="text-purple-600 hover:text-purple-800 p-2 rounded-lg hover:bg-purple-50 disabled:opacity-50 touch-manipulation" title="Convert to Enquiry" aria-label="Convert to Enquiry">
+                            <ArrowRight size={18} />
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -750,24 +765,21 @@ function LeadListView({
 
       {/* Mobile Card View */}
       <div className="lg:hidden divide-y divide-gray-200">
-  {leads.map(lead => (
-    <div 
-      key={lead.id} 
-      className={`p-4 hover:bg-gray-50 ${
-        selectedLeads.includes(lead.id) ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-      }`}
-    >
-      <div className="flex justify-between items-start mb-2">
-        {/* ADD THIS CHECKBOX ↓ */}
-        <input
-          type="checkbox"
-          checked={selectedLeads.includes(lead.id)}
-          onChange={() => onSelectLead(lead.id)}
-          className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 mt-1"
-        />
-        {/* END OF NEW CHECKBOX ↑ */}
-        <div className="flex-1 ml-3">
-
+        {paginated.map(lead => (
+          <div
+            key={lead.id}
+            className={`p-4 hover:bg-gray-50 ${
+              selectedLeads.includes(lead.id) ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+            }`}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <input
+                type="checkbox"
+                checked={selectedLeads.includes(lead.id)}
+                onChange={() => onSelectLead(lead.id)}
+                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-2 focus:ring-blue-500 mt-1"
+              />
+              <div className="flex-1 ml-3">
                 <div className="font-bold text-gray-900">{lead.customerName}</div>
                 <div className="text-xs font-mono text-gray-700">{lead.id}</div>
               </div>
@@ -782,43 +794,24 @@ function LeadListView({
                 {lead.source}
               </span>
               <div className="grid grid-cols-2 gap-1 sm:flex sm:gap-2">
-              <button
-                  onClick={() => onViewLead(lead)}
-                  className="text-blue-600 p-2 rounded-lg bg-blue-50 touch-manipulation"
-                  aria-label="View"
-                >
+                <button onClick={() => onViewLead(lead)} className="text-blue-600 p-2 rounded-lg bg-blue-50 touch-manipulation" aria-label="View">
                   <Eye size={18} />
                 </button>
                 {lead.status !== 'converted' && (
-  <button
-    onClick={() => onCallLog(lead)}
-    disabled={isDemoMode}
-    className="text-green-600 p-2 rounded-lg bg-green-50 disabled:opacity-50 touch-manipulation"
-    aria-label="Call"
-  >
-    <Phone size={18} />
-  </button>
-)}
-{(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
-  <button
-    onClick={() => onViewLead(lead)}
-    disabled={isDemoMode}
-    className="text-emerald-600 p-2 rounded-lg bg-emerald-50 disabled:opacity-50 touch-manipulation"
-    aria-label="Qualify"
-  >
-    <CheckCircle size={18} />
-  </button>
-)}
-{lead.status === 'qualified' && (
-  <button
-    onClick={() => onConvert(lead)}
-    disabled={isDemoMode}
-    className="text-purple-600 p-2 rounded-lg bg-purple-50 disabled:opacity-50 touch-manipulation"
-    aria-label="Convert"
-  >
-    <ArrowRight size={18} />
-  </button>
-)}
+                  <button onClick={() => onCallLog(lead)} disabled={isDemoMode} className="text-green-600 p-2 rounded-lg bg-green-50 disabled:opacity-50 touch-manipulation" aria-label="Call">
+                    <Phone size={18} />
+                  </button>
+                )}
+                {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && (
+                  <button onClick={() => onViewLead(lead)} disabled={isDemoMode} className="text-emerald-600 p-2 rounded-lg bg-emerald-50 disabled:opacity-50 touch-manipulation" aria-label="Qualify">
+                    <CheckCircle size={18} />
+                  </button>
+                )}
+                {lead.status === 'qualified' && (
+                  <button onClick={() => onConvert(lead)} disabled={isDemoMode} className="text-purple-600 p-2 rounded-lg bg-purple-50 disabled:opacity-50 touch-manipulation" aria-label="Convert">
+                    <ArrowRight size={18} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -830,6 +823,48 @@ function LeadListView({
           <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-900 font-semibold">No leads found</p>
           <p className="text-gray-700 text-sm mt-1">Try adjusting your filters</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-6 py-4 border-t-2 border-gray-200 bg-gray-50">
+          <span className="text-sm font-medium text-gray-700">
+            Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} of {sorted.length} leads
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-2 text-sm font-bold rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 touch-manipulation"
+            >
+              ← Prev
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+              const p = start + i;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPage(p)}
+                  className={`px-3 py-2 text-sm font-bold rounded-lg border-2 touch-manipulation ${
+                    p === page
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-2 text-sm font-bold rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-40 touch-manipulation"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -954,7 +989,6 @@ function LeadStatusBadge({ status }: { status: LeadStatus | string }) {
 }
 
 
-// Lead Details Modal
 function LeadDetailsModal({
   lead,
   onClose,
@@ -966,107 +1000,271 @@ function LeadDetailsModal({
   isDemoMode: boolean;
   onQualify: (lead: Lead) => void;
 }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'activity'>('overview');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'activity') {
+      setLoadingActivities(true);
+      fetch(`/api/leads/${lead.id}/activity`)
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setActivities(data))
+        .catch(() => setActivities([]))
+        .finally(() => setLoadingActivities(false));
+    }
+  }, [activeTab, lead.id]);
+
+  const activityIcons: Record<string, string> = {
+    call: '📞',
+    'status-changed': '🔄',
+    converted: '🎯',
+    qualified: '✅',
+    assigned: '👤',
+    created: '🆕',
+    note: '📝',
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+
+        {/* Header */}
         <div className="p-6 border-b-2 border-gray-200 sticky top-0 bg-white z-10">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold text-gray-900">{lead.customerName}</h2>
               <p className="text-sm font-mono text-gray-700 mt-1">{lead.id}</p>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="text-gray-600 hover:text-gray-900 text-3xl font-bold w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 touch-manipulation"
               aria-label="Close"
             >
               ×
             </button>
           </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm touch-manipulation ${
+                activeTab === 'overview'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`px-4 py-2 rounded-lg font-bold text-sm touch-manipulation ${
+                activeTab === 'activity'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Activity Timeline
+            </button>
+          </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-              <div className="text-sm font-semibold text-gray-900 mb-2">Status</div>
-              <LeadStatusBadge status={lead.status} />
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-              <div className="text-sm font-semibold text-gray-900 mb-2">Priority</div>
-              <span className="px-2.5 py-1 bg-blue-100 text-blue-900 rounded font-bold text-sm border-2 border-blue-300 inline-block">
-                {lead.priority}
-              </span>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-              <div className="text-sm font-semibold text-gray-900 mb-2">Source</div>
-              <span className="px-2.5 py-1 bg-green-100 text-green-900 rounded font-bold text-sm border-2 border-green-300 inline-block">
-                {lead.source}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Information</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3 border-2 border-gray-200">
-              <div className="flex items-center gap-3">
-                <Phone size={18} className="text-gray-700 flex-shrink-0" />
-                <span className="text-gray-900 font-semibold">{lead.phone}</span>
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                <div className="text-sm font-semibold text-gray-900 mb-2">Status</div>
+                <LeadStatusBadge status={lead.status} />
               </div>
-              {lead.email && (
-                <div className="flex items-center gap-3">
-                  <Mail size={18} className="text-gray-700 flex-shrink-0" />
-                  <span className="text-gray-900 font-semibold">{lead.email}</span>
-                </div>
-              )}
-              {lead.address && (
-                <div className="flex items-start gap-3">
-                  <MapPin size={18} className="text-gray-700 mt-1 flex-shrink-0" />
-                  <div>
-                    <div className="text-gray-900 font-semibold">{lead.address}</div>
-                    {lead.area && <div className="text-sm font-medium text-gray-700 mt-1">{lead.area}</div>}
-                  </div>
-                </div>
-              )}
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                <div className="text-sm font-semibold text-gray-900 mb-2">Priority</div>
+                <span className="px-2.5 py-1 bg-blue-100 text-blue-900 rounded font-bold text-sm border-2 border-blue-300 inline-block">
+                  {lead.priority}
+                </span>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                <div className="text-sm font-semibold text-gray-900 mb-2">Source</div>
+                <span className="px-2.5 py-1 bg-green-100 text-green-900 rounded font-bold text-sm border-2 border-green-300 inline-block">
+                  {lead.source}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {lead.notes && (
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Notes</h3>
-              <div className="bg-yellow-50 rounded-lg p-4 border-2 border-yellow-200">
-                <p className="text-gray-900 font-medium">{lead.notes}</p>
+              <h3 className="text-lg font-bold text-gray-900 mb-3">Contact Information</h3>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3 border-2 border-gray-200">
+                <div className="flex items-center gap-3">
+                  <Phone size={18} className="text-gray-700 flex-shrink-0" />
+                  <span className="text-gray-900 font-semibold">{lead.phone}</span>
+                </div>
+                {lead.email && (
+                  <div className="flex items-center gap-3">
+                    <Mail size={18} className="text-gray-700 flex-shrink-0" />
+                    <span className="text-gray-900 font-semibold">{lead.email}</span>
+                  </div>
+                )}
+                {lead.address && (
+                  <div className="flex items-start gap-3">
+                    <MapPin size={18} className="text-gray-700 mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="text-gray-900 font-semibold">{lead.address}</div>
+                      {lead.area && <div className="text-sm font-medium text-gray-700 mt-1">{lead.area}</div>}
+                    </div>
+                  </div>
+                )}
+                {lead.assignedToName && (
+                  <div className="flex items-center gap-3">
+                    <Users size={18} className="text-gray-700 flex-shrink-0" />
+                    <span className="text-gray-900 font-semibold">{lead.assignedToName}</span>
+                  </div>
+                )}
               </div>
+            </div>
+
+            {/* Qualification Data — only show if qualified */}
+            {lead.qualified && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Qualification Data</h3>
+                <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200 grid grid-cols-2 gap-3">
+                  {lead.estimatedBudget && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Budget</div>
+                      <div className="text-sm font-semibold text-gray-900">₹{Number(lead.estimatedBudget).toLocaleString()}</div>
+                    </div>
+                  )}
+                  {lead.electricityBill && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Electricity Bill</div>
+                      <div className="text-sm font-semibold text-gray-900">₹{lead.electricityBill}/month</div>
+                    </div>
+                  )}
+                  {lead.purchaseTimelineDays && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Timeline</div>
+                      <div className="text-sm font-semibold text-gray-900">{lead.purchaseTimelineDays} days</div>
+                    </div>
+                  )}
+                  {lead.roofType && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Roof Type</div>
+                      <div className="text-sm font-semibold text-gray-900">{lead.roofType}</div>
+                    </div>
+                  )}
+                  {lead.purchaseIntent && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Purchase Intent</div>
+                      <div className="text-sm font-semibold text-gray-900">{lead.purchaseIntent}</div>
+                    </div>
+                  )}
+                  {lead.decisionMaker && (
+                    <div>
+                      <div className="text-xs font-bold text-gray-600">Decision Maker</div>
+                      <div className="text-sm font-semibold text-gray-900">{lead.decisionMaker}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {lead.notes && (
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Notes</h3>
+                <div className="bg-yellow-50 rounded-lg p-4 border-2 border-yellow-200">
+                  <p className="text-gray-900 font-medium">{lead.notes}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Activity Tab */}
+        {activeTab === 'activity' && (
+          <div className="p-6">
+            {loadingActivities ? (
+              <div className="text-center py-12">
+                <Clock className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">Loading activity...</p>
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="text-center py-12">
+                <AlertCircle className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">No activity recorded yet</p>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+                <div className="space-y-4">
+                  {activities.map((activity, idx) => {
+                    const icon = activityIcons[activity.action] || '📋';
+                    const date = activity.timestamp
+                      ? new Date(activity.timestamp).toLocaleDateString('en-IN', {
+                          day: 'numeric', month: 'short', year: 'numeric',
+                        })
+                      : '—';
+                    const time = activity.timestamp
+                      ? new Date(activity.timestamp).toLocaleTimeString('en-IN', {
+                          hour: '2-digit', minute: '2-digit',
+                        })
+                      : '';
+                    const meta = activity.metadata || {};
+                    return (
+                      <div key={idx} className="relative pl-10">
+                        <div className="absolute left-2 top-1 w-5 h-5 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center text-xs">
+                          {icon}
+                        </div>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm font-bold text-gray-900 capitalize">
+                              {activity.action?.replace(/-/g, ' ')}
+                            </span>
+                            <span className="text-xs text-gray-500">{date} {time}</span>
+                          </div>
+                          {activity.details && (
+                            <p className="text-sm text-gray-700 mb-1">{activity.details}</p>
+                          )}
+                          {meta.outcome && (
+                            <span className="text-xs font-semibold text-blue-700">
+                              Outcome: {meta.outcome}
+                            </span>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">By: {activity.performedBy}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions Footer */}
+        <div className="p-6 border-t-2 border-gray-200 bg-gray-50 space-y-3">
+          {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && !lead.qualified && (
+            <button
+              onClick={() => { onQualify(lead); onClose(); }}
+              disabled={isDemoMode}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 touch-manipulation"
+            >
+              ✅ Mark as Qualified
+            </button>
+          )}
+          {lead.qualified && (
+            <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">
+              <span className="text-green-800 font-bold">
+                ✅ Qualified on {lead.qualifiedDate ? new Date(lead.qualifiedDate).toLocaleDateString() : 'N/A'}
+              </span>
             </div>
           )}
+          <button
+            onClick={onClose}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg touch-manipulation"
+          >
+            Close
+          </button>
         </div>
-
-        <div className="p-6 border-t-2 border-gray-200 bg-gray-50 space-y-3">
-  {/* Show Qualify button if lead is contacted but not qualified */}
-  {(lead.status === 'assigned' || lead.status === 'contacted' || lead.status === 'callback') && !lead.qualified && (
-  <button
-    onClick={() => {
-      onQualify(lead);
-      onClose();
-    }}
-    disabled={isDemoMode}
-    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg disabled:opacity-50 touch-manipulation"
-  >
-    ✅ Mark as Qualified
-  </button>
-)}
-  
-  {/* Show qualified badge if already qualified */}
-  {lead.qualified && (
-    <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">
-      <span className="text-green-800 font-bold">✅ Lead Qualified on {lead.qualifiedDate ? new Date(lead.qualifiedDate).toLocaleDateString() : 'N/A'}</span>
-    </div>
-  )}
-  
-  <button onClick={onClose} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg touch-manipulation">
-    Close
-  </button>
-</div>
-
       </div>
     </div>
   );
@@ -1086,7 +1284,26 @@ function CallLogModal({
   const [callNotes, setCallNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [followUpDate, setFollowUpDate] = useState('');
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
+  // Fetch call history on mount
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`/api/leads/${lead.id}/activity`);
+        if (res.ok) {
+          const all = await res.json();
+          setHistory(all.filter((a: any) => a.action === 'call'));
+        }
+      } catch {
+        // silent — history is non-blocking
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+    fetchHistory();
+  }, [lead.id]);
 
   const handleSubmit = async () => {
     if (isDemoMode) return;
@@ -1095,7 +1312,12 @@ function CallLogModal({
       const response = await fetch('/api/leads/log-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id, callOutcome, notes: callNotes, followUpDate }),
+        body: JSON.stringify({
+          leadId: lead.id,
+          callOutcome,
+          notes: callNotes,
+          nextFollowupDate: followUpDate,
+        }),
       });
       if (!response.ok) throw new Error('Failed');
       alert('Call logged successfully!');
@@ -1108,14 +1330,75 @@ function CallLogModal({
     }
   };
 
+  const outcomeColors: Record<string, string> = {
+    interested: 'bg-green-100 text-green-800 border-green-300',
+    'not-interested': 'bg-red-100 text-red-800 border-red-300',
+    callback: 'bg-orange-100 text-orange-800 border-orange-300',
+    'no-answer': 'bg-gray-100 text-gray-800 border-gray-300',
+    'wrong-number': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    'not-reachable': 'bg-gray-100 text-gray-800 border-gray-300',
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-lg max-w-md w-full shadow-2xl">
-        <div className="p-6 border-b-2 border-gray-200">
+      <div className="bg-white rounded-lg max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b-2 border-gray-200 sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-gray-900">Log Call</h2>
-          <p className="text-sm font-medium text-gray-700 mt-1">{lead.customerName}</p>
+          <p className="text-sm font-medium text-gray-700 mt-1">{lead.customerName} · {lead.phone}</p>
         </div>
-        <div className="p-6 space-y-4">
+
+        {/* Call History */}
+        <div className="px-6 pt-4">
+          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+            Previous Calls
+          </h3>
+          {loadingHistory ? (
+            <p className="text-sm text-gray-500 italic mb-4">Loading history...</p>
+          ) : history.length === 0 ? (
+            <p className="text-sm text-gray-500 italic mb-4">No previous calls recorded.</p>
+          ) : (
+            <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-1">
+              {history.map((entry, idx) => {
+                const meta = entry.metadata || {};
+                const outcome = meta.outcome || 'call';
+                const date = entry.timestamp
+                  ? new Date(entry.timestamp).toLocaleDateString('en-IN', {
+                      day: 'numeric', month: 'short', year: 'numeric',
+                    })
+                  : '—';
+                const time = entry.timestamp
+                  ? new Date(entry.timestamp).toLocaleTimeString('en-IN', {
+                      hour: '2-digit', minute: '2-digit',
+                    })
+                  : '';
+                return (
+                  <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${outcomeColors[outcome] || 'bg-gray-100 text-gray-800 border-gray-300'}`}>
+                        {outcome.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                      </span>
+                      <span className="text-xs text-gray-500">{date} {time}</span>
+                    </div>
+                    {entry.details && (
+                      <p className="text-sm text-gray-700 mt-1">{entry.details}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">By: {entry.performedBy}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-2">
+          <div className="border-t-2 border-dashed border-gray-200 pt-4">
+            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">
+              Log New Call
+            </h3>
+          </div>
+        </div>
+
+        <div className="px-6 pb-4 space-y-4">
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">Call Outcome *</label>
             <select
@@ -1135,28 +1418,29 @@ function CallLogModal({
             <label className="block text-sm font-bold text-gray-900 mb-2">Notes</label>
             <textarea
               className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-medium text-gray-900 placeholder-gray-500 focus:border-blue-600 focus:outline-none"
-              rows={4}
+              rows={3}
               value={callNotes}
               onChange={(e) => setCallNotes(e.target.value)}
-              placeholder="Add call notes here..."
+              placeholder="What was discussed..."
             />
           </div>
           <div>
-  <label className="block text-sm font-bold text-gray-900 mb-2">
-    Follow Up Date <span className="text-gray-500 font-medium">(optional)</span>
-  </label>
-  <input
-    type="date"
-    value={followUpDate}
-    onChange={(e) => setFollowUpDate(e.target.value)}
-    min={new Date().toISOString().split('T')[0]}
-    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
-  />
-</div>
+            <label className="block text-sm font-bold text-gray-900 mb-2">
+              Follow Up Date <span className="text-gray-500 font-medium">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
+            />
+          </div>
         </div>
-        <div className="p-6 border-t-2 border-gray-200 flex gap-3">
-          <button 
-            onClick={onClose} 
+
+        <div className="p-6 border-t-2 border-gray-200 flex gap-3 sticky bottom-0 bg-white">
+          <button
+            onClick={onClose}
             className="flex-1 border-2 border-gray-300 text-gray-900 font-bold px-4 py-2.5 rounded-lg hover:bg-gray-50 touch-manipulation"
           >
             Cancel
@@ -1174,6 +1458,7 @@ function CallLogModal({
   );
 }
 
+
 // Convert Modal
 function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onClose: () => void; isDemoMode: boolean }) {
   const [processing, setProcessing] = useState(false);
@@ -1181,12 +1466,9 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
   // Add form state
   const [formData, setFormData] = useState({
     systemCapacity: lead.capacity || '',
-    estimatedBudget: lead.estimatedBudget || '',
     preferredInstallationDate: '',
-    roofType: 'rcc',
-    electricityBill: '',
     specialRequirements: '',
-  });
+  });  
 
   const handleConvert = async () => {
     if (isDemoMode) return;
@@ -1205,27 +1487,32 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
         body: JSON.stringify({
           leadId: lead.id,
           enquiryData: {
-            // Pass lead data
+            // Customer data from lead
             customerName: lead.customerName,
             phone: lead.phone,
             email: lead.email,
             address: lead.address,
             area: lead.area,
             allottedUser: lead.assignedTo || '',
-            
-            // Pass form data
+          
+            // Capacity — only new field needed
             capacity: formData.systemCapacity,
-            estimatedCost: formData.estimatedBudget,
             preferredInstallationDate: formData.preferredInstallationDate,
-            roofType: formData.roofType,
-            electricityBill: formData.electricityBill,
             notes: formData.specialRequirements,
-            
-            // Set initial status
+          
+            // ✅ Auto-carried from qualify step — not re-asked
+            estimatedCost: lead.estimatedBudget || '',
+            roofType: lead.roofType || '',
+            electricityBill: lead.electricityBill || '',
+            purchaseTimelineDays: lead.purchaseTimelineDays || '',
+            decisionMaker: lead.decisionMaker || '',
+            purchaseIntent: lead.purchaseIntent || '',
+          
+            // Enquiry metadata
             status: 'survey-pending',
             leadSource: lead.source,
             convertedFrom: lead.id,
-          },
+          },          
         }),
       });
 
@@ -1282,20 +1569,6 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
                 placeholder="e.g., 5.0"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                Estimated Budget (₹)
-              </label>
-              <input
-                type="number"
-                value={formData.estimatedBudget}
-                onChange={(e) => setFormData({ ...formData, estimatedBudget: e.target.value })}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
-                placeholder="e.g., 300000"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-bold text-gray-900 mb-2">
                 Preferred Installation Date
@@ -1307,37 +1580,6 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
                 className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                Roof Type
-              </label>
-              <select
-                value={formData.roofType}
-                onChange={(e) => setFormData({ ...formData, roofType: e.target.value })}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
-              >
-                <option value="rcc">RCC</option>
-                <option value="metal">Metal Sheet</option>
-                <option value="asbestos">Asbestos</option>
-                <option value="tile">Tile</option>
-                <option value="ground">Ground Mounted</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">
-                Monthly Electricity Bill (₹)
-              </label>
-              <input
-                type="number"
-                value={formData.electricityBill}
-                onChange={(e) => setFormData({ ...formData, electricityBill: e.target.value })}
-                className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-blue-600 focus:outline-none"
-                placeholder="e.g., 5000"
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-bold text-gray-900 mb-2">
                 Special Requirements / Notes
@@ -1354,9 +1596,18 @@ function ConvertToEnquiryModal({ lead, onClose, isDemoMode }: { lead: Lead; onCl
 
           {/* Info Box */}
           <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
-            <p className="text-sm font-medium text-gray-900">
-              ℹ️ This will create a new enquiry with survey-pending status. The lead will be marked as converted.
-            </p>
+          <p className="text-sm font-medium text-gray-900">
+  ℹ️ This will create a new enquiry with survey-pending status. The lead will be marked as converted.
+</p>
+{(lead.estimatedBudget || lead.roofType || lead.electricityBill) && (
+  <div className="mt-2 pt-2 border-t border-yellow-300 space-y-1">
+    <p className="text-xs font-bold text-gray-700">✅ Auto-carried from qualification:</p>
+    {lead.estimatedBudget && <p className="text-xs text-gray-700">• Budget: ₹{lead.estimatedBudget.toLocaleString()}</p>}
+    {lead.roofType && <p className="text-xs text-gray-700">• Roof Type: {lead.roofType}</p>}
+    {lead.electricityBill && <p className="text-xs text-gray-700">• Electricity Bill: ₹{lead.electricityBill}/month</p>}
+    {lead.purchaseTimelineDays && <p className="text-xs text-gray-700">• Timeline: {lead.purchaseTimelineDays} days</p>}
+  </div>
+)}
           </div>
         </div>
 
@@ -1391,21 +1642,20 @@ function QualifyLeadModal({
 }) {
   const [processing, setProcessing] = useState(false);
   const [formData, setFormData] = useState({
-    budget: lead.estimatedBudget || '',
-    timeline: '1-3-months',
-    decisionMaker: 'self',
-    decisionMakerName: lead.customerName,
-    electricityBill: '',
-    roofAvailable: 'yes',
-    purchaseIntent: 'high',
+    budget: lead.estimatedBudget?.toString() || '',
+    purchaseTimelineDays: '',
+    decisionMaker: lead.decisionMaker || 'self',
+    electricityBill: lead.electricityBill?.toString() || '',
+    roofType: lead.roofType || 'flat',
+    purchaseIntent: lead.purchaseIntent || 'warm',
     qualificationNotes: '',
-  });
+  });  
 
   const handleQualify = async () => {
     if (isDemoMode) return;
 
-    if (!formData.budget || !formData.electricityBill) {
-      alert('Budget and electricity bill are required');
+    if (!formData.budget || !formData.electricityBill || !formData.purchaseTimelineDays) {
+      alert('Budget, electricity bill and purchase timeline are required');    
       return;
     }
 
@@ -1416,8 +1666,14 @@ function QualifyLeadModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: lead.id,
-          qualificationData: formData,
-        }),
+          qualificationNotes: formData.qualificationNotes,
+          estimatedBudget: formData.budget,
+          purchaseTimelineDays: formData.purchaseTimelineDays,
+          electricityBill: formData.electricityBill,
+          roofType: formData.roofType,
+          decisionMaker: formData.decisionMaker,
+          purchaseIntent: formData.purchaseIntent,
+        }),        
       });
 
       if (!response.ok) throw new Error('Failed to qualify lead');
@@ -1454,26 +1710,27 @@ function QualifyLeadModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Purchase Timeline <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.timeline}
-              onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
-              className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
-            >
-              <option value="immediate">Immediate (Within 1 month)</option>
-              <option value="1-3-months">1-3 Months</option>
-              <option value="3-6-months">3-6 Months</option>
-              <option value="6-12-months">6-12 Months</option>
-              <option value="exploratory">Just Exploring</option>
-            </select>
-          </div>
+          {/* REMOVE entire timeline select div and replace with: */}
+<div>
+  <label className="block text-sm font-bold text-gray-900 mb-2">
+    Purchase Timeline (days) <span className="text-red-500">*</span>
+  </label>
+  <input
+    type="number"
+    min="1"
+    required
+    value={formData.purchaseTimelineDays}
+    onChange={(e) => setFormData({ ...formData, purchaseTimelineDays: e.target.value })}
+    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+    placeholder="e.g., 30 (days to purchase)"
+  />
+  <p className="text-xs text-gray-500 mt-1">Enter number of days. Example: 30 = within a month</p>
+</div>
+
 
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">
-              Monthly Electricity Bill (₹) <span className="text-red-500">*</span>
+              Avg Monthly Electricity Bill (₹) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -1503,39 +1760,21 @@ function QualifyLeadModal({
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Roof Available?
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={formData.roofAvailable === 'yes'}
-                  onChange={() => setFormData({ ...formData, roofAvailable: 'yes' })}
-                  className="w-4 h-4"
-                />
-                <span className="font-semibold">Yes</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={formData.roofAvailable === 'no'}
-                  onChange={() => setFormData({ ...formData, roofAvailable: 'no' })}
-                  className="w-4 h-4"
-                />
-                <span className="font-semibold">No</span>
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  checked={formData.roofAvailable === 'partial'}
-                  onChange={() => setFormData({ ...formData, roofAvailable: 'partial' })}
-                  className="w-4 h-4"
-                />
-                <span className="font-semibold">Partial</span>
-              </label>
-            </div>
-          </div>
+  <label className="block text-sm font-bold text-gray-900 mb-2">
+    Roof Type
+  </label>
+  <select
+    value={formData.roofType}
+    onChange={(e) => setFormData({ ...formData, roofType: e.target.value })}
+    className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
+  >
+    <option value="flat">Flat / RCC</option>
+    <option value="sloped">Sloped / Tin</option>
+    <option value="partial">Partial Shade</option>
+    <option value="no-roof">No Roof Access</option>
+  </select>
+</div>
+
 
           <div>
             <label className="block text-sm font-bold text-gray-900 mb-2">
@@ -1546,9 +1785,10 @@ function QualifyLeadModal({
               onChange={(e) => setFormData({ ...formData, purchaseIntent: e.target.value })}
               className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg font-semibold text-gray-900 focus:border-green-600 focus:outline-none"
             >
-              <option value="high">High (Ready to buy)</option>
-              <option value="medium">Medium (Needs convincing)</option>
-              <option value="low">Low (Comparing options)</option>
+              {/* REPLACE options only: */}
+<option value="hot">🔥 Hot — Ready to buy now</option>
+<option value="warm">⚡ Warm — Interested, needs follow-up</option>
+<option value="cold">❄️ Cold — Just exploring</option>
             </select>
           </div>
 

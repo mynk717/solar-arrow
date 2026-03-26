@@ -73,6 +73,11 @@ export interface Lead {
 
   // Budget & Interest
   estimatedBudget?: number;
+  purchaseTimelineDays?: number;
+  electricityBill?: number;
+  roofType?: string;
+  decisionMaker?: string;
+  purchaseIntent?: string;
   urgency?: 'low' | 'medium' | 'high';
   timeline?: string;          // "1 month", "3 months", etc.
 
