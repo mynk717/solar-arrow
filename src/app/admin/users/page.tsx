@@ -8,7 +8,23 @@ import {
   Eye, EyeOff, CheckCircle, XCircle, Key, RefreshCw
 } from 'lucide-react';
 
-const ROLES = ['owner', 'admin', 'sales', 'surveyor', 'installation', 'accounts'];
+const ROLES = [
+  'owner',
+  'admin',
+  'lead-provider',
+  'telecaller',
+  'sales',
+  'surveyor',
+  'accounts',
+  'liaison',
+  'registration',
+  'quotation',
+  'payment',
+  'bom',
+  'dispatch',
+  'installation',
+  'subsidy',
+];
 
 const PAGES = [
   { path: '/leads',        name: 'Leads' },
@@ -21,7 +37,6 @@ const PAGES = [
   { path: '/bom',          name: 'BOM' },
   { path: '/dispatch',     name: 'Dispatch' },
   { path: '/liaison',      name: 'Liaison' },
-  { path: '/wcr',          name: 'WCR' },
   { path: '/subsidy',      name: 'Subsidy' },
   { path: '/kanban',       name: 'Kanban' },
 ];
@@ -590,12 +605,21 @@ function PermissionsModal({ user, saving, onClose, onSave }: {
 
   function applyRoleDefaults() {
     const roleDefaults: Record<string, string[]> = {
-      sales: ['/leads', '/enquiries', '/quotation'],
-      surveyor: ['/survey', '/enquiries'],
-      installation: ['/installation', '/bom', '/dispatch', '/wcr'],
-      accounts: ['/payment', '/enquiries'],
-      admin: PAGES.map(p => p.path),
-      owner: PAGES.map(p => p.path),
+      'lead-provider': ['/leads'],
+      telecaller:      ['/leads'],
+      sales:           ['/leads', '/enquiries', '/quotation'],
+      surveyor:        ['/survey', '/enquiries'],
+      liaison:         ['/liaison', '/enquiries'],
+      registration:    ['/registration', '/enquiries'],
+      quotation:       ['/quotation', '/enquiries'],
+      payment:         ['/payment', '/enquiries'],
+      accounts:        ['/payment', '/enquiries', '/subsidy'],
+      bom:             ['/bom', '/enquiries'],
+      dispatch:        ['/dispatch', '/enquiries'],
+      installation:    ['/installation', '/bom', '/dispatch', '/enquiries'],
+      subsidy:         ['/subsidy', '/enquiries'],
+      admin:           PAGES.map(p => p.path),
+      owner:           PAGES.map(p => p.path),
     };
     // Custom roles get empty permissions — admin sets manually
     const pages = roleDefaults[user.role] ?? [];

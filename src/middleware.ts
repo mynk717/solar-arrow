@@ -91,7 +91,7 @@ if (isAlwaysAllowed(path)) {
   const PERMISSION_PATHS = [
     '/leads', '/enquiries', '/survey', '/quotation',
     '/registration', '/payment','/bom', '/dispatch',
-    '/installation', '/liaison', '/wcr', '/subsidy',
+    '/installation', '/liaison', '/subsidy',
   ];
 
   const matchedPath = PERMISSION_PATHS.find(

@@ -245,7 +245,6 @@ const PAGES = [
   { path: 'bom', name: 'BOM', icon: Package },
   { path: 'installation', name: 'Installation', icon: Wrench },
   { path: 'liaison', name: 'Liaison', icon: ClipboardCheck },
-  { path: 'wcr', name: 'WCR', icon: CheckSquare },
   { path: 'subsidy', name: 'Subsidy', icon: IndianRupee },
 ];
 

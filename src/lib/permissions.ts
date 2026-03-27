@@ -22,9 +22,13 @@ export const OWNER_ADMIN_PERMISSIONS: Permission = {
 
 // Define role-based page access
 export const ROLE_PAGE_ACCESS: Record<UserRole, string[]> = {
-  admin: ['*'], // All pages
+  owner:           ['*'],
+  admin:           ['*'],
+  'lead-provider': ['/leads', '/dashboard'],
+  telecaller:      ['/leads', '/dashboard'],
+  accounts:        ['/payment', '/subsidy', '/enquiries', '/kanban', '/dashboard'],
   sales: ['/leads', '/prospects', '/enquiries', '/kanban', '/dashboard'],
-  survey: ['/survey', '/enquiries', '/kanban', '/dashboard'],
+  surveyor: ['/survey', '/enquiries', '/kanban', '/dashboard'],
   registration: ['/registration', '/enquiries', '/kanban', '/dashboard'],
   payment: ['/payments', '/subsidy', '/enquiries', '/kanban', '/dashboard'],
   quotation: ['/quotation', '/enquiries', '/kanban', '/dashboard'],
@@ -32,15 +36,18 @@ export const ROLE_PAGE_ACCESS: Record<UserRole, string[]> = {
   bom: ['/bom', '/enquiries', '/kanban', '/dashboard'],
   dispatch: ['/dispatch', '/enquiries', '/kanban', '/dashboard'],
   installation: ['/installation', '/enquiries', '/kanban', '/dashboard'],
-  wcr: ['/wcr', '/enquiries', '/kanban', '/dashboard'],
   subsidy: ['/subsidy', '/payments', '/enquiries', '/kanban', '/dashboard'],
 };
 
 // Define role-based edit permissions
 export const ROLE_EDIT_PERMISSIONS: Record<UserRole, string[]> = {
-  admin: ['*'],
+  owner:           ['*'],
+  admin:           ['*'],
+  'lead-provider': ['/leads'],
+  telecaller:      ['/leads'],
+  accounts:        ['/payment', '/subsidy'],
   sales: ['/leads', '/prospects'],
-  survey: ['/survey'],
+  surveyor: ['/survey'],
   registration: ['/registration'],
   payment: ['/payments'],
   quotation: ['/quotation'],
@@ -48,7 +55,6 @@ export const ROLE_EDIT_PERMISSIONS: Record<UserRole, string[]> = {
   bom: ['/bom'],
   dispatch: ['/dispatch'],
   installation: ['/installation'],
-  wcr: ['/wcr'],
   subsidy: ['/subsidy'],
 };
 

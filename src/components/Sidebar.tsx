@@ -41,7 +41,6 @@ const ALL_NAV = [
   { name: 'BOM',          href: '/bom',          icon: Package,         permPath: '/bom' },
   { name: 'Installation', href: '/installation', icon: Wrench,          permPath: '/installation' },
   { name: 'Liaison',      href: '/liaison',      icon: Scale,           permPath: '/liaison' },
-  { name: 'WCR',          href: '/wcr',          icon: CheckSquare,     permPath: '/wcr' },
   { name: 'Subsidy',      href: '/subsidy',      icon: IndianRupee,     permPath: '/subsidy' },
   { name: 'Reports', href: '/reports', icon: BarChart2, permPath: '/reports' },
   { name: 'Settings',     href: '/settings',     icon: Settings,        alwaysShow: true },

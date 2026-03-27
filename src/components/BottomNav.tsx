@@ -37,7 +37,6 @@ export default function BottomNav() {
     { key: 'bom',      href: '/bom',           label: 'BOM',     icon: Package,         show: canSee('/bom') },
     { key: 'install',  href: '/installation',  label: 'Install', icon: Wrench,          show: canSee('/installation') },
     { key: 'liaison',  href: '/liaison',       label: 'Liaison', icon: Zap,             show: canSee('/liaison') },
-    { key: 'wcr',      href: '/wcr',           label: 'WCR',     icon: CheckSquare,     show: canSee('/wcr') },
     { key: 'subsidy',  href: '/subsidy',       label: 'Subsidy', icon: IndianRupee,     show: canSee('/subsidy') },
     // Admin-only
     { key: 'users',    href: '/admin/users',   label: 'Users',   icon: Users,           show: isAdminOrOwner },

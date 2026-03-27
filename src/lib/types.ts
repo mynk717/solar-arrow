@@ -157,8 +157,22 @@ export interface LeadFunnelMetrics {
 }
 
 
-export type UserRole = 'admin' | 'sales' | 'survey' | 'registration' | 'payment' | 'quotation' | 'liaison' | 'bom' | 'dispatch' | 'installation' | 'wcr' | 'subsidy';
-
+export type UserRole =
+  | 'owner'
+  | 'admin'
+  | 'lead-provider'
+  | 'telecaller'
+  | 'sales'
+  | 'surveyor'
+  | 'accounts'
+  | 'liaison'
+  | 'registration'
+  | 'quotation'
+  | 'payment'
+  | 'bom'
+  | 'dispatch'
+  | 'installation'
+  | 'subsidy';
 // ============================================
 // ENQUIRY STATUS & TRACKING
 // ============================================
