@@ -4,7 +4,7 @@ import LandingClient from '@/components/LandingClient';
 
 export const metadata: Metadata = {
   title: 'Solar Arrow — Solar Business Management for Indian Vendors',
-  description: 'Manage your entire solar installation pipeline — from leads to subsidy claims. Built for Indian solar vendors. Track enquiries, surveys, quotations, BOM, dispatch, liaison, WCR and PM Surya Ghar subsidies.',
+  description: 'Manage your entire solar installation pipeline — from leads to subsidy claims. Built for Indian solar vendors. Track enquiries, surveys, quotations, BOM, dispatch, liaison and PM Surya Ghar subsidies.',
   keywords: [
     'solar business management India',
     'solar CRM India',
@@ -45,7 +45,7 @@ const jsonLd = {
   url: 'https://sa.mktgdime.com',
   inLanguage: 'en-IN',              
   softwareVersion: '2.0.0', 
-  description: 'End-to-end solar installation management SaaS for Indian vendors. Manage leads, enquiries, surveys, quotations, payments, BOM, dispatch, installations, liaison, WCR, and PM Surya Ghar subsidy claims.',
+  description: 'End-to-end solar installation management SaaS for Indian vendors. Manage leads, enquiries, surveys, quotations, payments, BOM, dispatch, installations, liaison, and PM Surya Ghar subsidy claims.',
   offers: [
     {
       '@type': 'Offer',

@@ -434,7 +434,7 @@ export default function DashboardPage() {
            <div data-tour="kpi-enquiries"><MetricCard title="Active Enquiries" value={stats.new + stats.surveyPending + stats.surveyCompleted} icon={FileText} color="indigo" href="/enquiries" /></div>
           )}
           {isAdminOrOwner && (
-            <div data-tour="kpi-live"><MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/liaison" /></div>
+            <div data-tour="kpi-live"><MetricCard title="Live Systems" value={stats.active} icon={Zap} color="green" href="/active" /></div>
           )}
           {isAdminOrOwner && (
             <div data-tour="kpi-value"><MetricCard title="Pipeline Value" value={`₹${(stats.totalQuotedValue / 100000).toFixed(1)}L`} icon={TrendingUp} color="emerald" /></div>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
               <PipelineStage name="Survey ✅" count={stats.surveyCompleted} icon={FileCheck} color="pink" href="/survey" />
               <PipelineStage name="Payment" count={stats.paymentReceived} icon={DollarSign} color="orange" href="/payments" />
               <PipelineStage name="Installed" count={stats.installations} icon={Wrench} color="teal" href="/installation" />
-              <PipelineStage name="Active ⚡" count={stats.active} icon={Zap} color="green" href="/liaison" />
+              <PipelineStage name="Active ⚡" count={stats.active} icon={Zap} color="green" href="/active" />
             </div>
 
             {/* Row 2 — Supporting stages */}
