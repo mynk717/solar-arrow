@@ -461,18 +461,24 @@ function LeadListView({
   onSelectAll: (leads: Lead[]) => void;
   onDeselectAll: () => void;
 }) {
-  const [sortField, setSortField] = useState<'customerName' | 'status' | 'priority' | 'createdAt'>('createdAt');
+  const [sortField, setSortField] = useState<'customerName' | 'status' | 'priority' | 'createdAt' | 'updatedAt'>('updatedAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  const sorted = useMemo(() => {
-    return [...leads].sort((a, b) => {
-      let av: string = String(a[sortField] ?? '');
-      let bv: string = String(b[sortField] ?? '');
-      return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }, [leads, sortField, sortDir]);
+  // AFTER — proper numeric comparison for date fields
+const sorted = useMemo(() => {
+  return [...leads].sort((a, b) => {
+    if (sortField === 'createdAt' || sortField === 'updatedAt') {
+      const at = new Date((a[sortField] as unknown as string) ?? 0).getTime();
+      const bt = new Date((b[sortField] as unknown as string) ?? 0).getTime();
+      return sortDir === 'asc' ? at - bt : bt - at;
+    }
+    const av = String(a[sortField] ?? '');
+    const bv = String(b[sortField] ?? '');
+    return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+}, [leads, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -529,7 +535,13 @@ function LeadListView({
               >
                 Priority <SortIcon field="priority" />
               </th>
-              <th className="text-left py-4 px-6 font-bold text-gray-900">Assigned To</th>
+              <th
+  className="text-left py-4 px-6 font-bold text-gray-900 cursor-pointer hover:text-blue-600 select-none"
+  onClick={() => toggleSort('updatedAt')}
+>
+  Updated <SortIcon field="updatedAt" />
+</th>
+<th className="text-left py-4 px-6 font-bold text-gray-900">Assigned To</th>
               <th className="text-left py-4 px-6 font-bold text-gray-900">Actions</th>
             </tr>
           </thead>
@@ -569,7 +581,10 @@ function LeadListView({
                     {lead.priority}
                   </span>
                 </td>
-                <td className="py-4 px-6 text-sm font-medium text-gray-900">{lead.assignedToName || '-'}</td>
+                <td className="py-4 px-6 text-xs text-gray-600 font-medium">
+  {lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+</td>
+<td className="py-4 px-6 text-sm font-medium text-gray-900">{lead.assignedToName || '-'}</td>
                 <td className="py-4 px-6">
                   <div className="flex gap-2">
                     <button onClick={() => onViewLead(lead)} className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 touch-manipulation" title="View Details" aria-label="View Details">
