@@ -82,9 +82,9 @@ const jsonLd = {
     'Bill of Materials (BOM) management',
     'Dispatch tracking',
     'Installation management',
-    'Govt. liaison and net metering',
-    'Work Completion Report (WCR)',
+    'Govt. liaison, net metering & WCR',
     'PM Surya Ghar subsidy tracking',
+    'Active systems tracking',
   ],
   audience: {
     '@type': 'Audience',
