@@ -129,7 +129,7 @@ ${earthingDone ? '✅ Earthing Done' : '⚠️ Earthing Pending'}
 
 *Completed By:* ${session.user.email}
 
-_Ready for inspection and WCR submission._`;
+_Ready for WCR submission via Liaison._`;
 
       await sendOrgGroupNotification(orgId, {
         text: message,

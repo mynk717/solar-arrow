@@ -8,7 +8,7 @@ import Link from 'next/link';
 import {
   Users, FileText, ClipboardCheck, DollarSign, Wrench, Zap,
   TrendingUp, ArrowRight, Loader2, FileCheck, Package, Truck,
-  Scale, CheckSquare, IndianRupee, Kanban, PhoneCall,
+  Scale, IndianRupee, Kanban, PhoneCall,
   AlertTriangle, Bell, BellRing, CheckCircle2, Clock,
   ShieldAlert, UserCheck, Send, X, ChevronRight,
 } from 'lucide-react';
@@ -316,7 +316,7 @@ export default function DashboardPage() {
     'installation-in-progress': '/installation', 'installation-completed': '/installation',
     'installation-rework-required': '/installation',
     // WCR
-    'wcr-pending': '/wcr', 'wcr-submitted': '/wcr', 'wcr-approved': '/wcr', 'wcr-rejected': '/wcr',
+'wcr-pending': '/liaison', 'wcr-submitted': '/liaison', 'wcr-approved': '/liaison', 'wcr-rejected': '/liaison',
     // Liaison/Inspection
     'inspection-pending': '/liaison', 'inspection-scheduled': '/liaison',
     'inspection-completed': '/liaison', 'inspection-approved': '/liaison',
@@ -482,7 +482,6 @@ export default function DashboardPage() {
               <PipelineStage name="Registration" count={enquiries.filter(e => e.applicationNumber || e.consumerRegistrationNumber).length} icon={Scale} color="yellow" href="/registration" />
               <PipelineStage name="BOM" count={stats.bom ?? 0} icon={Package} color="cyan" href="/bom" />
               <PipelineStage name="Dispatch" count={stats.dispatch ?? 0} icon={Truck} color="violet" href="/bom" />
-              <PipelineStage name="WCR" count={enquiries.filter(e => e.wcrSubmitted === true || e.wcrSubmitted === 'TRUE').length} icon={CheckSquare} color="rose" href="/wcr" />
               <PipelineStage name="Subsidy" count={enquiries.filter(e => e.subsidyStatus === 'approved' || e.subsidyStatus === 'disbursed').length} icon={IndianRupee} color="fuchsia" href="/subsidy" />
             </div>
           </div>
@@ -788,7 +787,6 @@ export default function DashboardPage() {
               { label: 'Payments', href: '/payment', icon: IndianRupee },
               { label: 'Users', href: '/admin/users', icon: Users },
               { label: 'Kanban', href: '/kanban', icon: Kanban },
-              { label: 'WCR', href: '/wcr', icon: CheckSquare },
               { label: 'Subsidy', href: '/subsidy', icon: IndianRupee },
             ].map(item => (
               <Link key={item.href} href={item.href}>

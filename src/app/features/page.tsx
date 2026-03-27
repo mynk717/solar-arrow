@@ -4,8 +4,8 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Features — Solar Arrow',
-  description: 'Explore Solar Arrow features: solar CRM, CSPDCL project management, quotation builder, survey tracking, BOM, dispatch, liaison, WCR, and PM Surya Ghar subsidy tracking. Built for Indian solar vendors.',
-  keywords: [
+  description: 'Explore Solar Arrow features: solar CRM, CSPDCL project management, quotation builder, survey tracking, BOM, dispatch, liaison, and PM Surya Ghar subsidy tracking. Built for Indian solar vendors.',
+    keywords: [
     'solar CRM features India',
     'solar EPC software features',
     'CSPDCL project management tool',
@@ -79,28 +79,40 @@ const modules = [
     title: 'Liaison & Net Metering',
     keyword: 'Solar Net Metering Liaison India',
     desc: 'Manage the government liaison process for net metering application and approval. Track each step of the DISCOM approval workflow per project.',
-    points: ['Net metering application tracking', 'DISCOM approval status management', 'Document checklist per liaison stage'],
-  },
+    points: ['Net metering application tracking', 'DISCOM approval status management', 'Work Completion Report (WCR) generation per project'],
+    },
   {
     stage: '10',
-    title: 'WCR Generation',
-    keyword: 'Solar Work Completion Report',
-    desc: 'Generate digital Work Completion Reports — mandatory for PM Surya Ghar subsidy applications. Eliminate manual WCR paperwork completely.',
-    points: ['Digital WCR generation per project', 'Mandatory for subsidy claim submission', 'Stored and accessible per enquiry'],
-  },
-  {
-    stage: '11',
     title: 'PM Surya Ghar Subsidy',
     keyword: 'PM Surya Ghar Subsidy Tracker',
     desc: 'Track PM Surya Ghar rooftop solar subsidy claims per project. Know which projects have subsidy pending, applied, or received — without maintaining a separate register.',
-    points: ['Subsidy application status per project', 'PM Surya Ghar scheme compliance tracking', 'Claim amount and disbursement tracking'],
+    points: [
+      'Subsidy application status per project',
+      'PM Surya Ghar scheme compliance tracking',
+      'Claim amount and disbursement tracking',
+    ],
+  },
+  {
+    stage: '11',
+    title: 'Active Systems',
+    keyword: 'Solar Live Systems Dashboard',
+    desc: 'Monitor all grid-synced live solar systems in one view. Track meter numbers, grid sync dates, installed capacity, and subsidy status per project.',
+    points: [
+      'Filter all active/live solar systems instantly',
+      'Meter number and grid sync date per project',
+      'Total installed kW across all live systems',
+    ],
   },
   {
     stage: '12',
     title: 'Telegram Notifications',
     keyword: 'Solar Team Notification Bot',
     desc: 'SolarArrowBot sends real-time Telegram alerts to your team. Follow-up reminders go to the assigned salesperson. New enquiry alerts go to the whole group.',
-    points: ['Per-user follow-up reminders', 'Group notifications for new enquiries', 'Instant alerts on payment and installation updates'],
+    points: [
+      'Per-user follow-up reminders',
+      'Group notifications for new enquiries',
+      'Instant alerts on payment and installation updates',
+    ],
   },
 ];
 
@@ -111,9 +123,9 @@ export default function FeaturesPage() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-blue-600 to-blue-800 py-16 px-4 sm:px-8 text-center text-white">
         <div className="max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full mb-5 uppercase tracking-wide">
-            13-Stage Pipeline
-          </div>
+        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full mb-5 uppercase tracking-wide">
+  12-Stage Pipeline
+</div>
           <h1 className="text-3xl sm:text-5xl font-extrabold mb-4 leading-tight">
             Every Feature a Solar Vendor Needs
           </h1>

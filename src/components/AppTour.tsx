@@ -57,7 +57,7 @@ export function startDashboardTour() {
         element: '[data-tour="pipeline"]',
         popover: {
           title: '🔄 Installation Pipeline',
-          description: 'Every stage of your solar project lifecycle. Row 1 is the main flow. Row 2 shows supporting stages like BOM, Quotation, WCR and Subsidy. Each tile is clickable.',
+          description: 'Every stage of your solar project lifecycle. Row 1 is the main flow. Row 2 shows supporting stages like BOM, Quotation and Subsidy. Each tile is clickable.',
           side: 'top',
         },
       },

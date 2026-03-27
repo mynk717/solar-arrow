@@ -23,7 +23,7 @@ const included = [
   'PM Surya Ghar subsidy tracking',
   'Telegram bot notifications (SolarArrowBot)',
   'Role-based access for your entire team',
-  'BOM, dispatch, installation, and WCR modules',
+  'BOM, dispatch, installation, and WCR (via Liaison)',
   'Google Sheets backend setup and configuration',
   'Progressive Web App (Android + iOS installable)',
   'Onboarding and team training',
