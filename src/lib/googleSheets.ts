@@ -972,8 +972,8 @@ export async function fetchLeads(): Promise<any[]> {
     
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'LEADS!A2:Z10000',
-    });
+      range: 'LEADS!A2:AM10000',
+      });
     
     const rows = response.data.values || [];
     const leads = rows
