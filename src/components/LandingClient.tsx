@@ -10,7 +10,7 @@ import { motion, type Variants } from 'framer-motion';
 import {
   PhoneCall, FileText, ClipboardCheck, FileCheck,
   Scale, IndianRupee, Wrench, Package, Truck,
-  CheckSquare, Zap, ArrowRight, TrendingUp, Shield, Smartphone,
+  Zap, ArrowRight, TrendingUp, Shield, Smartphone,
 } from 'lucide-react';
 
 // ── animation helpers ──────────────────────────────────────────
@@ -40,9 +40,8 @@ const pipeline = [
   { name: 'BOM',          icon: Package,        color: 'bg-blue-50  text-blue-700  border-blue-200',    desc: 'Plan materials' },
   { name: 'Dispatch',     icon: Truck,          color: 'bg-orange-50 text-orange-700 border-orange-200', desc: 'Ship equipment' },
   { name: 'Installation', icon: Wrench,         color: 'bg-blue-50  text-blue-700  border-blue-200',    desc: 'On-site work' },
-  { name: 'Liaison',      icon: Scale,          color: 'bg-orange-50 text-orange-700 border-orange-200', desc: 'Net metering' },
-  { name: 'WCR',          icon: CheckSquare,    color: 'bg-blue-50  text-blue-700  border-blue-200',    desc: 'Completion report' },
-  { name: 'Subsidy',      icon: IndianRupee,    color: 'bg-orange-50 text-orange-700 border-orange-200', desc: 'Claim subsidy' },
+  { name: 'Liaison',      icon: Scale,          color: 'bg-orange-50 text-orange-700 border-orange-200', desc: 'Net metering & WCR' },
+  { name: 'Subsidy',      icon: IndianRupee,    color: 'bg-blue-50  text-blue-700  border-blue-200',    desc: 'Claim subsidy' },
   { name: 'Active ✓',    icon: Zap,            color: 'bg-blue-600 text-white      border-blue-600',   desc: 'Live system' },
 ];
 
@@ -51,7 +50,7 @@ const features = [
   { icon: FileCheck,   title: 'Instant Quotation Links',       desc: 'Generate and share solar quotes in seconds. Customers get a clean web link.' },
   { icon: IndianRupee, title: 'Subsidy & Liaison Built-in',    desc: 'PM Surya Ghar subsidy tracking and net metering liaison — in the same tool.' },
   { icon: Package,     title: 'BOM & Dispatch Tracking',       desc: 'Plan materials and track dispatches without juggling separate spreadsheets.' },
-  { icon: Shield,      title: 'WCR Digital Documentation',     desc: 'Generate Work Completion Reports digitally — mandatory for subsidy applications.' },
+  { icon: Shield,      title: 'Active Systems Tracking',       desc: 'Monitor all live solar systems — meter numbers, grid sync dates, and capacity in one view.' },  
   { icon: Smartphone,  title: 'Mobile-First, Works Offline',   desc: 'PWA — your field team can use it on any phone. No app store needed.' },
 ];
 
@@ -271,7 +270,7 @@ export default function LandingClient() {
           <motion.p variants={fadeUp}
             className="text-base sm:text-xl text-gray-500 max-w-2xl mx-auto mb-7 leading-relaxed px-2"
           >
-            Solar Arrow gives solar vendors a single platform to track the complete installation pipeline — enquiries, surveys, quotations, payments, BOM, dispatch, liaison, WCR, and subsidy claims.
+            Solar Arrow gives solar vendors a single platform to track the complete installation pipeline — enquiries, surveys, quotations, payments, BOM, dispatch, liaison, and subsidy claims.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center px-4">
@@ -319,8 +318,7 @@ export default function LandingClient() {
       <section className="py-12 sm:py-20 px-4 sm:px-8 max-w-6xl mx-auto">
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">One Pipeline. Every Stage.</h2>
-          <p className="text-center text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">13 stages of the solar installation workflow — visible in a single dashboard.</p>
-        </motion.div>
+          <p className="text-center text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">12 stages of the solar installation workflow — visible in a single dashboard.</p>        </motion.div>
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3"
         >
@@ -374,7 +372,7 @@ export default function LandingClient() {
           className="grid grid-cols-1 sm:grid-cols-3 gap-4"
         >
           {[
-            { stat: '13 Stages',     label: 'Complete pipeline from lead to active system',   c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
+            { stat: '12 Stages',     label: 'Complete pipeline from lead to active system',   c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
             { stat: 'PM Surya Ghar', label: 'Subsidy tracking built-in for rooftop solar',    c: 'border-blue-200  bg-blue-50',    t: 'text-blue-600' },
             { stat: '₹21,700',       label: 'One-time setup · ₹4,800/yr maintenance',         c: 'border-orange-200 bg-orange-50', t: 'text-orange-500' },
           ].map((item) => (
