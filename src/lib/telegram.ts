@@ -427,7 +427,38 @@ export async function notifyEnquiryUpdate(
   return await sendOrgGroupNotification(orgId, { text: message, parseMode: 'Markdown' });
 }
 
+/**
+ * Notify all users who have canView access to a specific page path
+ * Respects per-user notifyOnStageChange preference
+ */
+export async function notifyNextStageUsers(
+  orgId: string,
+  stagePath: string,   // e.g. '/installation', '/liaison'
+  message: string
+): Promise<void> {
+  try {
+    const { getOrganizationUsers } = await import('./redis');
+    const users = await getOrganizationUsers(orgId);
+    if (!Array.isArray(users)) return;
 
+    const targets = users.filter((u: any) =>
+      u.isActive &&
+      u.notifyOnStageChange !== false &&  // default true unless explicitly off
+      Array.isArray(u.permissions?.canView) &&
+      u.permissions.canView.some((p: string) =>
+        stagePath.includes(p) || p.includes(stagePath.replace('/', ''))
+      )
+    );
+
+    await Promise.allSettled(
+      targets.map((u: any) =>
+        sendUserDM(orgId, u.email, { text: message, parseMode: 'Markdown' })
+      )
+    );
+  } catch (e) {
+    console.error('notifyNextStageUsers failed (non-blocking):', e);
+  }
+}
 // ============================================
 // SINGLETON INSTANCE (Keep for backward compatibility)
 // ============================================

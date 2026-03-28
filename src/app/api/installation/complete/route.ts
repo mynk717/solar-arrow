@@ -4,8 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient, getLiaisonRow, createLiaisonRow, fetchEnquiryById  } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
-import { sendOrgGroupNotification } from '@/lib/telegram';
-
+import { sendOrgGroupNotification, notifyNextStageUsers } from '@/lib/telegram';
 
 
 export async function POST(request: NextRequest) {
@@ -138,7 +137,11 @@ _Ready for WCR submission via Liaison._`;
     } catch (notifError) {
       console.error('Telegram notification failed:', notifError);
     }
-
+    await notifyNextStageUsers(
+      orgId,
+      '/liaison',
+      `🔔 *Action Required: Liaison & WCR*\n\n📋 *Enquiry:* ${enquiryId}\n👤 *Customer:* ${customerName}\n⚡ *Meter:* ${meterNumber || 'N/A'}\n\n_Installation complete. Please initiate WCR and liaison process._`
+    );
     return NextResponse.json({
       success: true,
       message: 'Installation marked as completed',

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
-import { sendOrgGroupNotification } from '@/lib/telegram';
+import { sendOrgGroupNotification, notifyNextStageUsers } from '@/lib/telegram';
 import { invalidateRegistrationCache } from '@/lib/redis';
 
 
@@ -155,6 +155,13 @@ if (rowIndex === -1) {
       );
     } catch (notificationError) {
       console.error('Telegram notification failed:', notificationError);
+    }
+    if (registrationStatus === 'approved') {
+      await notifyNextStageUsers(
+        (session.user as any).organizationId!,
+        '/payment',
+        `🔔 *Next Stage: Payment*\\n\\n📋 *Enquiry:* ${enquiryId}\\n👤 *Customer:* ${enquiry?.[1] || 'N/A'}\\n\\n_Registration approved. Please proceed with payment collection._`
+      );
     }
     try {
       await invalidateRegistrationCache((session.user as any).organizationId!);

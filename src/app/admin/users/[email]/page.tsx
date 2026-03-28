@@ -26,6 +26,7 @@ interface UserProfile {
   department?: string;
   phone?: string;
   isActive: boolean | string;
+  notifyOnStageChange?: boolean;
   createdAt?: string;
   lastLogin?: string;
   organizationId?: string;
@@ -394,6 +395,25 @@ export default function UserProfilePage() {
                 isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
               }`}>
                 {isActive ? '● Active' : '○ Inactive'}
+                <label className="flex items-center gap-2 cursor-pointer mt-1">
+  <div className="relative">
+    <input type="checkbox" className="sr-only"
+      checked={profile.notifyOnStageChange !== false}
+      onChange={async e => {
+        await fetch('/api/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: profile.email, notifyOnStageChange: e.target.checked }),
+        });
+        setProfile({ ...profile, notifyOnStageChange: e.target.checked });
+      }}
+    />
+    <div className={`w-8 h-5 rounded-full transition-colors ${profile.notifyOnStageChange !== false ? 'bg-green-500' : 'bg-gray-300'}`}>
+      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${profile.notifyOnStageChange !== false ? 'translate-x-4' : 'translate-x-0.5'}`} />
+    </div>
+  </div>
+  <span className="text-xs text-gray-500 font-medium">Pipeline notifications</span>
+</label>
               </span>
             </div>
             <p className="text-xs text-gray-500 truncate">{profile.email}</p>

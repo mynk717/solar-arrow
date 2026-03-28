@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getGoogleSheetsClient } from '@/lib/googleSheets';
 import { redis } from '@/lib/redis';
-import { sendOrgGroupNotification } from '@/lib/telegram';
+import { sendOrgGroupNotification, notifyNextStageUsers } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -111,7 +111,11 @@ _Installation team will be notified upon delivery._`;
     } catch (notifError) {
       console.error('Telegram notification failed:', notifError);
     }
-
+    await notifyNextStageUsers(
+      orgId,
+      '/installation',
+      `🔔 *Action Required: Installation*\n\n📋 *Enquiry:* ${enquiryId}\n📦 *Items:* ${updatedCount} line items dispatched\n${expectedDeliveryDate ? `📅 *Expected Delivery:* ${new Date(expectedDeliveryDate).toLocaleDateString('en-IN')}` : ''}\n\n_Materials dispatched. Please proceed with installation._`
+    );
     return NextResponse.json({
       success: true,
       message: 'Dispatch updated successfully',

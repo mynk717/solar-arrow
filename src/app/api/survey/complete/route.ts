@@ -4,7 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
 import { telegramBot } from '@/lib/telegram';
 import { redis } from '@/lib/redis';
-import { sendOrgGroupNotification } from '@/lib/telegram';
+import { sendOrgGroupNotification, notifyNextStageUsers } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +43,13 @@ export async function POST(request: NextRequest) {
     } catch (notifErr) {
       console.error('Notification failed (non-blocking):', notifErr);
     }
-
+    if (surveyApproved) {
+      await notifyNextStageUsers(
+        orgId,
+        '/registration',
+        `🔔 *Action Required: Registration*\n\n📋 *Enquiry:* ${enquiryId}\n👤 *Customer:* ${enquiry.customerName}\n📍 *Area:* ${enquiry.area}\n⚡ *Capacity:* ${enquiry.capacity} kW\n\n_Survey approved. Please initiate CSPDCL registration._`
+      );
+    }
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error completing survey:', error);

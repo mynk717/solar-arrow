@@ -686,6 +686,7 @@ export interface AppUser {
   branchName?: string;
   permissions: UserPermissions;
   isActive: boolean;
+  notifyOnStageChange?: boolean;
   createdAt: Date;
   createdBy: string;
 }

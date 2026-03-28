@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { updateEnquiryInSheet, fetchEnquiryById } from '@/lib/googleSheets';
-import { telegramBot } from '@/lib/telegram';
+import { telegramBot, notifyNextStageUsers } from '@/lib/telegram';
 import { redis } from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
@@ -60,7 +60,12 @@ export async function POST(request: NextRequest) {
         console.error('Telegram notification failed:', error);
       }
     }
-
+    const orgId = (session.user as any).organizationId || 'default-org';
+    await notifyNextStageUsers(
+      orgId,
+      '/subsidy',
+      `🔔 *Action Required: Subsidy Claim*\n\n📋 *Enquiry:* ${enquiryId}\n👤 *Customer:* ${enquiry.customerName}\n⚡ *Capacity:* ${enquiry.capacity} kW\n\n_System is now active & grid-synced. Please initiate PM Surya Ghar subsidy claim._`
+    );
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error syncing with grid:', error);

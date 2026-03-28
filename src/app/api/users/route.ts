@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       canAssign: false,
     },
     isActive: true,
+    notifyOnStageChange: true,
     createdAt: new Date().toISOString(),
     createdBy: session.user.email!,
   };
