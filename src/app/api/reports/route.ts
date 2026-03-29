@@ -21,7 +21,7 @@ async function getRawData(sheetId: string, orgId: string, forceRefresh: boolean)
     if (cached) {
       const parsed = typeof cached === 'string' ? JSON.parse(cached) : cached;
       return parsed as { enquiries: EnquiryRow[]; liaisons: LiaisonRow[]; registrations: RegistrationRow[]; payments: PaymentRow[] };
-    }
+    }  
   }
 
   const sheets = await getGoogleSheetsClient();
@@ -58,6 +58,10 @@ async function getRawData(sheetId: string, orgId: string, forceRefresh: boolean)
       meterNumber:               row[col('meterNumber')] || '',
       createdAt:                 row[col('createdAt')] || '',
       updatedAt:                 row[col('updatedAt')] || '',
+      finalCost:                 row[col('finalCost')]           || '0',
+      estimatedCost:             row[col('estimatedCost')]       || '0',
+      registrationStatus:        row[col('registrationStatus')]  || '',
+      applicationNumber:         row[col('applicationNumber')]   || '',
     }))
     .filter(r => r.id);
 

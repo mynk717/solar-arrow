@@ -211,7 +211,7 @@ export default function ReportsPage() {
               <button
                 key={r.id}
                 onClick={() => setActiveReport(r.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border ${
+                className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors border ${
                   active
                     ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                     : 'text-slate-700 bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'

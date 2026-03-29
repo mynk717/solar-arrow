@@ -20,6 +20,10 @@ export interface EnquiryRow {
     meterNumber: string;
     createdAt: string;
     updatedAt: string;
+    finalCost:                 string;
+    estimatedCost:             string;
+    registrationStatus:        string;
+    applicationNumber:         string;
   }
   
   export interface LiaisonRow {
@@ -488,7 +492,7 @@ export function registrationStatusReport(
   if (filters.from) rows = rows.filter(r => new Date(r.submittedDate) >= new Date(filters.from!));
   if (filters.to)   rows = rows.filter(r => new Date(r.submittedDate) <= new Date(filters.to! + 'T23:59:59'));
   if (filters.area) rows = rows.filter(r => r.discomCircle === filters.area);
-  if (filters.status) rows = rows.filter(r => r.registrationStatus === filters.status);
+  if (filters.status) rows = rows.filter(r => r.registrationStatus?.toLowerCase() === filters.status?.toLowerCase());
 
   // Group by period (week/month)
   const byMonth: Record<string, number> = {};
@@ -497,9 +501,9 @@ export function registrationStatusReport(
     byMonth[key] = (byMonth[key] || 0) + 1;
   });
 
-  const approved  = rows.filter(r => r.registrationStatus === 'approved');
-  const rejected  = rows.filter(r => r.registrationStatus === 'rejected');
-  const pending   = rows.filter(r => r.registrationStatus === 'submitted');
+  const approved  = rows.filter(r => r.registrationStatus?.toLowerCase() === 'approved');
+  const rejected  = rows.filter(r => r.registrationStatus?.toLowerCase() === 'rejected');
+  const pending   = rows.filter(r => r.registrationStatus?.toLowerCase() === 'submitted');
 
   const avgApprovalDays = approved.length
     ? Math.round(
@@ -562,10 +566,10 @@ export function paymentTrackerReport(
   let rows = payments;
   if (filters.from)   rows = rows.filter(r => new Date(r.date) >= new Date(filters.from!));
   if (filters.to)     rows = rows.filter(r => new Date(r.date) <= new Date(filters.to! + 'T23:59:59'));
-  if (filters.status) rows = rows.filter(r => r.status === filters.status);
+  if (filters.status) rows = rows.filter(r => r.status?.toLowerCase() === filters.status?.toLowerCase());
 
-  const verified  = rows.filter(r => r.status === 'verified');
-  const pending   = rows.filter(r => r.status === 'pending');
+  const verified  = rows.filter(r => r.status?.toLowerCase() === 'verified');
+  const pending   = rows.filter(r => r.status?.toLowerCase() === 'pending');
   const totalCollected  = verified.reduce((s, r) => s + r.amount, 0);
   const totalExpected   = rows.reduce((s, r) => s + r.expectedAmount, 0);
 
