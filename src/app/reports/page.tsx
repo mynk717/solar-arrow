@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
   BarChart2, Users, MapPin, Clock, FileCheck,
-  TrendingUp, Activity, Download, RefreshCcw,
+  TrendingUp, Activity, FileSpreadsheet, FileText, RefreshCcw,
   IndianRupee, ClipboardCheck,
 } from 'lucide-react';
 import { exportCSV, exportPDF } from '@/lib/reportExport';
@@ -66,15 +66,15 @@ function DataTable({ rows }: { rows: Record<string, any>[] }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
       <table className="min-w-full text-sm">
-        <thead>
-          <tr className="bg-blue-600 text-white">
-            {headers.map(h => (
-              <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap text-xs uppercase tracking-wide">
-                {h.replace(/([A-Z])/g, ' $1').trim()}
-              </th>
-            ))}
-          </tr>
-        </thead>
+      <thead className="sticky top-0 z-10">
+  <tr className="bg-slate-100 border-b border-slate-200">
+    {headers.map(h => (
+      <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap text-xs uppercase tracking-wide text-slate-500">
+        {h.replace(/([A-Z])/g, ' $1').trim()}
+      </th>
+    ))}
+  </tr>
+</thead>
         <tbody>
           {rows.map((row, i) => (
             <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
@@ -113,6 +113,7 @@ export default function ReportsPage() {
   const [team, setTeam]           = useState('');
   const [stuckDays, setStuckDays] = useState(15);
   const [filterStatus, setFilterStatus] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return; }
@@ -124,6 +125,7 @@ export default function ReportsPage() {
 
   const fetchReport = useCallback(async (force = false) => {
     setLoading(true);
+    setError(null); 
     try {
       const params = new URLSearchParams({ type: activeReport, dateField });
       if (from)         params.set('from', from);
@@ -138,7 +140,7 @@ export default function ReportsPage() {
       if (!res.ok) throw new Error((await res.json()).error || 'Failed');
       setData(await res.json());
     } catch (e: any) {
-      alert('❌ ' + e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -168,6 +170,10 @@ export default function ReportsPage() {
       <div className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
+          <p className="text-xs text-slate-400 mb-1">
+  <a href="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</a>
+  {' '}&rsaquo;{' '}Reports
+</p>
             <h1 className="text-xl font-bold text-slate-900">Reports</h1>
             <p className="text-sm text-slate-500 mt-0.5">{reportMeta.desc}</p>
           </div>
@@ -183,20 +189,21 @@ export default function ReportsPage() {
               disabled={!data?.rows?.length}
               className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-40 transition-colors"
             >
-              <Download size={15} /> CSV
-            </button>
+<FileSpreadsheet size={15} /> CSV
+</button>
             <button
               onClick={() => data?.rows?.length && exportPDF(reportMeta.label, `Date: ${dateField}`, data.kpis || {}, data.rows, activeReport)}
               disabled={!data?.rows?.length}
               className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-40 transition-colors"
             >
-              <Download size={15} /> PDF
+              <FileText size={15} /> PDF
             </button>
           </div>
         </div>
 
         {/* Report tabs */}
-        <div className="flex gap-1 mt-4 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="relative mt-4">
+        <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
           {REPORTS.map(r => {
             const Icon = r.icon;
             const active = activeReport === r.id;
@@ -215,12 +222,14 @@ export default function ReportsPage() {
               </button>
             );
           })}
-        </div>
+         </div>
+  <div className="absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+</div>
       </div>
 
       {/* Filter bar */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-end gap-3">
-        <div>
+      <div className="bg-white border-b border-slate-200 px-6 py-3 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap items-end gap-3">
+      <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1">Date Field</label>
           <select value={dateField} onChange={e => setDateField(e.target.value)}
             className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-slate-800 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -323,18 +332,24 @@ export default function ReportsPage() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-              <p className="text-slate-500 font-medium">Generating report...</p>
-            </div>
+              <p className="text-slate-500 font-medium">Generating {reportMeta.label}...</p>
+              </div>
           </div>
         ) : data ? (
           <div className="space-y-6">
             {data.kpis && Object.keys(data.kpis).length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                {Object.entries(data.kpis).map(([label, value], i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {Object.entries(data.kpis).map(([label, value], i) => (
                   <KpiCard key={label} label={label} value={value as any} color={KPI_COLORS[i % KPI_COLORS.length]} />
                 ))}
               </div>
             )}
+            {error && (
+  <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
+    <span>❌ {error}</span>
+    <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600 text-base leading-none">✕</button>
+  </div>
+)}
             <DataTable rows={data.rows || []} />
             <p className="text-xs text-slate-400 text-right">
               {data.rows?.length || 0} records · {dateField}
