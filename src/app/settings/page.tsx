@@ -109,57 +109,15 @@ const checkTokenStatus = async () => {
 
   
 
-const handleCopyTemplate = async () => {
-  setIsLoading(true);
-  setMessage(null);
-  
-  try {
-    const response = await fetch('/api/sheets/copy-template', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        title: `Solar Arrow Data - ${new Date().toLocaleDateString()}` 
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setSheetId(data.sheetId!);
-      setMessage({ 
-        type: 'success', 
-        text: 'Template copied! Opening your new sheet...' 
-      });
-
-      // Save the new sheet config to BOTH Drive and Redis
-      await saveConfig(data.sheetId!, sheetName);
-
-      // Open the new sheet
-      window.open(data.sheetUrl, '_blank');
-    } else {
-      // ✅ Add error handling
-      if (data.error?.includes('authentication')) {
-        setMessage({ 
-          type: 'error', 
-          text: 'Authentication expired. Please sign out and sign in again.' 
-        });
-        setTokenStatus('expired');
-      } else {
-        setMessage({ 
-          type: 'error', 
-          text: data.error || 'Failed to copy template' 
-        });
-      }
-    }
-  } catch (error) {
-    // ✅ Add catch error handling
-    setMessage({ 
-      type: 'error', 
-      text: 'An error occurred while copying template' 
-    });
-  } finally {
-    setIsLoading(false);
-  }
+const handleCopyTemplate = () => {
+  window.open(
+    'https://docs.google.com/spreadsheets/d/19V_ipRh36LmBuTCKx_z_1M_O3ice0ZFBS0iTDpvMzS4/copy',
+    '_blank'
+  );
+  setMessage({
+    type: 'success',
+    text: 'Template opened! After copying, paste your new sheet URL below to connect it.'
+  });
 };
 
 
@@ -608,12 +566,14 @@ const saveConfig = async (id?: string, name?: string) => {
           </p>
           <button
             onClick={handleCopyTemplate}
-            disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2 transition-colors"
           >
-            <Copy size={20} />
-            {isLoading ? 'Copying Template...' : 'Create from Template'}
+            <ExternalLink size={20} />
+            Open & Copy Template
           </button>
+          <p className="text-xs text-gray-500 mt-3">
+            After copying, paste your new sheet URL in the field below and click Save.
+          </p>
         </div>
 
         {/* Manual Configuration */}
@@ -627,10 +587,14 @@ const saveConfig = async (id?: string, name?: string) => {
               </label>
               <input
                 type="text"
-                placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                placeholder="Paste sheet URL or Sheet ID here..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 value={sheetId}
-                onChange={(e) => setSheetId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                  setSheetId(match ? match[1] : val);
+                }}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Found in the URL: docs.google.com/spreadsheets/d/<strong>SHEET_ID</strong>/edit
