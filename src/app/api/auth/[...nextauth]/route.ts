@@ -23,7 +23,7 @@ export const authOptions: AuthOptions = {
             'https://www.googleapis.com/auth/drive.file'
           ].join(' '),
           access_type: 'offline',
-          prompt: 'select_account'
+          prompt: 'consent'
         }
       }
     }),
