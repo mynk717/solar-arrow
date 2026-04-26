@@ -23,7 +23,7 @@ export const authOptions: AuthOptions = {
             'https://www.googleapis.com/auth/drive.file'
           ].join(' '),
           access_type: 'offline',
-          prompt: 'consent'
+          prompt: 'select_account'
         }
       }
     }),
@@ -150,22 +150,24 @@ export const authOptions: AuthOptions = {
           
           await redis.sadd(`org:${orgId}:admins`, user.email);
           
-          admin = { organizationId: orgId, role: 'owner' };
+          admin = { organizationId: orgId, role: 'owner', isActive: true };
         }
 
-        if (!admin.isActive) {
+        if (admin.isActive === false) {
           return false; // Block inactive admins
         }
 
-        // Save/update admin's OAuth tokens
-        await redis.set(`org:${admin.organizationId}:oauth:${user.email}`, {
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          expiresAt: account.expires_at,
-          scope: account.scope,
-          updatedAt: new Date().toISOString(),
-        });
+        // Only update tokens if we got a fresh refresh_token
+// (Google only sends refresh_token on first consent or when forced)
+const existingTokens = await redis.get(`org:${admin.organizationId}:oauth:${user.email}`) as any;
 
+await redis.set(`org:${admin.organizationId}:oauth:${user.email}`, {
+  accessToken: account.access_token,
+  refreshToken: account.refresh_token ?? existingTokens?.refreshToken, // ← preserve old refresh token if no new one
+  expiresAt: account.expires_at,
+  scope: account.scope ?? existingTokens?.scope,
+  updatedAt: new Date().toISOString(),
+});
         return true;
       }
 
