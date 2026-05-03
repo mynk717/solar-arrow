@@ -11,23 +11,33 @@ import {
   PhoneCall, FileText, ClipboardCheck, FileCheck,
   Scale, IndianRupee, Wrench, Package, Truck,
   Zap, ArrowRight, TrendingUp, Shield, Smartphone,
+  CheckCircle
 } from 'lucide-react';
 
 // ── animation helpers ──────────────────────────────────────────
 const fadeUp: Variants = {
-    hidden: { opacity: 0, y: 32 },
-    show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
-  };
-  
-  const stagger: Variants = {
-    hidden: {},
-    show:   { transition: { staggerChildren: 0.07 } },
-  };
-  
-  const cardVariant: Variants = {
-    hidden: { opacity: 0, y: 20, scale: 0.97 },
-    show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.4, ease: 'easeOut' as const } },
-  };
+  hidden: { opacity: 0, y: 32 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
+};
+
+const stagger: Variants = {
+  hidden: {},
+  show:   { transition: { staggerChildren: 0.07 } },
+};
+
+const cardVariant: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  show:   { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.4, ease: 'easeOut' as const } },
+};
+
+// NEW — 3D hero card entrance
+const heroCard3d: Variants = {
+  hidden: { opacity: 0, y: 48, rotateX: 12, rotateY: -16, scale: 0.92 },
+  show:   {
+    opacity: 1, y: 0, rotateX: 4, rotateY: -8, scale: 1,
+    transition: { duration: 0.9, ease: [0.16, 1, 0.3, 1] as [number,number,number,number] },
+  },
+};
 
 // ── data ───────────────────────────────────────────────────────
 const pipeline = [
@@ -50,7 +60,7 @@ const features = [
   { icon: FileCheck,   title: 'Instant Quotation Links',       desc: 'Generate and share solar quotes in seconds. Customers get a clean web link.' },
   { icon: IndianRupee, title: 'Subsidy & Liaison Built-in',    desc: 'PM Surya Ghar subsidy tracking and net metering liaison — in the same tool.' },
   { icon: Package,     title: 'BOM & Dispatch Tracking',       desc: 'Plan materials and track dispatches without juggling separate spreadsheets.' },
-  { icon: Shield,      title: 'Active Systems Tracking',       desc: 'Monitor all live solar systems — meter numbers, grid sync dates, and capacity in one view.' },  
+  { icon: Shield,      title: 'Active Systems Tracking',       desc: 'Monitor all live solar systems — meter numbers, grid sync dates, and capacity in one view.' },
   { icon: Smartphone,  title: 'Mobile-First, Works Offline',   desc: 'PWA — your field team can use it on any phone. No app store needed.' },
 ];
 
@@ -69,13 +79,20 @@ const faqs = [
   { q: 'Does it work on mobile?', a: 'Yes — Solar Arrow is a mobile-first PWA. Your field team can use it on any smartphone.' },
 ];
 
+// ── hero pipeline preview — 4 key stages shown in the 3D card ─
+const heroStages = [
+  { name: 'Lead Captured',     icon: PhoneCall,     status: 'done',    label: 'Ravi Sharma · 3kW', color: 'text-blue-600',   bg: 'bg-blue-50'   },
+  { name: 'Survey Scheduled',  icon: ClipboardCheck, status: 'active',  label: 'Tomorrow 10am',     color: 'text-orange-600', bg: 'bg-orange-50' },
+  { name: 'Quotation Sent',    icon: FileCheck,      status: 'done',    label: '₹1,24,500 · 3kW',  color: 'text-blue-600',   bg: 'bg-blue-50'   },
+  { name: 'Subsidy Filed',     icon: IndianRupee,    status: 'pending', label: 'PM Surya Ghar',     color: 'text-orange-600', bg: 'bg-orange-50' },
+];
+
 // ── component ──────────────────────────────────────────────────
 export default function LandingClient() {
   const { status } = useSession();
   const router = useRouter();
   const [sessionTimedOut, setSessionTimedOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -110,19 +127,20 @@ export default function LandingClient() {
       </ul>
     </section>
   );
+
   // Authenticated — show redirect screen
   if (status === 'authenticated') {
     return (
-<>
-{seoBlock}
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
-            <Zap className="text-white" size={24} />
+      <>
+        {seoBlock}
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
+              <Zap className="text-white" size={24} />
+            </div>
+            <p className="text-sm text-gray-400 font-medium">Redirecting to dashboard...</p>
           </div>
-          <p className="text-sm text-gray-400 font-medium">Redirecting to dashboard...</p>
         </div>
-      </div>
       </>
     );
   }
@@ -132,14 +150,14 @@ export default function LandingClient() {
     return (
       <>
         {seoBlock}
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
-            <Zap className="text-white" size={24} />
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="bg-blue-600 rounded-lg p-2 w-12 h-12 flex items-center justify-center animate-pulse">
+              <Zap className="text-white" size={24} />
+            </div>
+            <p className="text-sm text-gray-400 font-medium">Loading...</p>
           </div>
-          <p className="text-sm text-gray-400 font-medium">Loading...</p>
         </div>
-      </div>
       </>
     );
   }
@@ -147,150 +165,288 @@ export default function LandingClient() {
   // unauthenticated OR timed out → render landing page normally
   return (
     <div className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
-            {seoBlock}
-{/* SEO-visible static section — always rendered, no session dependency */}
-<section aria-label="Solar Arrow Overview" className="sr-only">
-      <h1>Solar Arrow — Solar CRM & CSPDCL Project Management Software</h1>
-      <p>
-        Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies.
-        Manage CSPDCL rooftop solar projects — leads, surveys, quotations, installations,
-        and compliance — in one dashboard. One-time cost ₹21,700. AMC ₹4,800/yr.
-        Built for solar businesses in Raipur, Chhattisgarh and across India.
-      </p>
-      <ul>
-        <li>Solar CRM India — track leads and follow-ups</li>
-        <li>CSPDCL compliance and liaison document management</li>
-        <li>Solar quotation builder with QR code sharing</li>
-        <li>Survey scheduling and field data capture</li>
-        <li>Installation tracking from dispatch to commissioning</li>
-        <li>Telegram bot notifications for your team</li>
-        <li>Role-based access: Admin, Sales, Engineer, Finance</li>
-        <li>Progressive Web App — works on Android and iOS</li>
-      </ul>
-    </section>
-    // src/components/LandingClient.tsx
-// Replace the entire navbar section with this:
+      {seoBlock}
 
-{/* ── NAVBAR ── */}
-<nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-  <div className="px-4 sm:px-8 py-3 flex items-center justify-between">
-    {/* Logo */}
-    <div className="flex items-center gap-2">
-      <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
-        <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
-      </div>
-      <span className="text-lg font-extrabold text-gray-900">
-        Solar <span className="text-orange-500">Arrow</span>
-      </span>
-    </div>
-
-    {/* Right side */}
-    <div className="flex items-center gap-2">
-      {/* Desktop links */}
-      <div className="hidden sm:flex items-center gap-1">
-        <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Features</Link>
-        <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Pricing</Link>
-        <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
-          target="_blank" rel="noopener noreferrer"
-          className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">Contact</a>
-        <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Login</Link>
-      </div>
-
-      {/* CTA — always visible */}
-      <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
-        Get Started
-      </Link>
-
-      {/* Mobile hamburger — AFTER Get Started */}
-      <button
-        className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-        onClick={() => setMobileMenuOpen(prev => !prev)}
-        aria-label="Toggle menu"
-      >
-        {mobileMenuOpen ? (
-          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
-      </button>
-    </div>
-  </div>
-
-  {/* Mobile dropdown menu */}
-  {mobileMenuOpen && (
-    <div className="sm:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
-      <Link href="/features" onClick={() => setMobileMenuOpen(false)}
-        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
-        Features
-      </Link>
-      <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}
-        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
-        Pricing
-      </Link>
-      <Link href="/demo" onClick={() => setMobileMenuOpen(false)}
-        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
-        Request Demo
-      </Link>
-      <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
-        target="_blank" rel="noopener noreferrer"
-        onClick={() => setMobileMenuOpen(false)}
-        className="text-sm font-medium text-gray-700 hover:text-green-600 py-2.5 border-b border-gray-50 transition-colors">
-        Contact
-      </a>
-      <Link href="/login" onClick={() => setMobileMenuOpen(false)}
-        className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 transition-colors">
-        Login
-      </Link>
-    </div>
-  )}
-</nav>
-
-      {/* ── HERO ── */}
-      <section className="pt-24 pb-14 sm:pt-36 sm:pb-20 px-4 sm:px-8 max-w-5xl mx-auto text-center">
-        <motion.div variants={stagger} initial="hidden" animate="show">
-          <motion.div variants={fadeUp}
-            className="inline-flex items-center gap-2 bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold px-3 py-1.5 rounded-full mb-5 uppercase tracking-wide"
-          >
-            <Zap size={11} /> Built for Indian Solar Vendors
-          </motion.div>
-
-          <motion.h1 variants={fadeUp}
-            className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-5 px-2"
-          >
-            Manage Solar Business{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-orange-500 bg-clip-text text-transparent">
-              From Lead to Subsidy
-            </span>
-          </motion.h1>
-
-          <motion.p variants={fadeUp}
-            className="text-base sm:text-xl text-gray-500 max-w-2xl mx-auto mb-7 leading-relaxed px-2"
-          >
-            Solar Arrow gives solar vendors a single platform to track the complete installation pipeline — enquiries, surveys, quotations, payments, BOM, dispatch, liaison, and subsidy claims.
-          </motion.p>
-
-          <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center px-4">
-            <Link href="/login"
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
-            >
-              Start Free Trial <ArrowRight size={18} />
-            </Link>
-            <Link href="/dashboard"
-              className="border-2 border-orange-400 text-orange-600 hover:bg-orange-500 hover:text-white font-semibold px-7 py-3.5 rounded-xl text-base transition-all"
-            >
-              View Live Demo
-            </Link>
-          </motion.div>
-
-          <motion.p variants={fadeUp} className="text-xs text-gray-400 mt-4">
-            No credit card required · Mobile-first PWA · Free onboarding
-          </motion.p>
-        </motion.div>
+      {/* SEO-visible static section — always rendered, no session dependency */}
+      <section aria-label="Solar Arrow Overview" className="sr-only">
+        <h1>Solar Arrow — Solar CRM & CSPDCL Project Management Software</h1>
+        <p>
+          Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies.
+          Manage CSPDCL rooftop solar projects — leads, surveys, quotations, installations,
+          and compliance — in one dashboard. One-time cost ₹21,700. AMC ₹4,800/yr.
+          Built for solar businesses in Raipur, Chhattisgarh and across India.
+        </p>
+        <ul>
+          <li>Solar CRM India — track leads and follow-ups</li>
+          <li>CSPDCL compliance and liaison document management</li>
+          <li>Solar quotation builder with QR code sharing</li>
+          <li>Survey scheduling and field data capture</li>
+          <li>Installation tracking from dispatch to commissioning</li>
+          <li>Telegram bot notifications for your team</li>
+          <li>Role-based access: Admin, Sales, Engineer, Finance</li>
+          <li>Progressive Web App — works on Android and iOS</li>
+        </ul>
       </section>
+
+      {/* ── NAVBAR ── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
+        <div className="px-4 sm:px-8 py-3 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="bg-blue-600 rounded-lg p-1.5 w-9 h-9 flex items-center justify-center flex-shrink-0">
+              <Image src="/SA_logo.png" alt="Solar Arrow" width={24} height={24} className="object-contain" />
+            </div>
+            <span className="text-lg font-extrabold text-gray-900">
+              Solar <span className="text-orange-500">Arrow</span>
+            </span>
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            {/* Desktop links */}
+            <div className="hidden sm:flex items-center gap-1">
+              <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Features</Link>
+              <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Pricing</Link>
+              <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+                target="_blank" rel="noopener noreferrer"
+                className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">Contact</a>
+              <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Login</Link>
+            </div>
+
+            {/* CTA — always visible */}
+            <Link href="/login" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
+              Get Started
+            </Link>
+
+            {/* Mobile hamburger — AFTER Get Started */}
+            <button
+              className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="sm:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-1">
+            <Link href="/features" onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
+              Features
+            </Link>
+            <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
+              Pricing
+            </Link>
+            <Link href="/demo" onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
+              Request Demo
+            </Link>
+            <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-green-600 py-2.5 border-b border-gray-50 transition-colors">
+              Contact
+            </a>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 transition-colors">
+              Login
+            </Link>
+          </div>
+        )}
+      </nav>
+
+      {/* ─────────────────────────────────────────────────────────────
+          ── HERO — Split layout: left copy + right 3D floating card ──
+          ───────────────────────────────────────────────────────────── */}
+      <section
+        aria-label="Solar Arrow — Complete Solar Business Management"
+        className="relative pt-24 pb-0 sm:pt-28 overflow-hidden"
+      >
+        {/* Orange radial glow — right side, pure CSS, zero weight */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 70% at 78% 45%, rgba(251,146,60,0.10) 0%, transparent 65%), radial-gradient(ellipse 40% 50% at 20% 60%, rgba(37,99,235,0.06) 0%, transparent 60%)',
+          }}
+        />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 pb-14 sm:pb-20">
+
+            {/* ── LEFT COLUMN — People-first, EEAT-optimised copy ── */}
+<motion.div
+  variants={stagger}
+  initial="hidden"
+  animate="show"
+  className="flex-1 text-left max-w-xl lg:max-w-none"
+>
+  {/* Human-first context line — no badge, no pill, no icon */}
+  <motion.p variants={fadeUp} className="text-sm font-medium text-orange-500 mb-3 tracking-normal">
+    Built for solar vendors across India
+  </motion.p>
+
+  {/* H1 — two punchy lines, left-aligned, no gradient */}
+  <motion.h1
+    variants={fadeUp}
+    className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold text-gray-900 leading-[1.1] mb-6"
+  >
+    Stop losing solar<br className="hidden sm:block" /> projects to chaos.
+  </motion.h1>
+
+  {/* Sub-copy — specific, names the real pain */}
+  <motion.p variants={fadeUp} className="text-base sm:text-lg text-gray-500 leading-relaxed mb-3 max-w-lg">
+    Solar Arrow tracks every CSPDCL project — from first enquiry
+    to PM Surya Ghar subsidy — so your team always knows
+    what's pending, who's responsible, and what's next.
+  </motion.p>
+
+  {/* Secondary line — authority signal, plain prose not a badge */}
+  <motion.p variants={fadeUp} className="text-sm text-gray-400 mb-7 max-w-lg">
+    Used by empaneled rooftop solar vendors in Chhattisgarh.
+    Replaces Excel, WhatsApp threads, and paper registers.
+  </motion.p>
+
+  {/* CTAs */}
+  <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 mb-5">
+    <Link
+      href="/login"
+      className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
+    >
+      Start Free Trial <ArrowRight size={18} />
+    </Link>
+    <Link
+      href="/dashboard"
+      className="border-2 border-orange-400 text-orange-600 hover:bg-orange-500 hover:text-white font-semibold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center"
+    >
+      View Live Demo
+    </Link>
+  </motion.div>
+
+  {/* Trust micro-line */}
+  <motion.p variants={fadeUp} className="text-xs text-gray-400 mb-8">
+    No credit card required · Mobile-first PWA · Free onboarding
+  </motion.p>
+
+  {/* 3 grounded micro-stats — no labels, just numbers + context */}
+  <motion.div variants={stagger} className="flex flex-wrap gap-6">
+    {[
+      { val: '12',    unit: 'pipeline stages, lead to subsidy',  color: 'text-blue-600'   },
+      { val: '₹0',   unit: 'to explore — no signup needed',     color: 'text-orange-500' },
+      { val: '100%', unit: 'mobile — works on any field phone',  color: 'text-blue-600'   },
+    ].map((s) => (
+      <motion.div key={s.val} variants={fadeUp} className="flex flex-col">
+        <span className={`text-2xl font-extrabold ${s.color}`}>{s.val}</span>
+        <span className="text-xs text-gray-500 leading-tight max-w-[10rem]">{s.unit}</span>
+      </motion.div>
+    ))}
+  </motion.div>
+</motion.div>
+
+            {/* ── RIGHT COLUMN — 3D floating pipeline card (desktop) ── */}
+            {/* On mobile this renders below the copy, full-width, flat (no 3D tilt) */}
+            <div className="flex-1 w-full lg:max-w-md flex items-center justify-center"
+              style={{ perspective: '1100px' }}
+            >
+              <motion.div
+                variants={heroCard3d}
+                initial="hidden"
+                animate="show"
+                whileHover={{
+                  rotateY: -4,
+                  rotateX: 2,
+                  y: -8,
+                  transition: { duration: 0.35, ease: 'easeOut' },
+                }}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  filter: 'drop-shadow(0 32px 56px rgba(37,99,235,0.15)) drop-shadow(0 8px 16px rgba(0,0,0,0.07))',
+                }}
+                className="w-full max-w-sm lg:max-w-none bg-white rounded-2xl border border-blue-100 overflow-hidden"
+              >
+                {/* Card header bar */}
+                <div className="bg-blue-600 px-5 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white/20 rounded-md p-1 flex items-center justify-center">
+                      <Zap size={14} className="text-white" />
+                    </div>
+                    <span className="text-white font-bold text-sm">Solar Arrow Pipeline</span>
+                  </div>
+                  {/* Floating live badge */}
+                  <span className="inline-flex items-center gap-1 bg-orange-400 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+                    Live
+                  </span>
+                </div>
+
+                {/* Org context line */}
+                <div className="bg-blue-50 border-b border-blue-100 px-5 py-2 flex items-center justify-between">
+                  <span className="text-xs text-blue-700 font-medium">Hope Energy · Raipur, CG</span>
+                  <span className="text-xs text-gray-400">4 active projects</span>
+                </div>
+
+                {/* Pipeline stage rows */}
+                <div className="divide-y divide-gray-50 px-5">
+                  {heroStages.map((stage, i) => (
+                    <div key={i} className="flex items-center gap-3 py-3.5">
+                      {/* Icon */}
+                      <div className={`${stage.bg} ${stage.color} rounded-lg p-2 flex-shrink-0`}>
+                        <stage.icon size={16} />
+                      </div>
+
+                      {/* Stage name + customer label */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 leading-tight">{stage.name}</p>
+                        <p className="text-xs text-gray-400 leading-tight truncate">{stage.label}</p>
+                      </div>
+
+                      {/* Status pill */}
+                      {stage.status === 'done' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                          <CheckCircle size={11} /> Done
+                        </span>
+                      )}
+                      {stage.status === 'active' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                          Active
+                        </span>
+                      )}
+                      {stage.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Card footer */}
+                <div className="bg-gray-50 border-t border-gray-100 px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-gray-500 font-medium">12-stage pipeline · All roles</span>
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600">
+                    See all stages <ArrowRight size={11} />
+                  </span>
+                </div>
+              </motion.div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+      {/* ── END HERO ── */}
 
       {/* ── PROBLEM ── */}
       <section className="bg-gray-50 border-y border-gray-100 py-12 sm:py-20 px-4 sm:px-8">
@@ -318,7 +474,8 @@ export default function LandingClient() {
       <section className="py-12 sm:py-20 px-4 sm:px-8 max-w-6xl mx-auto">
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}>
           <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">One Pipeline. Every Stage.</h2>
-          <p className="text-center text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">12 stages of the solar installation workflow — visible in a single dashboard.</p>        </motion.div>
+          <p className="text-center text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">12 stages of the solar installation workflow — visible in a single dashboard.</p>
+        </motion.div>
         <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3"
         >
@@ -415,18 +572,18 @@ export default function LandingClient() {
             Ready to run a tighter solar operation?
           </motion.h2>
           <motion.p variants={fadeUp} className="text-blue-100 mb-2 text-sm sm:text-base max-w-xl mx-auto">
-  One-time setup at ₹21,700 · Annual maintenance ₹4,800/yr
-</motion.p>
-<motion.p variants={fadeUp} className="text-blue-200 mb-8 text-xs max-w-xl mx-auto">
-  Includes onboarding, Google Sheets setup, and full pipeline access for your team.
-</motion.p>
+            One-time setup at ₹21,700 · Annual maintenance ₹4,800/yr
+          </motion.p>
+          <motion.p variants={fadeUp} className="text-blue-200 mb-8 text-xs max-w-xl mx-auto">
+            Includes onboarding, Google Sheets setup, and full pipeline access for your team.
+          </motion.p>
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
-  target="_blank" rel="noopener noreferrer"
-  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
->
-  Contact Us <ArrowRight size={18} />
-</a>
+            <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
+              target="_blank" rel="noopener noreferrer"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5"
+            >
+              Contact Us <ArrowRight size={18} />
+            </a>
             <Link href="/dashboard"
               className="border-2 border-white/60 text-white hover:bg-white/10 font-semibold px-8 py-3.5 rounded-xl text-base transition-all"
             >
