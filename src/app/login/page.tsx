@@ -3,7 +3,7 @@
 import { signIn, useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 
 function LoginForm() {
@@ -19,6 +19,8 @@ const callbackUrl = rawCallback.startsWith('http') ? '/dashboard' : decodeURICom
   const [signupData, setSignupData] = useState({ name: '', email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   // ✅ Replace with
 useEffect(() => {
@@ -68,10 +70,18 @@ const handleGoogleSignIn = async () => {
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('Account creation coming soon!');
-  };
+  // REPLACE WITH
+const handleSignup = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  try {
+    await signIn('google', { callbackUrl: '/settings', redirect: true });
+  } catch (err: any) {
+    setError('Failed to sign up. Please try again.');
+    setLoading(false);
+  }
+};
 
   if (status === 'loading') {
     return (
@@ -167,28 +177,36 @@ const handleGoogleSignIn = async () => {
             {loginType === 'user' && (
               <>
                 <form onSubmit={handleCredentialsSignIn} className="w-full max-w-xs">
-                  <div className="relative w-full mb-3">
-                    <Mail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
-                      value={credentials.email}
-                      onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                      required
-                    />
-                  </div>
+                <div className="relative w-full mb-3">
+        <Mail className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
+          value={credentials.email}
+          onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+          required
+        />
+      </div>
 
-                  <div className="relative w-full mb-3">
+      <div className="relative w-full mb-3">
                     <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       placeholder="Password"
-                      className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
+                      className="w-full pl-9 sm:pl-11 pr-10 sm:pr-4 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
                       value={credentials.password}
                       onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                       required
                     />
+                                        <button
+                      type="button"
+                      onClick={() => setShowPassword(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
                   </div>
 
                   <a href="#" className="text-blue-600 text-xs mb-4 block hover:text-indigo-700 transition-colors">
@@ -277,15 +295,23 @@ const handleGoogleSignIn = async () => {
               </div>
 
               <div className="relative w-full mb-4">
-                <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                />
-              </div>
+  <Lock className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+  <input
+    type={showSignupPassword ? 'text' : 'password'}
+    placeholder="Password"
+    className="w-full pl-9 sm:pl-11 pr-10 py-2.5 bg-gray-100 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white transition-all outline-none text-sm text-gray-600"
+    value={signupData.password}
+    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+  />
+  <button
+    type="button"
+    onClick={() => setShowSignupPassword(p => !p)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+    aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+  >
+    {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+  </button>
+</div>
 
               <button
                 type="submit"
