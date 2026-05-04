@@ -10,8 +10,7 @@ import { motion, type Variants } from 'framer-motion';
 import {
   PhoneCall, FileText, ClipboardCheck, FileCheck,
   Scale, IndianRupee, Wrench, Package, Truck,
-  Zap, ArrowRight, TrendingUp, Shield, Smartphone,
-  CheckCircle
+  Zap, ArrowRight, TrendingUp, Shield, Smartphone
 } from 'lucide-react';
 
 // ── animation helpers ──────────────────────────────────────────
@@ -101,6 +100,7 @@ export default function LandingClient() {
     }
     if (status === 'loading') {
       const t = setTimeout(() => setSessionTimedOut(true), 3000);
+
       return () => clearTimeout(t);
     }
   }, [status, router]);
@@ -273,15 +273,56 @@ export default function LandingClient() {
         aria-label="Solar Arrow — Complete Solar Business Management"
         className="relative pt-24 pb-0 sm:pt-28 overflow-hidden"
       >
-        {/* Orange radial glow — right side, pure CSS, zero weight */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse 60% 70% at 78% 45%, rgba(251,146,60,0.10) 0%, transparent 65%), radial-gradient(ellipse 40% 50% at 20% 60%, rgba(37,99,235,0.06) 0%, transparent 60%)',
-          }}
-        />
+        {/* ── Background: radial glow + dot grid + floating particles ── */}
+<div aria-hidden="true" className="pointer-events-none absolute inset-0">
+
+{/* Radial glow — unchanged */}
+<div
+  className="absolute inset-0"
+  style={{
+    background:
+      'radial-gradient(ellipse 60% 70% at 78% 45%, rgba(251,146,60,0.10) 0%, transparent 65%), radial-gradient(ellipse 40% 50% at 20% 60%, rgba(37,99,235,0.06) 0%, transparent 60%)',
+  }}
+/>
+
+{/* Dot grid — static SVG pattern */}
+<svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="dot-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#2563eb" fillOpacity="0.07" />
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#dot-grid)" />
+</svg>
+
+{/* Floating particles */}
+{[
+  { left: '8%',  size: 3,   dur: '14s', delay: '0s',  opacity: 0.18, color: '#f97316' },
+  { left: '18%', size: 2,   dur: '20s', delay: '3s',  opacity: 0.12, color: '#2563eb' },
+  { left: '32%', size: 4,   dur: '17s', delay: '6s',  opacity: 0.10, color: '#f97316' },
+  { left: '52%', size: 2.5, dur: '22s', delay: '1s',  opacity: 0.13, color: '#2563eb' },
+  { left: '68%', size: 3,   dur: '16s', delay: '8s',  opacity: 0.15, color: '#f97316' },
+  { left: '80%', size: 2,   dur: '19s', delay: '4s',  opacity: 0.10, color: '#2563eb' },
+  { left: '91%', size: 3.5, dur: '13s', delay: '2s',  opacity: 0.12, color: '#f97316' },
+  { left: '44%', size: 2,   dur: '25s', delay: '11s', opacity: 0.08, color: '#2563eb' },
+].map((p, i) => (
+  <div
+    key={i}
+    style={{
+      position: 'absolute',
+      left: p.left,
+      bottom: '-10px',
+      width:  p.size * 2,
+      height: p.size * 2,
+      borderRadius: '50%',
+      backgroundColor: p.color,
+      opacity: p.opacity,
+      animation: `floatUp ${p.dur} ${p.delay} infinite linear`,
+    }}
+  />
+))}
+
+</div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16 pb-14 sm:pb-20">
@@ -412,10 +453,21 @@ export default function LandingClient() {
                         <p className="text-xs text-gray-400 leading-tight truncate">{stage.label}</p>
                       </div>
 
-                      {/* Status pill */}
-                      {stage.status === 'done' && (
+                                           {/* Status pill */}
+                                           {stage.status === 'done' && (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full flex-shrink-0">
-                          <CheckCircle size={11} /> Done
+                          ✓ Done
+                        </span>
+                      )}
+                      {stage.status === 'active' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                          Active
+                        </span>
+                      )}
+                      {stage.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                          Pending
                         </span>
                       )}
                       {stage.status === 'active' && (
