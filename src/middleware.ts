@@ -19,12 +19,12 @@ const publicRoutes = [
   '/google4b566dcd00eccdcc.html',
   '/features',    
   '/pricing',     
-  '/demo',  
+  '/demo',
+  '/docs'  
 ];
 
 const alwaysAllowedRoutes = [
   '/dashboard',
-  '/kanban',
   '/settings',
   '/reports',
 ];
