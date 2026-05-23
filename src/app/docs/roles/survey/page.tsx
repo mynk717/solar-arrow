@@ -1,10 +1,10 @@
-// src/app/docs/pipeline/subsidy/page.tsx
+// src/app/docs/roles/survey/page.tsx
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Subsidy Pipeline · Solar Arrow Docs',
+  title: 'Surveyor Dashboard · Solar Arrow Docs',
   description:
-    'Guide to the Subsidy pipeline in Solar Arrow — managing PM Surya Ghar claims and final disbursement.',
+    'Guide for Surveyors in Solar Arrow — managing site visits, technical surveys, and report submission.',
 };
 
 const DOCS_NAV = [
@@ -23,12 +23,12 @@ const DOCS_NAV = [
     { label: 'Liaison', href: '/docs/pipeline/liaison', id: '10' },
     { label: 'Installation', href: '/docs/pipeline/installation', id: '11' },
     { label: 'Payments', href: '/docs/pipeline/payments', id: '12' },
-    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13', active: true },
+    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13' },
   ]},
   { group: 'Roles', items: [
     { label: 'Owner & Admin', href: '/docs/roles/owner-admin', id: '14' },
     { label: 'Sales', href: '/docs/roles/sales', id: '15' },
-    { label: 'Surveyor', href: '/docs/roles/survey', id: '16' },
+    { label: 'Surveyor', href: '/docs/roles/survey', id: '16', active: true },
     { label: 'Installation', href: '/docs/roles/installation', id: '17' },
     { label: 'Accounts', href: '/docs/roles/accounts', id: '18' },
   ]},
@@ -53,7 +53,7 @@ const DOCS_NAV = [
   ]},
 ];
 
-export default function SubsidyPipelinePage() {
+export default function SurveyorDashboardPage() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff7ed,#f5f5f7)] text-slate-900">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur">
@@ -67,7 +67,7 @@ export default function SubsidyPipelinePage() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Subsidy Pipeline</span>
+          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Surveyor Dashboard</span>
           <span>v1.0 · 27 pages</span>
         </div>
       </header>
@@ -93,46 +93,61 @@ export default function SubsidyPipelinePage() {
         <main className="max-w-5xl px-4 py-6 md:px-6">
           <section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Subsidy management</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Surveyor dashboard &amp; workflow</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
-              The final stage of the solar journey. This module tracks the PM Surya Ghar subsidy application from submission to disbursement.
+              As a Surveyor, you handle the technical feasibility of projects. You see site visits assigned to you and submit detailed reports for approval.
             </p>
             <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Accounts, Liaison, Owners</span>
+              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Surveyors</span>
               <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 4–6 minutes</span>
             </div>
           </section>
 
           <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
-            <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
+            <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Workflow Statuses</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">lifecycle</span>
+                <h2 className="text-sm font-semibold">Assigned Surveys</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">task list</span>
               </header>
-              <p className="text-[13px] text-slate-600">Monitor subsidy progress via real system states:</p>
+              <p className="text-[13px] text-slate-600">Your dashboard shows projects where you are the allotted surveyor (<code className="font-mono text-xs font-bold text-orange-600">surveyorEmail</code>).</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-pending</code>: Inspection approved, ready for portal claim.</li>
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-disbursed</code>: Final funds received by the customer/vendor.</li>
+                <li><strong className="font-semibold text-slate-900">Awaiting Visit:</strong> Projects with status <code className="font-mono text-xs text-blue-600 font-bold">survey-scheduled</code>.</li>
+                <li><strong className="font-semibold text-slate-900">Pending Review:</strong> Surveys you have submitted but aren't yet approved.</li>
+                <li><strong className="font-semibold text-slate-900">Approved/Rejected:</strong> Final verdict from Admin/Owner.</li>
               </ul>
             </article>
 
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Financial Tracking</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">data</span>
+                <h2 className="text-sm font-semibold">Field Permissions</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">access</span>
               </header>
-              <p className="text-[13px] text-slate-600">Capture these fields to close the project:</p>
+              <p className="text-[13px] text-slate-600">Users with the <code className="font-mono text-xs font-bold text-orange-600">surveyor</code> role have:</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs">subsidyAmount</code>: Total expected benefit.</li>
-                <li><code className="font-mono text-xs">subsidyStatus</code>: <code className="font-mono text-xs">pending</code>, <code className="font-mono text-xs">approved</code>, <code className="font-mono text-xs">disbursed</code>.</li>
-                <li><code className="font-mono text-xs">finalDisbursementDate</code>: Project closure date.</li>
+                <li><strong className="text-slate-900">View:</strong> Survey, Enquiries, Kanban, and Dashboard.</li>
+                <li><strong className="text-slate-900">Edit:</strong> Survey details for assigned enquiries only.</li>
+                <li><strong className="text-slate-900">Actions:</strong> Upload photos, capture load details, and cable sizing.</li>
               </ul>
             </article>
           </section>
 
-          <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
-            <h2 className="text-sm font-semibold mb-2">Project Completion</h2>
-            <p className="text-[13px] text-slate-600">A project is only considered <code className="font-mono text-xs font-bold text-green-600">active</code> (fully complete) once both the <code className="font-mono text-xs font-bold">subsidyStatus</code> and <code className="font-mono text-xs font-bold">paymentStatus</code> are finalized.</p>
+          <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
+            <h2 className="text-sm font-semibold mb-2">Submitting a Report</h2>
+            <p className="text-[13px] text-slate-600">A complete survey report requires technical data and visual evidence.</p>
+            <div className="mt-3 grid gap-4 md:grid-cols-3 text-[12px]">
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <p className="font-bold text-slate-900 mb-1">Electricals</p>
+                <p className="text-slate-600">Capture <code className="font-mono text-xs">sanctionedLoad</code>, Phase, and Transformer details.</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <p className="font-bold text-slate-900 mb-1">Structure</p>
+                <p className="text-slate-600">Select <code className="font-mono text-xs">installationSurface</code> and roof type.</p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <p className="font-bold text-slate-900 mb-1">Evidence</p>
+                <p className="text-slate-600">Upload mandatory <code className="font-mono text-xs">surveyPhotos</code> of the roof and meter.</p>
+              </div>
+            </div>
           </section>
         </main>
       </div>

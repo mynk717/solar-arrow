@@ -1,10 +1,10 @@
-// src/app/docs/pipeline/subsidy/page.tsx
+// src/app/docs/analytics/reports/page.tsx
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Subsidy Pipeline · Solar Arrow Docs',
+  title: 'Reports & Analytics · Solar Arrow Docs',
   description:
-    'Guide to the Subsidy pipeline in Solar Arrow — managing PM Surya Ghar claims and final disbursement.',
+    'Learn how to use Solar Arrow reports to track team performance and project conversion rates.',
 };
 
 const DOCS_NAV = [
@@ -23,7 +23,7 @@ const DOCS_NAV = [
     { label: 'Liaison', href: '/docs/pipeline/liaison', id: '10' },
     { label: 'Installation', href: '/docs/pipeline/installation', id: '11' },
     { label: 'Payments', href: '/docs/pipeline/payments', id: '12' },
-    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13', active: true },
+    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13' },
   ]},
   { group: 'Roles', items: [
     { label: 'Owner & Admin', href: '/docs/roles/owner-admin', id: '14' },
@@ -39,7 +39,7 @@ const DOCS_NAV = [
     { label: 'Google OAuth', href: '/docs/integrations/google-oauth', id: '22' },
   ]},
   { group: 'Analytics', items: [
-    { label: 'Reports', href: '/docs/analytics/reports', id: '23' },
+    { label: 'Reports', href: '/docs/analytics/reports', id: '23', active: true },
   ]},
   { group: 'Settings', items: [
     { label: 'Organization & Branches', href: '/docs/settings/organization-branches', id: '24' },
@@ -53,7 +53,7 @@ const DOCS_NAV = [
   ]},
 ];
 
-export default function SubsidyPipelinePage() {
+export default function AnalyticsReportsPage() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff7ed,#f5f5f7)] text-slate-900">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur">
@@ -67,7 +67,7 @@ export default function SubsidyPipelinePage() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Subsidy Pipeline</span>
+          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Reports</span>
           <span>v1.0 · 27 pages</span>
         </div>
       </header>
@@ -93,46 +93,47 @@ export default function SubsidyPipelinePage() {
         <main className="max-w-5xl px-4 py-6 md:px-6">
           <section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Subsidy management</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Data &amp; reporting</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
-              The final stage of the solar journey. This module tracks the PM Surya Ghar subsidy application from submission to disbursement.
+              Transform your pipeline data into actionable insights. Solar Arrow provides built-in charts and tables to monitor your business health.
             </p>
             <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Accounts, Liaison, Owners</span>
-              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 4–6 minutes</span>
+              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Owners, Admins</span>
+              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 5–7 minutes</span>
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+          <section className="grid gap-4 md:grid-cols-2">
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Workflow Statuses</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">lifecycle</span>
+                <h2 className="text-sm font-semibold">Conversion Reports</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">sales</span>
               </header>
-              <p className="text-[13px] text-slate-600">Monitor subsidy progress via real system states:</p>
+              <p className="text-[13px] text-slate-600">Track how effectively your team moves leads through the funnel.</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-pending</code>: Inspection approved, ready for portal claim.</li>
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-disbursed</code>: Final funds received by the customer/vendor.</li>
+                <li><strong className="text-slate-900">Lead to Enquiry:</strong> Measures initial qualification success.</li>
+                <li><strong className="text-slate-900">Enquiry to Survey:</strong> Tracks technical team responsiveness.</li>
+                <li><strong className="text-slate-900">Survey to Quote:</strong> Measures sales speed.</li>
               </ul>
             </article>
 
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Financial Tracking</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">data</span>
+                <h2 className="text-sm font-semibold">Operations Reports</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">execution</span>
               </header>
-              <p className="text-[13px] text-slate-600">Capture these fields to close the project:</p>
+              <p className="text-[13px] text-slate-600">Monitor bottlenecks in the physical execution of projects.</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs">subsidyAmount</code>: Total expected benefit.</li>
-                <li><code className="font-mono text-xs">subsidyStatus</code>: <code className="font-mono text-xs">pending</code>, <code className="font-mono text-xs">approved</code>, <code className="font-mono text-xs">disbursed</code>.</li>
-                <li><code className="font-mono text-xs">finalDisbursementDate</code>: Project closure date.</li>
+                <li><strong className="text-slate-900">Pending BOMs:</strong> Lists projects waiting for material lists.</li>
+                <li><strong className="text-slate-900">Installation Queue:</strong> Active sites and their <code className="font-mono text-xs">installationStatus</code>.</li>
+                <li><strong className="text-slate-900">WCR Ageing:</strong> How long projects take from completion to technical handover.</li>
               </ul>
             </article>
           </section>
 
           <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
-            <h2 className="text-sm font-semibold mb-2">Project Completion</h2>
-            <p className="text-[13px] text-slate-600">A project is only considered <code className="font-mono text-xs font-bold text-green-600">active</code> (fully complete) once both the <code className="font-mono text-xs font-bold">subsidyStatus</code> and <code className="font-mono text-xs font-bold">paymentStatus</code> are finalized.</p>
+            <h2 className="text-sm font-semibold mb-2">Exporting Data</h2>
+            <p className="text-[13px] text-slate-600">Every report table in Solar Arrow comes with an "Export to CSV" button for users with the <code className="font-mono text-xs font-bold text-orange-600">canExport</code> permission. This allows you to perform custom deep-dives in Excel or other tools.</p>
           </section>
         </main>
       </div>

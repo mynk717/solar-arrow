@@ -13,7 +13,7 @@ import TokenAutoRefresh from '@/components/TokenAutoRefresh';
 const PUBLIC_EXACT = ['/', '/login', '/onboard', '/features', '/pricing', '/demo'];
 
 // Prefix paths — no sidebar for these and all their sub-routes
-const PUBLIC_PREFIXES = ['/q/', '/privacy', '/terms', '/unauthorized'];
+const PUBLIC_PREFIXES = ['/q/', '/privacy', '/terms', '/unauthorized', '/docs'];
 
 // Paths that use app shell but hide the sidebar (full-width pages)
 const NO_SIDEBAR_EXACT = ['/reports'];

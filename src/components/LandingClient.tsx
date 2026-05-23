@@ -92,8 +92,15 @@ export default function LandingClient() {
   const router = useRouter();
   const [sessionTimedOut, setSessionTimedOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
+    // Check for consent
+    const consent = localStorage.getItem('sa_consent');
+    if (!consent) {
+      setShowConsent(true);
+    }
+
     if (status === 'authenticated') {
       router.replace('/dashboard');
       return;
@@ -207,6 +214,7 @@ export default function LandingClient() {
             <div className="hidden sm:flex items-center gap-1">
               <Link href="/features" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Features</Link>
               <Link href="/pricing" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Pricing</Link>
+              <Link href="/docs" className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-1.5">Docs</Link>
               <a href="https://wa.me/917225991909?text=Hi%2C%20I%27m%20interested%20in%20Solar%20Arrow"
                 target="_blank" rel="noopener noreferrer"
                 className="text-sm font-medium text-gray-600 hover:text-green-600 transition-colors px-3 py-1.5">Contact</a>
@@ -247,6 +255,10 @@ export default function LandingClient() {
             <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
               Pricing
+            </Link>
+            <Link href="/docs" onClick={() => setMobileMenuOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
+              Documentation
             </Link>
             <Link href="/demo" onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-medium text-gray-700 hover:text-blue-600 py-2.5 border-b border-gray-50 transition-colors">
@@ -373,6 +385,12 @@ export default function LandingClient() {
       className="border-2 border-orange-400 text-orange-600 hover:bg-orange-500 hover:text-white font-semibold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center"
     >
       View Live Demo
+    </Link>
+    <Link
+      href="/docs"
+      className="border-2 border-blue-100 text-blue-600 hover:bg-blue-50 font-semibold px-7 py-3.5 rounded-xl text-base transition-all flex items-center justify-center gap-2"
+    >
+      Documentation <Zap size={16} className="text-orange-400" />
     </Link>
   </motion.div>
 
@@ -677,6 +695,46 @@ export default function LandingClient() {
         </div>
         <p className="text-xs text-gray-600">&copy; {new Date().getFullYear()} Marketing Dime. All rights reserved.</p>
       </footer>
+
+      {/* ── CONSENT BANNER ── */}
+      {showConsent && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed bottom-4 left-4 right-4 z-[60] sm:left-auto sm:right-6 sm:w-96"
+        >
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-5 sm:p-6">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="bg-blue-50 text-blue-600 p-2 rounded-xl shrink-0">
+                <Shield size={24} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 mb-1">Welcome to Solar Arrow</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  We use basic analytics to improve your experience. By continuing to explore our solar management platform, you agree to our terms.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  localStorage.setItem('sa_consent', 'true');
+                  setShowConsent(false);
+                }}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-md shadow-blue-200"
+              >
+                Accept & Continue
+              </button>
+              <Link
+                href="/privacy"
+                className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-semibold py-2.5 rounded-xl transition-all border border-gray-100 text-center"
+              >
+                Privacy Policy
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
     </div>
   );

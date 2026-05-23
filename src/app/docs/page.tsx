@@ -7,6 +7,52 @@ export const metadata: Metadata = {
     'High-level overview of Solar Arrow — what it does, who it is for, and how the solar pipeline flows from lead to subsidy.',
 };
 
+const DOCS_NAV = [
+  { group: 'Overview', items: [
+    { label: 'Welcome & Overview', href: '/docs', id: '01', active: true },
+    { label: 'Getting Started', href: '/docs/getting-started', id: '02' },
+    { label: 'Login & Accounts', href: '/docs/login-accounts', id: '03' },
+  ]},
+  { group: 'Pipelines', items: [
+    { label: 'Leads', href: '/docs/pipeline/leads', id: '04' },
+    { label: 'Enquiries', href: '/docs/pipeline/enquiries', id: '05' },
+    { label: 'Survey', href: '/docs/pipeline/survey', id: '06' },
+    { label: 'Quotation', href: '/docs/pipeline/quotation', id: '07' },
+    { label: 'Registration', href: '/docs/pipeline/registration', id: '08' },
+    { label: 'BOM & Dispatch', href: '/docs/pipeline/bom-dispatch', id: '09' },
+    { label: 'Liaison', href: '/docs/pipeline/liaison', id: '10' },
+    { label: 'Installation', href: '/docs/pipeline/installation', id: '11' },
+    { label: 'Payments', href: '/docs/pipeline/payments', id: '12' },
+    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13' },
+  ]},
+  { group: 'Roles', items: [
+    { label: 'Owner & Admin', href: '/docs/roles/owner-admin', id: '14' },
+    { label: 'Sales', href: '/docs/roles/sales', id: '15' },
+    { label: 'Surveyor', href: '/docs/roles/survey', id: '16' },
+    { label: 'Installation', href: '/docs/roles/installation', id: '17' },
+    { label: 'Accounts', href: '/docs/roles/accounts', id: '18' },
+  ]},
+  { group: 'Integrations', items: [
+    { label: 'Google Sheets', href: '/docs/integrations/google-sheets', id: '19' },
+    { label: 'Redis & Telegram', href: '/docs/integrations/redis-telegram', id: '20' },
+    { label: 'PWA Mobile', href: '/docs/integrations/pwa-mobile', id: '21' },
+    { label: 'Google OAuth', href: '/docs/integrations/google-oauth', id: '22' },
+  ]},
+  { group: 'Analytics', items: [
+    { label: 'Reports', href: '/docs/analytics/reports', id: '23' },
+  ]},
+  { group: 'Settings', items: [
+    { label: 'Organization & Branches', href: '/docs/settings/organization-branches', id: '24' },
+    { label: 'Users & Permissions', href: '/docs/settings/users-permissions', id: '25' },
+  ]},
+  { group: 'Pricing', items: [
+    { label: 'Pricing Demo', href: '/docs/pricing-demo', id: '26' },
+  ]},
+  { group: 'FAQ', items: [
+    { label: 'FAQ', href: '/docs/faq', id: '27' },
+  ]},
+];
+
 export default function DocsOverviewPage() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff7ed,#f5f5f7)] text-slate-900">
@@ -34,64 +80,33 @@ export default function DocsOverviewPage() {
       {/* Layout */}
       <div className="grid min-h-[calc(100vh-56px)] grid-cols-1 md:grid-cols-[260px,minmax(0,1fr)]">
         {/* Sidebar */}
-        <aside className="hidden border-r border-slate-900/60 bg-slate-950 px-3 py-4 text-slate-100 md:flex md:flex-col md:gap-4">
-          <div>
-            <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-              Overview
+        <aside className="hidden border-r border-slate-900/60 bg-slate-950 px-3 py-4 text-slate-100 md:flex md:flex-col md:gap-4 overflow-y-auto max-h-[calc(100vh-56px)]">
+          {DOCS_NAV.map((group) => (
+            <div key={group.group}>
+              <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                {group.group}
+              </div>
+              <nav className="flex flex-col gap-1 text-[13px]">
+                {group.items.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-between rounded-md px-2 py-1.5 transition-all ${
+                      item.active
+                        ? 'bg-gradient-to-r from-rose-500/20 via-orange-500/25 to-orange-500/25 text-slate-50 shadow-sm shadow-black/40'
+                        : 'text-slate-200 hover:bg-slate-800/70'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    <small className={`text-[10px] uppercase tracking-[0.14em] ${item.active ? 'text-slate-300' : 'text-slate-500'}`}>
+                      {item.id}
+                    </small>
+                  </a>
+                ))}
+              </nav>
+              <div className="my-3 h-px bg-gradient-to-r from-slate-700/10 via-slate-500/40 to-slate-700/10" />
             </div>
-            <nav className="flex flex-col gap-1 text-[13px]">
-              <div className="flex items-center justify-between rounded-md bg-gradient-to-r from-rose-500/20 via-orange-500/25 to-orange-500/25 px-2 py-1.5 text-slate-50 shadow-sm shadow-black/40">
-                <span>Welcome &amp; Overview</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-300">
-                  01
-                </small>
-              </div>
-              <a
-                href="/docs/getting-started"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70"
-              >
-                <span>Getting Started</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  02
-                </small>
-              </a>
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Login &amp; Accounts</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  03
-                </small>
-              </div>
-            </nav>
-          </div>
-
-          <div className="h-px bg-gradient-to-r from-slate-700/10 via-slate-500/40 to-slate-700/10" />
-
-          <div>
-            <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-              Pipelines
-            </div>
-            <nav className="flex flex-col gap-1 text-[13px]">
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Leads</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  04
-                </small>
-              </div>
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Enquiries</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  05
-                </small>
-              </div>
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Survey</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  06
-                </small>
-              </div>
-              {/* Continue later for all 27 labels */}
-            </nav>
-          </div>
+          ))}
         </aside>
 
         {/* Main content */}
@@ -158,12 +173,12 @@ export default function DocsOverviewPage() {
               </header>
               <p className="text-[13px] text-slate-600">
                 Solar Arrow is designed for solar vendors and installation companies working with
-                rooftop solar projects in India, including CSPDCL empaneled vendors.
+                rooftop solar projects in India, including PM Surya Ghar empaneled vendors.
               </p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
                 <li>Solar companies managing multiple residential or commercial projects</li>
                 <li>Teams that want a single view of all active systems and their current stage</li>
-                <li>Owners who need visibility from lead to PM Surya Ghar subsidy claim</li>
+                <li>Owners who need visibility from lead to subsidy claim</li>
               </ul>
             </article>
           </section>
@@ -183,10 +198,10 @@ export default function DocsOverviewPage() {
               </p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
                 <li>Owner &amp; Admin: full visibility across all pipelines and reports</li>
-                <li>Sales: leads and enquiries</li>
-                <li>Survey: scheduled site surveys and updates</li>
-                <li>Installation: project installation tasks and status</li>
-                <li>Accounts: quotations, payments, and subsidy documentation</li>
+                <li>Sales: manage leads and enquiries</li>
+                <li>Surveyor: handle on-site survey tasks and updates</li>
+                <li>Installation: track installation progress</li>
+                <li>Accounts: manage quotations, payments, and subsidy paperwork</li>
               </ul>
             </article>
 
@@ -222,7 +237,7 @@ export default function DocsOverviewPage() {
                   <div>
                     <p className="font-medium text-slate-800">Jump to your role</p>
                     <p className="text-slate-600">
-                      Use the role-specific pages (Owner, Admin, Sales, Survey, Installation,
+                      Use the role-specific pages (Owner, Admin, Sales, Surveyor, Installation,
                       Accounts) to see what you can do in Solar Arrow.
                     </p>
                   </div>

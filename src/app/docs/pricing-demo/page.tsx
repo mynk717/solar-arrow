@@ -1,10 +1,10 @@
-// src/app/docs/pipeline/subsidy/page.tsx
+// src/app/docs/pricing-demo/page.tsx
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Subsidy Pipeline · Solar Arrow Docs',
+  title: 'Pricing & Demo · Solar Arrow Docs',
   description:
-    'Guide to the Subsidy pipeline in Solar Arrow — managing PM Surya Ghar claims and final disbursement.',
+    'Information about Solar Arrow pricing models, demo access, and enterprise customization.',
 };
 
 const DOCS_NAV = [
@@ -23,7 +23,7 @@ const DOCS_NAV = [
     { label: 'Liaison', href: '/docs/pipeline/liaison', id: '10' },
     { label: 'Installation', href: '/docs/pipeline/installation', id: '11' },
     { label: 'Payments', href: '/docs/pipeline/payments', id: '12' },
-    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13', active: true },
+    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13' },
   ]},
   { group: 'Roles', items: [
     { label: 'Owner & Admin', href: '/docs/roles/owner-admin', id: '14' },
@@ -46,14 +46,14 @@ const DOCS_NAV = [
     { label: 'Users & Permissions', href: '/docs/settings/users-permissions', id: '25' },
   ]},
   { group: 'Pricing', items: [
-    { label: 'Pricing Demo', href: '/docs/pricing-demo', id: '26' },
+    { label: 'Pricing Demo', href: '/docs/pricing-demo', id: '26', active: true },
   ]},
   { group: 'FAQ', items: [
     { label: 'FAQ', href: '/docs/faq', id: '27' },
   ]},
 ];
 
-export default function SubsidyPipelinePage() {
+export default function PricingDemoPage() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff7ed,#f5f5f7)] text-slate-900">
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur">
@@ -67,7 +67,7 @@ export default function SubsidyPipelinePage() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-500">
-          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Subsidy Pipeline</span>
+          <span className="rounded-full bg-orange-50 px-3 py-1 text-[11px] font-medium text-orange-600">Pricing</span>
           <span>v1.0 · 27 pages</span>
         </div>
       </header>
@@ -93,46 +93,48 @@ export default function SubsidyPipelinePage() {
         <main className="max-w-5xl px-4 py-6 md:px-6">
           <section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
-            <h1 className="text-2xl font-semibold tracking-tight">Subsidy management</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Pricing &amp; plans</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
-              The final stage of the solar journey. This module tracks the PM Surya Ghar subsidy application from submission to disbursement.
+              Solar Arrow is available as a managed service for solar vendors. We offer flexible plans based on your monthly project volume.
             </p>
             <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Accounts, Liaison, Owners</span>
-              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 4–6 minutes</span>
+              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Audience: Potential Customers</span>
+              <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 3–5 minutes</span>
             </div>
           </section>
 
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+          <section className="grid gap-4 md:grid-cols-2">
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Workflow Statuses</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">lifecycle</span>
+                <h2 className="text-sm font-semibold">Standard Plan</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">small teams</span>
               </header>
-              <p className="text-[13px] text-slate-600">Monitor subsidy progress via real system states:</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-pending</code>: Inspection approved, ready for portal claim.</li>
-                <li><code className="font-mono text-xs text-blue-600 font-bold">subsidy-disbursed</code>: Final funds received by the customer/vendor.</li>
+                <li><strong className="text-slate-900">Up to 10 users:</strong> Perfect for single-branch offices.</li>
+                <li><strong className="text-slate-900">Full Pipeline:</strong> From Lead to Subsidy tracking.</li>
+                <li><strong className="text-slate-900">Google Sheets Backup:</strong> Included.</li>
               </ul>
             </article>
 
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
-                <h2 className="text-sm font-semibold">Financial Tracking</h2>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">data</span>
+                <h2 className="text-sm font-semibold">Enterprise Plan</h2>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">growth</span>
               </header>
-              <p className="text-[13px] text-slate-600">Capture these fields to close the project:</p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li><code className="font-mono text-xs">subsidyAmount</code>: Total expected benefit.</li>
-                <li><code className="font-mono text-xs">subsidyStatus</code>: <code className="font-mono text-xs">pending</code>, <code className="font-mono text-xs">approved</code>, <code className="font-mono text-xs">disbursed</code>.</li>
-                <li><code className="font-mono text-xs">finalDisbursementDate</code>: Project closure date.</li>
+                <li><strong className="text-slate-900">Unlimited Users:</strong> For companies with many branches.</li>
+                <li><strong className="text-slate-900">Telegram Bot:</strong> Real-time alerts for the whole team.</li>
+                <li><strong className="text-slate-900">Custom Reports:</strong> Built specifically for your workflows.</li>
               </ul>
             </article>
           </section>
 
           <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
-            <h2 className="text-sm font-semibold mb-2">Project Completion</h2>
-            <p className="text-[13px] text-slate-600">A project is only considered <code className="font-mono text-xs font-bold text-green-600">active</code> (fully complete) once both the <code className="font-mono text-xs font-bold">subsidyStatus</code> and <code className="font-mono text-xs font-bold">paymentStatus</code> are finalized.</p>
+            <h2 className="text-sm font-semibold mb-2">Request a Demo</h2>
+            <p className="text-[13px] text-slate-600">Want to see Solar Arrow in action with your real data? Contact our team for a 1:1 walkthrough and a 14-day free trial.</p>
+            <div className="mt-4">
+              <a href="mailto:hello@mktgdime.com" className="inline-flex items-center justify-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-orange-700 active:scale-95">Contact Sales</a>
+            </div>
           </section>
         </main>
       </div>

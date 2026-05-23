@@ -7,6 +7,52 @@ export const metadata: Metadata = {
     'Understand the Owner and Admin dashboard in Solar Arrow — full visibility across all pipelines, reports, and settings.',
 };
 
+const DOCS_NAV = [
+  { group: 'Overview', items: [
+    { label: 'Welcome & Overview', href: '/docs', id: '01' },
+    { label: 'Getting Started', href: '/docs/getting-started', id: '02' },
+    { label: 'Login & Accounts', href: '/docs/login-accounts', id: '03' },
+  ]},
+  { group: 'Pipelines', items: [
+    { label: 'Leads', href: '/docs/pipeline/leads', id: '04' },
+    { label: 'Enquiries', href: '/docs/pipeline/enquiries', id: '05' },
+    { label: 'Survey', href: '/docs/pipeline/survey', id: '06' },
+    { label: 'Quotation', href: '/docs/pipeline/quotation', id: '07' },
+    { label: 'Registration', href: '/docs/pipeline/registration', id: '08' },
+    { label: 'BOM & Dispatch', href: '/docs/pipeline/bom-dispatch', id: '09' },
+    { label: 'Liaison', href: '/docs/pipeline/liaison', id: '10' },
+    { label: 'Installation', href: '/docs/pipeline/installation', id: '11' },
+    { label: 'Payments', href: '/docs/pipeline/payments', id: '12' },
+    { label: 'Subsidy', href: '/docs/pipeline/subsidy', id: '13' },
+  ]},
+  { group: 'Roles', items: [
+    { label: 'Owner & Admin', href: '/docs/roles/owner-admin', id: '14', active: true },
+    { label: 'Sales', href: '/docs/roles/sales', id: '15' },
+    { label: 'Surveyor', href: '/docs/roles/survey', id: '16' },
+    { label: 'Installation', href: '/docs/roles/installation', id: '17' },
+    { label: 'Accounts', href: '/docs/roles/accounts', id: '18' },
+  ]},
+  { group: 'Integrations', items: [
+    { label: 'Google Sheets', href: '/docs/integrations/google-sheets', id: '19' },
+    { label: 'Redis & Telegram', href: '/docs/integrations/redis-telegram', id: '20' },
+    { label: 'PWA Mobile', href: '/docs/integrations/pwa-mobile', id: '21' },
+    { label: 'Google OAuth', href: '/docs/integrations/google-oauth', id: '22' },
+  ]},
+  { group: 'Analytics', items: [
+    { label: 'Reports', href: '/docs/analytics/reports', id: '23' },
+  ]},
+  { group: 'Settings', items: [
+    { label: 'Organization & Branches', href: '/docs/settings/organization-branches', id: '24' },
+    { label: 'Users & Permissions', href: '/docs/settings/users-permissions', id: '25' },
+  ]},
+  { group: 'Pricing', items: [
+    { label: 'Pricing Demo', href: '/docs/pricing-demo', id: '26' },
+  ]},
+  { group: 'FAQ', items: [
+    { label: 'FAQ', href: '/docs/faq', id: '27' },
+  ]},
+];
+
 export default function OwnerAdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#fff7ed,#f5f5f7)] text-slate-900">
@@ -34,70 +80,33 @@ export default function OwnerAdminDashboardPage() {
       {/* Layout */}
       <div className="grid min-h-[calc(100vh-56px)] grid-cols-1 md:grid-cols-[260px,minmax(0,1fr)]">
         {/* Sidebar */}
-        <aside className="hidden border-r border-slate-900/60 bg-slate-950 px-3 py-4 text-slate-100 md:flex md:flex-col md:gap-4">
-          <div>
-            <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-              Overview
+        <aside className="hidden border-r border-slate-900/60 bg-slate-950 px-3 py-4 text-slate-100 md:flex md:flex-col md:gap-4 overflow-y-auto max-h-[calc(100vh-56px)]">
+          {DOCS_NAV.map((group) => (
+            <div key={group.group}>
+              <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
+                {group.group}
+              </div>
+              <nav className="flex flex-col gap-1 text-[13px]">
+                {group.items.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center justify-between rounded-md px-2 py-1.5 transition-all ${
+                      item.active
+                        ? 'bg-gradient-to-r from-rose-500/20 via-orange-500/25 to-orange-500/25 text-slate-50 shadow-sm shadow-black/40'
+                        : 'text-slate-200 hover:bg-slate-800/70'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    <small className={`text-[10px] uppercase tracking-[0.14em] ${item.active ? 'text-slate-300' : 'text-slate-500'}`}>
+                      {item.id}
+                    </small>
+                  </a>
+                ))}
+              </nav>
+              <div className="my-3 h-px bg-gradient-to-r from-slate-700/10 via-slate-500/40 to-slate-700/10" />
             </div>
-            <nav className="flex flex-col gap-1 text-[13px]">
-              <a
-                href="/docs"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70"
-              >
-                <span>Welcome &amp; Overview</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  01
-                </small>
-              </a>
-              <a
-                href="/docs/getting-started"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70"
-              >
-                <span>Getting Started</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  02
-                </small>
-              </a>
-              <a
-                href="/docs/login-accounts"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70"
-              >
-                <span>Login &amp; Accounts</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  03
-                </small>
-              </a>
-            </nav>
-          </div>
-
-          <div className="h-px bg-gradient-to-r from-slate-700/10 via-slate-500/40 to-slate-700/10" />
-
-          <div>
-            <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-              Roles
-            </div>
-            <nav className="flex flex-col gap-1 text-[13px]">
-              <div className="flex items-center justify-between rounded-md bg-gradient-to-r from-rose-500/20 via-orange-500/25 to-orange-500/25 px-2 py-1.5 text-slate-50 shadow-sm shadow-black/40">
-                <span>Owner &amp; Admin Dashboard</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-300">
-                  04
-                </small>
-              </div>
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Sales Dashboard</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  05
-                </small>
-              </div>
-              <div className="flex items-center justify-between rounded-md px-2 py-1.5 text-slate-200 hover:bg-slate-800/70">
-                <span>Survey Dashboard</span>
-                <small className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  06
-                </small>
-              </div>
-              {/* Installation / Accounts dashboards will come later */}
-            </nav>
-          </div>
+          ))}
         </aside>
 
         {/* Main content */}
@@ -133,7 +142,7 @@ export default function OwnerAdminDashboardPage() {
                 </span>
               </header>
               <p className="text-[13px] text-slate-600">
-                When you log in as an owner or admin, the dashboard shows a summary of all active
+                When you log in as an <code className="font-mono text-xs font-bold text-orange-600">owner</code> or <code className="font-mono text-xs font-bold text-orange-600">admin</code>, the dashboard shows a summary of all active
                 projects and key stages in your solar pipeline.
               </p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
@@ -156,21 +165,17 @@ export default function OwnerAdminDashboardPage() {
                 levels in your organization.
               </p>
               <ul className="mt-3 space-y-1.5 text-[12px] text-slate-700">
-                <li>Owner: can always see this dashboard, regardless of branch.</li>
-                <li>Admin: sees this view for the branches they manage.</li>
+                <li><code className="font-mono text-xs font-bold text-orange-600">owner</code>: can always see this dashboard, regardless of branch.</li>
+                <li><code className="font-mono text-xs font-bold text-orange-600">admin</code>: sees this view for the branches they manage.</li>
                 <li>Other roles: are redirected to their own role-specific dashboards instead.</li>
               </ul>
-              <p className="mt-2 text-[12px] text-slate-600">
-                If an admin cannot see this dashboard, ask the owner to confirm their account type
-                and role.
-              </p>
             </article>
           </section>
 
           {/* Second row: key actions + tips */}
           <section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
             {/* Key actions */}
-            <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
+            <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
                 <h2 className="text-sm font-semibold">Key actions from this page</h2>
                 <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
