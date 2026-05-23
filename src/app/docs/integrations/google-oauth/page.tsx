@@ -7,7 +7,14 @@ export const metadata: Metadata = {
     'Learn how Solar Arrow handles secure user authentication via Google OAuth 2.0.',
 };
 
-const DOCS_NAV = [
+interface NavItem {
+  label: string;
+  href: string;
+  id: string;
+  active?: boolean;
+}
+
+const DOCS_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [
     { label: 'Welcome & Overview', href: '/docs', id: '01' },
     { label: 'Getting Started', href: '/docs/getting-started', id: '02' },

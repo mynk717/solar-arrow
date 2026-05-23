@@ -7,7 +7,14 @@ export const metadata: Metadata = {
     'Learn how Solar Arrow synchronizes with Google Sheets for real-time data backup and external reporting.',
 };
 
-const DOCS_NAV = [
+interface NavItem {
+  label: string;
+  href: string;
+  id: string;
+  active?: boolean;
+}
+
+const DOCS_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [
     { label: 'Welcome & Overview', href: '/docs', id: '01' },
     { label: 'Getting Started', href: '/docs/getting-started', id: '02' },

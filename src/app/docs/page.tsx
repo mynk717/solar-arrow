@@ -7,7 +7,14 @@ export const metadata: Metadata = {
     'High-level overview of Solar Arrow — what it does, who it is for, and how the solar pipeline flows from lead to subsidy.',
 };
 
-const DOCS_NAV = [
+interface NavItem {
+  label: string;
+  href: string;
+  id: string;
+  active?: boolean;
+}
+
+const DOCS_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [
     { label: 'Welcome & Overview', href: '/docs', id: '01', active: true },
     { label: 'Getting Started', href: '/docs/getting-started', id: '02' },

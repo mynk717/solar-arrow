@@ -7,7 +7,14 @@ export const metadata: Metadata = {
     'How to use Solar Arrow as a Progressive Web App on Android and iOS for field surveys and installation tracking.',
 };
 
-const DOCS_NAV = [
+interface NavItem {
+  label: string;
+  href: string;
+  id: string;
+  active?: boolean;
+}
+
+const DOCS_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Overview', items: [
     { label: 'Welcome & Overview', href: '/docs', id: '01' },
     { label: 'Getting Started', href: '/docs/getting-started', id: '02' },
