@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <><section className="mb-6 flex flex-col gap-2">
+    <>
+      <section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
             <h1 className="text-2xl font-semibold tracking-tight">Leads page</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
@@ -64,6 +65,6 @@ export default function Page() {
               </div>
             </div>
           </section>
+    </>
   );
 }
-
