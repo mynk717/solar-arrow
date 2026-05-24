@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/analytics/reports">
-      <section className="mb-6 flex flex-col gap-2">
+<section className="mb-6 flex flex-col gap-2">
         <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
         <h1 className="text-2xl font-semibold tracking-tight">Data &amp; reporting</h1>
         <p className="max-w-2xl text-[13px] text-slate-600">
@@ -20,8 +20,7 @@ export default function Page() {
           <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 5–7 minutes</span>
         </div>
       </section>
-
-      <section className="grid gap-4 md:grid-cols-2">
+<section className="grid gap-4 md:grid-cols-2">
         <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
           <header className="mb-2 flex items-baseline justify-between gap-2">
             <h2 className="text-sm font-semibold">Conversion Reports</h2>
@@ -48,8 +47,7 @@ export default function Page() {
           </ul>
         </article>
       </section>
-
-      <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
+<section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
         <h2 className="text-sm font-semibold mb-2">Exporting Data</h2>
         <p className="text-[13px] text-slate-600">Every report table in Solar Arrow comes with an "Export to CSV" button for users with the <code className="font-mono text-xs font-bold text-orange-600">canExport</code> permission. This allows you to perform custom deep-dives in Excel or other tools.</p>
       </section>

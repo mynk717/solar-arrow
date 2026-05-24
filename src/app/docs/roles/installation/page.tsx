@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import DocsLayout from '@/components/DocsLayout';
 
 export const metadata: Metadata = {
   title: 'Installation Dashboard · Solar Arrow Docs',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <><section className="mb-6 flex flex-col gap-2">
+    <DocsLayout currentPath="/docs/roles/installation">
+<section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
             <h1 className="text-2xl font-semibold tracking-tight">Installation dashboard &amp; workflow</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
@@ -19,8 +21,7 @@ export default function Page() {
               <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 5–7 minutes</span>
             </div>
           </section>
-
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+<section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
                 <h2 className="text-sm font-semibold">Active Installations</h2>
@@ -47,8 +48,7 @@ export default function Page() {
               </ul>
             </article>
           </section>
-
-          <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
+<section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
             <h2 className="text-sm font-semibold mb-2">Work Completion Report (WCR)</h2>
             <p className="text-[13px] text-slate-600">The WCR is the final technical handover. You must complete a checklist before the project can move to inspection.</p>
             <ul className="mt-3 grid gap-2 md:grid-cols-2 text-[12px]">
@@ -58,6 +58,6 @@ export default function Page() {
               <li className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg"><div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> <code className="font-mono text-xs">systemTested</code></li>
             </ul>
           </section>
+    </DocsLayout>
   );
 }
-

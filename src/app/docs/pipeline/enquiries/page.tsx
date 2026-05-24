@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import DocsLayout from '@/components/DocsLayout';
 
 export const metadata: Metadata = {
   title: 'Enquiries · Solar Arrow Docs',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <><section className="mb-6 flex flex-col gap-2">
+    <DocsLayout currentPath="/docs/pipeline/enquiries">
+<section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">Solar Arrow · Docs</div>
             <h1 className="text-2xl font-semibold tracking-tight">Enquiries page</h1>
             <p className="max-w-2xl text-[13px] text-slate-600">
@@ -20,8 +22,7 @@ export default function Page() {
               <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-0.5">Time to read: 4–6 minutes</span>
             </div>
           </section>
-
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+<section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
                 <h2 className="text-sm font-semibold">Enquiry Statuses</h2>
@@ -50,14 +51,13 @@ export default function Page() {
               </ul>
             </article>
           </section>
-
-          <section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
+<section className="mt-4 article rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
             <h2 className="text-sm font-semibold mb-2">Branch Assignment</h2>
             <p className="text-[13px] text-slate-600">Enquiries are filtered by <code className="font-mono text-xs font-bold text-orange-600">branchId</code>. Admins see only their branch's data, while Owners see everything.</p>
             <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200 text-[12px]">
               <p className="text-slate-600">To reassign an enquiry, edit the <code className="font-mono text-xs">branchId</code> field in the Enquiry details modal. This ensures the correct local team takes over the survey and installation.</p>
             </div>
           </section>
+    </DocsLayout>
   );
 }
-

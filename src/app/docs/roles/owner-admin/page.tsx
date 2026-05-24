@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import DocsLayout from '@/components/DocsLayout';
 
 export const metadata: Metadata = {
   title: 'Owner & Admin Dashboard · Solar Arrow Docs',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <><section className="mb-6 flex flex-col gap-2">
+    <DocsLayout currentPath="/docs/roles/owner-admin">
+<section className="mb-6 flex flex-col gap-2">
             <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500">
               Solar Arrow · Docs
             </div>
@@ -28,8 +30,7 @@ export default function Page() {
               </span>
             </div>
           </section>
-
-          <section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+<section className="grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
             {/* Main card: what you see */}
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
@@ -68,9 +69,7 @@ export default function Page() {
               </ul>
             </article>
           </section>
-
-          {/* Second row: key actions + tips */}
-          <section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
+<section className="mt-4 grid gap-4 md:grid-cols-[minmax(0,2.1fr),minmax(0,1.4fr)]">
             {/* Key actions */}
             <article className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_10px_25_rgba(15,23,42,0.08)]">
               <header className="mb-2 flex items-baseline justify-between gap-2">
@@ -116,6 +115,6 @@ export default function Page() {
               </ul>
             </article>
           </section>
+    </DocsLayout>
   );
 }
-
