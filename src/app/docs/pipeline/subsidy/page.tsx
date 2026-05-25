@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide to the Subsidy pipeline in Solar Arrow — managing PM Surya Ghar claims and final disbursement.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/subsidy">

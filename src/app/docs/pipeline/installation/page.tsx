@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide to the Installation pipeline in Solar Arrow — physical execution, checklists, and handover.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/installation">

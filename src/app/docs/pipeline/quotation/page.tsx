@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Learn how the Quotation page in Solar Arrow works — preparing, sharing, and tracking solar quotations linked to surveys and enquiries.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/quotation">

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide for Sales users in Solar Arrow — managing leads, prospects, and converting them to enquiries.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/roles/sales">

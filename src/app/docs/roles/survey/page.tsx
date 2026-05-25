@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide for Surveyors in Solar Arrow — managing site visits, technical surveys, and report submission.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/roles/survey">

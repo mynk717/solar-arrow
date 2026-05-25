@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide to the Liaison pipeline in Solar Arrow — managing DISCOM approvals, grid connectivity, and net metering.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/liaison">

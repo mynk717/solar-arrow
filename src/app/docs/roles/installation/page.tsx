@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide for Installation teams in Solar Arrow — tracking progress, serial numbers, and WCR submission.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/roles/installation">

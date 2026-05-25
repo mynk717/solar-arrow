@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Guide to the Payments pipeline in Solar Arrow — tracking customer payments, UTR references, and bank disbursements.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/payments">

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Learn how the BOM & Dispatch page in Solar Arrow works — managing material lists and dispatches for approved projects.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/bom-dispatch">

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Detailed guide on how the Survey pipeline works — scheduling site visits, technical requirements, and approval logic.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/survey">

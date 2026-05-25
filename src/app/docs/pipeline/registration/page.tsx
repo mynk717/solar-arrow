@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Learn how the Registration page in Solar Arrow works — confirming approved quotations and registering projects before installation.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/registration">

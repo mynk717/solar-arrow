@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Manage your solar team, assign roles, and configure custom page permissions for each user.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/settings/users-permissions">

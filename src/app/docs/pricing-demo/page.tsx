@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Information about Solar Arrow pricing models, demo access, and enterprise customization.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pricing-demo">

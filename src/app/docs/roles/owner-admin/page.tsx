@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Understand the Owner and Admin dashboard in Solar Arrow — full visibility across all pipelines, reports, and settings.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/roles/owner-admin">

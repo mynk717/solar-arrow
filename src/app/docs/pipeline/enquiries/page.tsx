@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'Learn how the Enquiries page in Solar Arrow works — managing conversations after a lead shows interest and before survey or quotation.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/pipeline/enquiries">

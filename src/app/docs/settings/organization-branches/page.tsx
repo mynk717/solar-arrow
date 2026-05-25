@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     'How to configure your solar company profile and manage multiple operational branches.',
 };
 
+
+
 export default function Page() {
   return (
     <DocsLayout currentPath="/docs/settings/organization-branches">
