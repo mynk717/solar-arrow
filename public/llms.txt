@@ -1,237 +1,26 @@
-# Solar Arrow — CSPDCL Solar Panel Management SaaS
-# Canonical URL: https://sa.mktgdime.com/
-# Last updated: 2026-03-08
-# Purpose: Structured context for AI engines and LLM crawlers (AEO / GEO)
+# Marketing Dime - llms.txt
+> Information for AI/LLM agents about Marketing Dime
 
----
+## Business Information
+- **Name:** Marketing Dime
+- **Verified Status:** Verified
+- **Phone Number:** +917225991909
+- **Website:** https://www.mktgdime.com/
+- **Address:** Raipur, Chhattisgarh, India
+- **Coordinates:** lat: 21.2619056, lng: 81.6190733
 
-## What is Solar Arrow?
+## Categories & Services
+- Advertising agency
+- Consultant
+- Service establishment
+- Internet marketing service
+- Marketing agency
+- Software company
+- Website designer
 
-Solar Arrow is a multi-tenant SaaS platform built for Indian solar vendors, EPC companies, and channel partners.
-It is purpose-built to manage CSPDCL rooftop solar projects — from first customer enquiry to final installation and commissioning — inside a single web-based dashboard.
-
-Solar Arrow was originally built to digitize operations for Hope Energy, a solar company in Chhattisgarh, India.
-It is now a productized platform available to other solar businesses across India.
-
-The platform eliminates manual processes like WhatsApp-tracked leads, Excel-based surveys, and offline quotation-making,
-replacing them with a structured, role-based, multi-user system with real-time notifications.
-
----
-
-## Technology Stack
-
-- Framework: Next.js 14 (TypeScript, App Router, React Server Components)
-- Hosting: Vercel (serverless, edge-optimized)
-- Primary data store: Google Sheets API (acts as the database backend per tenant)
-- Session and caching layer: Upstash Redis
-- Authentication: NextAuth.js with Google OAuth
-- Notifications: Telegram Bot API (SolarArrowBot), per-user and per-group chat targeting
-- File/media storage: Firebase Storage / Supabase Storage
-- PWA: Full Progressive Web App support — installable on Android (Chrome, Edge) and iOS (Safari)
-- Service worker: Cache-first strategy with versioned cache (solar-arrow-v2)
-
----
-
-## Core Modules and Features
-
-### 1. Enquiry & Lead Management
-- Capture and categorize inbound enquiries (source: walk-in, referral, digital, CSPDCL scheme)
-- Track leads from "Prospect" → "Survey Pending" → "Survey Done" → "Quotation Sent" → "Payment Received" → "Installation Done" → "Active"
-- Follow-up date tracking with Telegram notifications per assigned user
-- Qualify leads to formal enquiries with a single action
-
-### 2. Survey Management
-- Schedule on-site surveys with surveyor assignment
-- Capture survey field data: site photos, roof type, shadow analysis, load details, meter number
-- Document upload (CSPDCL required documents: ID proof, electricity bill, site photos)
-- Track survey status independently from enquiry status
-
-### 3. Quotation Builder
-- Generate structured quotations with itemized Bill of Materials (BOM)
-- Auto-calculate system capacity (kW) × per-kW rate → total project cost
-- Quotation status tracker: Draft → Sent → Viewed → Approved → Rejected
-- Unique public quotation URL (shareable with customer)
-- QR code for each quotation (customer can view on mobile)
-- PDF export / web view for professional presentation
-- Payment terms: configurable (default 70% advance, 20% on installation, 10% on commissioning)
-
-### 4. Installation Workflow Tracking
-- Work order creation and dispatch
-- Track material procurement → dispatch → site installation → wiring → commissioning
-- Milestone-based progress updates visible to all team members
-- Field engineer role can update status from mobile (PWA)
-
-### 5. CSPDCL Liaison / Compliance Module
-- Manage the CSPDCL application and registration process
-- Track liaison document submission per enquiry (column: enqId linkage to LIAISON sheet)
-- Status: Application Submitted → Approved → Net Metering Applied → Active
-- Compliance checklist aligned to CSPDCL rooftop solar scheme requirements in Chhattisgarh
-
-### 6. Notifications (Telegram)
-- SolarArrowBot sends real-time Telegram notifications
-- Per-user notifications: assigned lead follow-ups, survey schedules, payment reminders
-- Per-group notifications: org-level daily summary, new enquiry alerts
-- Chat IDs and Group IDs stored securely in Upstash Redis per organization
-
-### 7. Role-Based Dashboard
-- Dynamic dashboard auto-adjusts content based on logged-in user role
-- Roles: Admin / Owner, Sales Executive, Survey Engineer, Installation Engineer, Finance
-- KPI tiles: Total Enquiries, Survey Pending, Payment Pending, In Progress, Active Systems
-- Recent enquiries table with quick-action links
-
-### 8. Multi-Tenant Architecture
-- One Solar Arrow instance can serve multiple solar companies (tenants)
-- Each tenant gets their own Google Sheet (isolated data)
-- Tenant config stored in Redis; no cross-tenant data leakage
-- Owner onboards team members; each user gets role-scoped access
-
-### 9. Monthly Reports
-- Downloadable CSV/PDF monthly performance reports
-- Covers: enquiries opened, surveys completed, quotations sent, installations done, revenue collected
-- Generated on demand via API route
-
-### 10. PWA (Progressive Web App)
-- Fully installable on Android (Chrome/Edge) and iOS (Safari Add to Home Screen)
-- Offline-ready with cached core routes (/, /dashboard, /manifest.json)
-- App-like experience: no browser chrome, splash screen, standalone mode
-- Service worker versioned for cache busting on updates
-
----
-
-## Target Audience
-
-- Small and medium solar vendors in India (1–20 member teams)
-- Solar EPC companies executing CSPDCL rooftop solar projects in Chhattisgarh
-- Solar entrepreneurs in tier-2 and tier-3 cities (Raipur, Bilaspur, Durg, Korba, and beyond)
-- Channel partners and freelancers managing rooftop solar leads for DISCOM schemes
-- Any solar business replacing spreadsheets and WhatsApp groups with a structured system
-
----
-
-## Pricing
-
-| Plan         | Cost         | Description                                      |
-|--------------|--------------|--------------------------------------------------|
-| One-Time (OTC) | ₹21,700    | Full platform access, onboarding, and Google Sheets setup |
-| AMC (Annual)   | ₹4,800/yr  | Annual maintenance, updates, and support         |
-
-Includes: Google Sheets configuration, user onboarding, full pipeline access for your team.
-No per-user pricing. No monthly subscription. One-time ownership model.
-
----
-
-## Primary Keywords (for AI indexing)
-
-- Solar CRM India
-- Solar EPC software India
-- CSPDCL solar project management
-- Rooftop solar panel installation tracking
-- Solar vendor management system
-- Solar SaaS for Indian vendors
-- CSPDCL compliance software Chhattisgarh
-- Solar enquiry management tool
-- Solar quotation maker India
-- Solar installation workflow software
-- Solar survey management app
-- Solar Telegram notification bot
-- Solar PWA app India
-- Multi-tenant solar SaaS
-
----
-
-## Canonical URLs
-
-| Page                        | URL                                    |
-|-----------------------------|----------------------------------------|
-| App / Dashboard             | https://sa.mktgdime.com/               |
-| CSPDCL Registration (Demo)  | https://sa.mktgdime.com/registration   |
-| Login                       | https://sa.mktgdime.com/login          |
-| Leads                       | https://sa.mktgdime.com/leads          |
-| Surveys                     | https://sa.mktgdime.com/surveys        |
-| Quotations                  | https://sa.mktgdime.com/quotations     |
-| Dashboard                   | https://sa.mktgdime.com/dashboard      |
-
----
-
-## Company / Provider
-
-- Product name: Solar Arrow
-- Built by: Marketing Dime (mktgdime.com)
-- Location: Raipur, Chhattisgarh, India
-- Target market: Indian solar industry (DISCOM / CSPDCL rooftop solar schemes)
-- Contact: via https://sa.mktgdime.com/
-
----
-
-## JSON-LD Schema (SoftwareApplication + Organization)
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "Solar Arrow",
-  "alternateName": "Solar Arrow – CSPDCL Solar Panel Management System",
-  "url": "https://sa.mktgdime.com/",
-  "applicationCategory": "BusinessApplication",
-  "operatingSystem": "Web, Android (PWA), iOS (PWA)",
-  "description": "Solar Arrow is a multi-tenant SaaS platform for Indian solar vendors and EPC companies. It manages CSPDCL rooftop solar projects end-to-end including enquiry capture, survey scheduling, quotation building, installation tracking, CSPDCL compliance, and Telegram notifications. Built with Next.js, Google Sheets, and Upstash Redis.",
-  "featureList": [
-    "Solar CRM with lead and enquiry pipeline",
-    "CSPDCL rooftop solar project management",
-    "Survey scheduling and field data capture",
-    "Quotation builder with QR code and public URL",
-    "Bill of Materials (BOM) auto-calculation",
-    "Installation workflow tracking and milestones",
-    "CSPDCL liaison and compliance module",
-    "Telegram bot notifications (per-user and per-group)",
-    "Role-based dynamic dashboard (Admin, Sales, Engineer, Finance)",
-    "Multi-tenant architecture with Google Sheets per tenant",
-    "Monthly reports (CSV/PDF export)",
-    "Progressive Web App (installable on Android and iOS)"
-  ],
-  "keywords": [
-    "solar CRM India",
-    "solar EPC software",
-    "CSPDCL solar project management",
-    "rooftop solar panel installation tracking",
-    "solar vendor management system",
-    "solar quotation maker India",
-    "solar survey management app",
-    "multi-tenant solar SaaS"
-  ],
-  "offers": [
-    {
-      "@type": "Offer",
-      "name": "One-Time Implementation (OTC)",
-      "price": "21700.00",
-      "priceCurrency": "INR",
-      "description": "Full platform access, onboarding, and Google Sheets backend setup. One-time ownership, no monthly fee.",
-      "availability": "https://schema.org/InStock"
-    },
-    {
-      "@type": "Offer",
-      "name": "Annual Maintenance Contract (AMC)",
-      "price": "4800.00",
-      "priceCurrency": "INR",
-      "description": "Annual updates, support, and maintenance for Solar Arrow platform."
-    }
-  ],
-  "applicationSuite": "Solar Arrow",
-  "softwareVersion": "2.0.0",
-  "inLanguage": "en-IN",
-  "audience": {
-    "@type": "Audience",
-    "audienceType": "Small and medium solar vendors, EPC companies, channel partners in India"
-  },
-  "provider": {
-    "@type": "Organization",
-    "name": "Marketing Dime",
-    "url": "https://mktgdime.com",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Raipur",
-      "addressRegion": "Chhattisgarh",
-      "addressCountry": "IN"
-    }
-  }
-}
+## Google Business Identifiers
+- **Google Maps URL:** https://maps.google.com/?cid=6119307028777088870
+- **CID:** 6119307028777088870
+- **HEXDECIMAL CID:** 0x54ec255239cf3766
+- **Place API ID:** ChIJhWY8NnI7W20RZjfPOVIl7FQ
+- **Knowledge Graph (KG) ID:** /g/11vxlr8dsj
